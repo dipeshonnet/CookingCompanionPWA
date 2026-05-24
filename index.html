@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cooking Companion - Ultimate Kitchen Assistant</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Your kitchen assistant with custom recipe building, ingredient matching, timers, and meal planning.">
+  <meta name="theme-color" content="#f59e0b">
+  
+  <!-- PWA Manifest & Apple Web App Tags -->
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cooking Companion">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  
+  <!-- Glowing Background Orbs -->
+  <div class="bg-orbs">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+  </div>
+
+  <!-- AUTH VIEW (Initially Active) -->
+  <div id="auth-view" class="auth-container">
+    <div class="glass-card auth-card">
+      <div class="auth-logo">
+        <img src="assets/logo.png" alt="Cooking Companion Logo">
+      </div>
+      <h1 class="auth-title">Cooking Companion</h1>
+      <p class="auth-subtitle">Elevate your kitchen experience with custom recipes, ingredient matching, timers, and meal planning.</p>
+      
+      <div class="auth-btn-group">
+        <button id="btn-login-google" class="auth-btn auth-btn-google">
+          <i data-lucide="globe"></i> Continue with Google
+        </button>
+        <button id="btn-login-apple" class="auth-btn auth-btn-apple">
+          <i data-lucide="apple"></i> Continue with Apple
+        </button>
+        <button id="btn-login-email" class="auth-btn auth-btn-email">
+          <i data-lucide="mail"></i> Continue with Email
+        </button>
+      </div>
+      
+      <div class="auth-footer">
+        By continuing, you agree to our Terms of Service and Privacy Policy.
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER (Initially Hidden) -->
+  <div id="app-view" class="app-container" style="display: none;">
+    
+    <!-- Mobile Top Navigation Bar -->
+    <header class="mobile-nav-bar">
+      <button id="mobile-menu-toggle" class="btn-icon" aria-label="Toggle sidebar menu">
+        <i data-lucide="menu"></i>
+      </button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="brand-icon" style="width: 32px; height: 32px; border-radius: 8px; padding: 6px;">
+          <img src="assets/logo.png" alt="Logo">
+        </div>
+        <span class="brand-name" style="font-size: 16px;">Companion</span>
+      </div>
+      <div class="profile-avatar" id="mobile-profile-avatar" style="width: 32px; height: 32px; font-size: 13px;">U</div>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar-nav" class="sidebar">
+      <div class="app-brand">
+        <div class="brand-icon">
+          <img src="assets/logo.png" alt="Cooking Companion App Logo">
+        </div>
+        <span class="brand-name">Companion</span>
+      </div>
+
+      <nav style="flex-grow: 1;">
+        <ul class="nav-menu">
+          <li class="nav-item active" data-view="dashboard">
+            <button><i data-lucide="layout-dashboard"></i> Dashboard</button>
+          </li>
+          <li class="nav-item" data-view="explore">
+            <button><i data-lucide="compass"></i> Explore Recipes</button>
+          </li>
+          <li class="nav-item" data-view="pantry">
+            <button><i data-lucide="container"></i> Ingredients Pantry</button>
+          </li>
+          <li class="nav-item" data-view="ai-generator">
+            <button><i data-lucide="plus-circle"></i> Add Recipe</button>
+          </li>
+          <li class="nav-item" data-view="planner">
+            <button><i data-lucide="calendar"></i> Meal Planner</button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- User Profile Badge -->
+      <div class="user-profile-badge">
+        <div class="profile-avatar" id="sidebar-avatar">C</div>
+        <div class="profile-info">
+          <span class="profile-name" id="sidebar-name">Chef Guest</span>
+          <span class="profile-role">Kitchen Master</span>
+        </div>
+        <button id="btn-profile" class="btn-profile" aria-label="Open profile settings">
+          <i data-lucide="user-cog"></i>
+        </button>
+        <button id="btn-logout" class="btn-logout" aria-label="Log out of account">
+          <i data-lucide="log-out"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="main-content">
+      
+      <!-- VIEW 1: DASHBOARD -->
+      <section id="view-dashboard" class="view-section active">
+        <div class="app-header">
+          <div class="header-title">
+            <h1 id="dashboard-welcome-heading">Welcome, Chef Guest!</h1>
+            <p>Ready to create some culinary magic today?</p>
+          </div>
+        </div>
+        
+        <div class="dashboard-grid">
+          <!-- Main column -->
+          <div class="main-column">
+            <!-- Highlight Card -->
+            <div class="glass-card interactive" style="background: linear-gradient(135deg, rgba(22, 28, 45, 0.45) 0%, rgba(139, 92, 246, 0.08) 100%);">
+              <div class="card-title-bar">
+                <h2><i data-lucide="plus-circle"></i> Add Recipe</h2>
+              </div>
+              <p style="margin-bottom: 20px; color: var(--text-muted);">Save a custom recipe with structured steps, one-cook or two-cook assignments, and timers that can run together.</p>
+              <button class="btn-primary" onclick="switchView('ai-generator')">
+                <i data-lucide="plus"></i> Add Recipe
+              </button>
+            </div>
+            
+            <!-- Recommendations Section -->
+            <div class="glass-card">
+              <div class="card-title-bar">
+                <h2><i data-lucide="award"></i> Handpicked Recommendations</h2>
+                <button class="btn-secondary" onclick="switchView('explore')" style="padding: 6px 12px; font-size: 12px;">See All</button>
+              </div>
+              <div class="recipes-grid" id="dashboard-recommendations">
+                <!-- Recipe Cards will be rendered dynamically -->
+              </div>
+            </div>
+          </div>
+          
+          <!-- Side column -->
+          <div class="side-column">
+            <!-- Pantry Overview -->
+            <div class="glass-card">
+              <div class="card-title-bar">
+                <h2><i data-lucide="container"></i> Pantry Overview</h2>
+                <button class="btn-icon" onclick="switchView('pantry')"><i data-lucide="plus"></i></button>
+              </div>
+              <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">Quickly matching recipes with what you have in stock.</p>
+              <div class="pantry-tags-container" id="dashboard-pantry-list" style="margin-bottom: 16px;">
+                <!-- Tags rendered dynamically -->
+              </div>
+              <div id="pantry-matching-summary" style="font-size: 13px; font-weight: 500;">
+                <!-- Matched recipe status -->
+              </div>
+            </div>
+            
+            <!-- Active Timers list -->
+            <div class="glass-card">
+              <div class="card-title-bar">
+                <h2><i data-lucide="timer"></i> Active Timers</h2>
+              </div>
+              <div class="active-timers-sidebar" id="active-timers-container">
+                <!-- Active timers rendered dynamically -->
+                <p class="empty-state" style="color: var(--text-dim); font-size: 13px; text-align: center; padding: 20px 0;">No active cooking timers.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: EXPLORE RECIPES -->
+      <section id="view-explore" class="view-section">
+        <div class="app-header">
+          <div class="header-title">
+            <h1>Explore Recipes</h1>
+            <p>Browse, search, and discover gourmet instructions.</p>
+          </div>
+          
+          <!-- Search Control -->
+          <div style="position: relative;">
+            <input type="text" id="recipe-search" class="form-control" placeholder="Search recipe name..." style="padding-left: 40px; width: 260px;">
+            <i data-lucide="search" style="position: absolute; left: 14px; top: 13px; width: 16px; height: 16px; color: var(--text-muted);"></i>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 28px; flex-wrap: wrap;">
+          <button class="btn-secondary filter-btn active" data-filter="All">All Recipes</button>
+          <button class="btn-secondary filter-btn" data-filter="Breakfast">Breakfast</button>
+          <button class="btn-secondary filter-btn" data-filter="Lunch">Lunch</button>
+          <button class="btn-secondary filter-btn" data-filter="Dinner">Dinner</button>
+          <button class="btn-secondary filter-btn" data-filter="Matched">Matched Ingredients</button>
+        </div>
+
+        <div class="recipes-grid" id="explore-recipes-grid">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- VIEW 3: PANTRY MANAGER -->
+      <section id="view-pantry" class="view-section">
+        <div class="app-header">
+          <div class="header-title">
+            <h1>Ingredients Pantry</h1>
+            <p>Log your kitchen supplies to automatically match recipe requirements.</p>
+          </div>
+        </div>
+
+        <div class="glass-card" style="margin-bottom: 32px;">
+          <div class="card-title-bar">
+            <h2><i data-lucide="plus-circle"></i> Add Ingredients</h2>
+          </div>
+          
+          <div class="pantry-input-group" style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <input type="text" id="pantry-ingredient-input" class="form-control" placeholder="Ingredient name (e.g., Salmon)" style="flex: 2; min-width: 180px;" aria-label="Ingredient name">
+            <input type="number" id="pantry-quantity-input" class="form-control" placeholder="Qty" value="1" min="0.1" step="any" style="flex: 0.5; min-width: 70px;" aria-label="Quantity">
+            <select id="pantry-category-input" class="form-control" style="flex: 1; min-width: 130px;" aria-label="Ingredient category">
+              <option value="Vegetables" selected>Vegetables</option>
+              <option value="Fruits">Fruits</option>
+              <option value="Masala">Masala</option>
+              <option value="Pulses">Pulses</option>
+              <option value="Dairy">Dairy</option>
+              <option value="Grains">Grains</option>
+              <option value="Meat">Meat</option>
+              <option value="Seafood">Seafood</option>
+              <option value="Other">Other</option>
+            </select>
+            <select id="pantry-unit-input" class="form-control" style="flex: 0.8; min-width: 100px;" aria-label="Unit">
+              <option value="pcs">pcs</option>
+              <option value="g">g</option>
+              <option value="ml">ml</option>
+              <option value="cup">cup</option>
+              <option value="tbsp">tbsp</option>
+              <option value="tsp">tsp</option>
+            </select>
+            <button id="pantry-add-btn" class="btn-primary" style="flex: 0.8; min-width: 140px; justify-content: center;"><i data-lucide="plus"></i> Add to Pantry</button>
+          </div>
+          
+          <p style="color: var(--text-dim); font-size: 12px; margin-top: -12px;">Add ingredients you have in your kitchen. We will use these to calculate recipe matches and deduct portions when cooked.</p>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title-bar">
+            <h2><i data-lucide="list"></i> My Pantry Ingredients</h2>
+            <button id="pantry-clear-btn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px; border-color: rgba(239, 68, 68, 0.2); color: #ef4444;"><i data-lucide="trash-2"></i> Clear All</button>
+          </div>
+          
+          <div class="pantry-tags-container" id="pantry-manager-tags" style="min-height: 100px;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: ADD RECIPE -->
+      <section id="view-ai-generator" class="view-section">
+        <div class="app-header">
+          <div class="header-title">
+            <h1>Add Recipe</h1>
+            <p>Create recipes from a form, voice notes, or the optional AI generator.</p>
+          </div>
+        </div>
+
+        <div class="dashboard-grid add-recipe-layout">
+          <div class="main-column">
+            <form id="custom-recipe-form" class="glass-card recipe-builder-card">
+              <div class="card-title-bar">
+                <h2><i data-lucide="clipboard-list"></i> Custom Recipe</h2>
+              </div>
+
+              <div class="recipe-builder-grid">
+                <div class="form-group">
+                  <label for="recipe-title-input">Recipe Name</label>
+                  <input type="text" id="recipe-title-input" class="form-control" placeholder="e.g., Lemon Herb Pasta" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="recipe-category-input">Category</label>
+                  <select id="recipe-category-input" class="form-control">
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner" selected>Dinner</option>
+                  </select>
+                </div>
+
+                <div class="form-group recipe-builder-wide">
+                  <label for="recipe-description-input">Description</label>
+                  <textarea id="recipe-description-input" class="form-control" rows="3" placeholder="Short recipe summary"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="recipe-prep-input">Prep Minutes</label>
+                  <input type="number" id="recipe-prep-input" class="form-control" min="0" step="1" value="10" readonly>
+                </div>
+
+                <div class="form-group">
+                  <label for="recipe-cook-time-input">Cook Minutes</label>
+                  <input type="number" id="recipe-cook-time-input" class="form-control" min="0" step="1" placeholder="Auto" readonly>
+                </div>
+
+                <div class="form-group">
+                  <label for="recipe-servings-input">Servings</label>
+                  <input type="number" id="recipe-servings-input" class="form-control" min="1" step="1" value="2">
+                </div>
+
+                <div class="form-group">
+                  <label for="recipe-cook-count-input">Cooking Crew</label>
+                  <select id="recipe-cook-count-input" class="form-control">
+                    <option value="1" selected>1 cook</option>
+                    <option value="2">2 cooks</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="recipe-difficulty-input">Difficulty</label>
+                  <select id="recipe-difficulty-input" class="form-control">
+                    <option value="Easy">Easy</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="Hard">Hard</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="recipe-tags-input">Tags</label>
+                  <input type="text" id="recipe-tags-input" class="form-control" placeholder="Quick, Vegetarian">
+                </div>
+
+                <div class="form-group recipe-builder-wide">
+                  <label for="recipe-image-input">Image URL</label>
+                  <input type="url" id="recipe-image-input" class="form-control" placeholder="Optional">
+                </div>
+              </div>
+
+              <div class="recipe-builder-section">
+                <div class="builder-section-header">
+                  <h3><i data-lucide="shopping-basket"></i> Ingredients</h3>
+                  <button type="button" id="recipe-add-ingredient-row" class="btn-secondary"><i data-lucide="plus"></i> Add Ingredient</button>
+                </div>
+                <div id="recipe-ingredients-list" class="recipe-builder-list">
+                  <!-- Ingredient rows rendered dynamically -->
+                </div>
+              </div>
+
+              <div class="recipe-builder-section">
+                <div class="builder-section-header">
+                  <h3><i data-lucide="list-checks"></i> Steps</h3>
+                  <button type="button" id="recipe-add-step-row" class="btn-secondary"><i data-lucide="plus"></i> Add Step</button>
+                </div>
+                <div id="recipe-steps-list" class="recipe-builder-list">
+                  <!-- Step rows rendered dynamically -->
+                </div>
+              </div>
+
+              <div class="recipe-builder-actions">
+                <button type="button" id="recipe-reset-form" class="btn-secondary"><i data-lucide="rotate-ccw"></i> Reset</button>
+                <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Recipe</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="side-column">
+            <div class="glass-card recipe-talk-card">
+              <div class="card-title-bar">
+                <h2><i data-lucide="mic"></i> Talk</h2>
+              </div>
+              <textarea id="recipe-talk-notes" class="form-control" rows="12" placeholder="Say or paste: title, ingredients, steps, time, cook 1 or cook 2"></textarea>
+              <div class="recipe-talk-actions">
+                <button type="button" id="recipe-voice-start" class="btn-secondary"><i data-lucide="mic"></i> Start</button>
+                <button type="button" id="recipe-voice-stop" class="btn-secondary" disabled><i data-lucide="square"></i> Stop</button>
+              </div>
+              <div class="recipe-talk-actions">
+                <button type="button" id="recipe-build-from-talk" class="btn-primary"><i data-lucide="wand-2"></i> Build Draft</button>
+                <button type="button" id="recipe-clear-talk" class="btn-secondary"><i data-lucide="eraser"></i> Clear</button>
+              </div>
+              <p id="recipe-voice-status" class="inline-status">Voice idle</p>
+            </div>
+          </div>
+        </div>
+
+        <details class="glass-card ai-optional-card">
+          <summary>
+            <span><i data-lucide="sparkles"></i> Create with AI</span>
+            <i data-lucide="chevron-down"></i>
+          </summary>
+
+          <div class="ai-optional-content">
+            <!-- API Key settings panel -->
+            <div class="ai-settings-card">
+              <div class="card-title-bar">
+                <h2><i data-lucide="key"></i> Gemini Configuration</h2>
+              </div>
+              <div class="pantry-input-group">
+                <input type="password" id="gemini-key-input" class="form-control" placeholder="Enter your Gemini API Key..." style="flex-grow: 1;" aria-label="Gemini API Key">
+                <button id="gemini-key-save-btn" class="btn-secondary">Save Key</button>
+              </div>
+              <p style="font-size: 12px; color: var(--text-muted); margin-top: -12px;">Your API Key is saved locally in your browser's localStorage and is only sent directly to Google's API servers.</p>
+            </div>
+
+            <div>
+              <div class="card-title-bar">
+                <h2><i data-lucide="wand-2"></i> AI Draft</h2>
+              </div>
+
+              <div class="ai-controls">
+                <!-- Ingredient Selection -->
+                <div class="form-group">
+                  <label>Select Pantry Ingredients to Use</label>
+                  <div class="pantry-selection-grid" id="ai-selectable-ingredients">
+                    <!-- Interactive chips toggled here -->
+                  </div>
+                </div>
+
+                <!-- Recipe style preferences -->
+                <div class="recipe-builder-grid">
+                  <div class="form-group">
+                    <label for="ai-diet-preference">Dietary Preference</label>
+                    <select id="ai-diet-preference" class="form-control">
+                      <option value="None">No Restrictions</option>
+                      <option value="Vegetarian">Vegetarian</option>
+                      <option value="Vegan">Vegan</option>
+                      <option value="Gluten-Free">Gluten-Free</option>
+                      <option value="Low-Carb">Low-Carb</option>
+                      <option value="Keto">Keto</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="ai-difficulty">Complexity Style</label>
+                    <select id="ai-difficulty" class="form-control">
+                      <option value="Easy & Quick">Easy & Quick (&lt; 20 mins)</option>
+                      <option value="Gourmet Masterpiece">Gourmet Masterpiece</option>
+                      <option value="Healthy & Balanced">Healthy & Balanced</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="ai-cook-count">Cooking Crew</label>
+                    <select id="ai-cook-count" class="form-control">
+                      <option value="1" selected>1 cook</option>
+                      <option value="2">2 cooks</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button id="ai-generate-btn" class="btn-primary" style="margin-top: 10px; padding: 16px;" type="button">
+                  <i data-lucide="wand-2"></i> Generate AI Recipe
+                </button>
+              </div>
+            </div>
+
+            <!-- Dynamic loader -->
+            <div class="ai-loading-box" id="ai-loader">
+              <div class="ai-pulse-sphere"></div>
+              <h2 style="font-family: var(--font-title); font-size: 20px;">Gemini is drafting your recipe...</h2>
+              <p style="color: var(--text-muted); font-size: 14px; max-width: 400px; margin: 0 auto;">Structuring ingredients, step details, cook assignments, and timers.</p>
+            </div>
+
+            <!-- Rendered AI Recipe Output -->
+            <div class="ai-result-card" id="ai-result-panel">
+              <div class="card-title-bar">
+                <h2 id="ai-recipe-title">AI Recipe Draft</h2>
+                <button id="ai-save-recipe-btn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px; color: var(--accent); border-color: rgba(245, 158, 11, 0.2);">
+                  <i data-lucide="bookmark"></i> Save to Explore
+                </button>
+              </div>
+              
+              <div id="ai-recipe-body" style="font-size: 15px; line-height: 1.7;">
+                <!-- Filled dynamically -->
+              </div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <!-- VIEW 5: MEAL PLANNER -->
+      <section id="view-planner" class="view-section">
+        <div class="app-header">
+          <div class="header-title">
+            <h1>Meal Planner & Groceries</h1>
+            <p>Schedule recipes into your weekly rotation and generate shopping lists.</p>
+          </div>
+        </div>
+
+        <!-- Weekly Grid -->
+        <div class="glass-card" style="margin-bottom: 32px;">
+          <div class="card-title-bar">
+            <h2><i data-lucide="calendar"></i> Weekly Meal Schedule</h2>
+          </div>
+          
+          <div class="planner-week" id="meal-planner-week-grid">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Dynamic Shopping List -->
+          <div class="main-column">
+            <div class="glass-card">
+              <div class="card-title-bar">
+                <h2><i data-lucide="shopping-bag"></i> Automated Shopping List</h2>
+                <button id="planner-print-list" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i data-lucide="printer"></i> Export List</button>
+              </div>
+              <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Automatically generated list from ingredients of scheduled meals, cross-referenced with your pantry items!</p>
+              
+              <ul class="ingredients-list" id="planner-shopping-list" style="margin-bottom: 20px;">
+                <!-- Dynamic shopping list rows -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Helper instructions -->
+          <div class="side-column">
+            <div class="glass-card" style="background: linear-gradient(135deg, rgba(22, 28, 45, 0.3) 0%, rgba(16, 185, 129, 0.05) 100%); border-color: rgba(16, 185, 129, 0.1);">
+              <h3 style="font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--success);"><i data-lucide="lightbulb"></i> Kitchen Tip</h3>
+              <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Your automated shopping list intelligently omits items you already have inside your **Ingredients Pantry**. Check off items in your pantry to keep grocery trips minimal!</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- RECIPE DETAILS DIALOG MODAL -->
+  <div id="recipe-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header-image">
+        <img id="modal-image" src="" alt="Recipe Detail">
+        <button id="modal-close-btn" class="modal-btn-close" aria-label="Close details modal"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <h1 id="modal-title" style="font-size: 28px; margin-bottom: 12px;">Recipe Title</h1>
+        <p id="modal-description" style="color: var(--text-muted); font-size: 15px; margin-bottom: 24px;">Recipe description goes here.</p>
+
+        <div class="modal-meta-row">
+          <div class="modal-meta-tag"><i data-lucide="clock" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px;"></i> <span id="modal-prep">Prep: 10m</span></div>
+          <div class="modal-meta-tag"><i data-lucide="chef-hat" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px;"></i> <span id="modal-cook">Cook: 15m</span></div>
+          <div class="modal-meta-tag" style="display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="users" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px;"></i>
+            <span>Servings:</span>
+            <button id="modal-servings-dec" class="btn-icon" style="width: 20px; height: 20px; border-radius: 4px; padding: 0; font-size: 11px; line-height: 1;" aria-label="Decrease servings">-</button>
+            <span id="modal-servings" style="font-weight: 700;">2</span>
+            <button id="modal-servings-inc" class="btn-icon" style="width: 20px; height: 20px; border-radius: 4px; padding: 0; font-size: 11px; line-height: 1;" aria-label="Increase servings">+</button>
+          </div>
+          <div class="modal-meta-tag"><i data-lucide="star" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px; color: var(--accent);"></i> <span id="modal-rating">4.9</span></div>
+        </div>
+
+        <div class="modal-grid">
+          <!-- Column 1: Ingredients -->
+          <div>
+            <h3 style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--border-glass); padding-bottom: 8px;"><i data-lucide="shopping-cart"></i> Ingredients</h3>
+            <ul class="ingredients-list" id="modal-ingredients">
+              <!-- Inserted dynamically -->
+            </ul>
+          </div>
+
+          <!-- Column 2: Steps & Timers -->
+          <div>
+            <h3 style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--border-glass); padding-bottom: 8px;"><i data-lucide="cooking-pot"></i> Directions</h3>
+            <div class="steps-list" id="modal-steps">
+              <!-- Inserted dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Row -->
+        <div style="margin-top: 32px; border-top: 1px solid var(--border-glass); padding-top: 24px; display: flex; justify-content: flex-end; gap: 16px;">
+          <button id="modal-btn-start-parallel-timers" class="btn-secondary" style="padding: 14px 20px; display: none;">
+            <i data-lucide="timer"></i> Start Parallel Timers
+          </button>
+          <button id="modal-btn-cook" class="btn-primary" style="padding: 14px 28px; background: var(--success-gradient); box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);">
+            <i data-lucide="chef-hat"></i> Cook this Meal!
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SELECT MEAL SLOT MODAL -->
+  <div id="select-meal-modal" class="modal-overlay" style="z-index: 101;">
+    <div class="modal-content" style="max-width: 400px; padding: 28px;">
+      <h3 style="font-size: 20px; margin-bottom: 16px;"><i data-lucide="calendar"></i> Schedule Meal</h3>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Choose which recipe you would like to schedule for this day and slot.</p>
+      
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label for="select-meal-recipe-dropdown">Select Recipe</label>
+        <select id="select-meal-recipe-dropdown" class="form-control" style="width: 100%;">
+          <!-- Options rendered dynamically -->
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button id="btn-select-meal-cancel" class="btn-secondary" style="padding: 8px 16px;">Cancel</button>
+        <button id="btn-select-meal-save" class="btn-primary" style="padding: 8px 20px;">Schedule</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE SETTINGS MODAL -->
+  <div id="profile-modal" class="modal-overlay" style="z-index: 102;">
+    <div class="modal-content profile-modal-content">
+      <div class="profile-modal-header">
+        <h3><i data-lucide="user-cog"></i> Profile & Preferences</h3>
+        <button id="profile-close-btn" class="modal-btn-close" aria-label="Close profile modal"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="profile-modal-grid">
+        <div class="form-group">
+          <label for="profile-name-input">Name</label>
+          <input type="text" id="profile-name-input" class="form-control" placeholder="Your name">
+        </div>
+        <div class="form-group">
+          <label for="profile-gender-input">Gender</label>
+          <select id="profile-gender-input" class="form-control">
+            <option value="Prefer not to say" selected>Prefer not to say</option>
+            <option value="Female">Female</option>
+            <option value="Male">Male</option>
+            <option value="Non-binary">Non-binary</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="profile-diet-input">Diet Preference</label>
+          <select id="profile-diet-input" class="form-control">
+            <option value="None" selected>No Restrictions</option>
+            <option value="Vegetarian">Vegetarian</option>
+            <option value="Vegan">Vegan</option>
+            <option value="Gluten-Free">Gluten-Free</option>
+            <option value="Low-Carb">Low-Carb</option>
+            <option value="Keto">Keto</option>
+          </select>
+        </div>
+        <div class="form-group profile-modal-wide">
+          <label for="profile-email-input">Email (Read-only from login)</label>
+          <input type="email" id="profile-email-input" class="form-control" readonly>
+        </div>
+        <div class="form-group profile-modal-wide">
+          <label for="profile-gemini-key-input">API Key (Gemini)</label>
+          <input type="password" id="profile-gemini-key-input" class="form-control" placeholder="Enter your Gemini API Key">
+        </div>
+      </div>
+
+      <div class="profile-exp-section">
+        <div class="profile-exp-title-row">
+          <span class="profile-exp-title">Experience</span>
+          <button id="experience-info-btn" class="btn-icon" type="button" aria-label="Experience timer info">
+            <i data-lucide="info"></i>
+          </button>
+        </div>
+        <label class="profile-radio-row"><input type="radio" name="profile-experience" value="Expert"> <span>Expert (1x timer)</span></label>
+        <label class="profile-radio-row"><input type="radio" name="profile-experience" value="Somewhat"> <span>Somewhat (1.5x timer)</span></label>
+        <label class="profile-radio-row"><input type="radio" name="profile-experience" value="Beginner"> <span>Beginner (2x timer)</span></label>
+      </div>
+
+      <div class="profile-modal-actions">
+        <button id="profile-cancel-btn" class="btn-secondary" type="button">Cancel</button>
+        <button id="profile-save-btn" class="btn-primary" type="button"><i data-lucide="save"></i> Save Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="recipes.js"></script>
+  <script src="gemini.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

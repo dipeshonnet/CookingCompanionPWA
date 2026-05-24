@@ -1,0 +1,22 @@
+{
+  "name": "Cooking Companion",
+  "short_name": "CookingCompanion",
+  "description": "Your ultimate kitchen assistant with recipe matching, AI cooking helper, and personalized meal planner.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
