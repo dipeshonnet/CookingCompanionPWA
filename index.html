@@ -52,6 +52,14 @@
           <i data-lucide="mail"></i> Continue with Email
         </button>
       </div>
+      <div style="display: grid; gap: 10px; margin-top: 12px;">
+        <input id="auth-email-input" type="email" class="form-control" placeholder="Email">
+        <input id="auth-password-input" type="password" class="form-control" placeholder="Password">
+        <div style="display: flex; gap: 10px;">
+          <button id="btn-auth-email-signin" class="btn-secondary" type="button"><i data-lucide="log-in"></i> Sign In</button>
+          <button id="btn-auth-email-signup" class="btn-secondary" type="button"><i data-lucide="user-plus"></i> Sign Up</button>
+        </div>
+      </div>
       
       <div class="auth-footer">
         By continuing, you agree to our Terms of Service and Privacy Policy.
@@ -90,17 +98,20 @@
           <li class="nav-item active" data-view="dashboard">
             <button><i data-lucide="layout-dashboard"></i> Dashboard</button>
           </li>
-          <li class="nav-item" data-view="explore">
-            <button><i data-lucide="compass"></i> Explore Recipes</button>
-          </li>
           <li class="nav-item" data-view="pantry">
-            <button><i data-lucide="container"></i> Ingredients Pantry</button>
+            <button><i data-lucide="container"></i> Ingredients</button>
           </li>
           <li class="nav-item" data-view="ai-generator">
-            <button><i data-lucide="plus-circle"></i> Add Recipe</button>
+            <button><i data-lucide="book-open"></i> Recipe</button>
+          </li>
+          <li class="nav-item" data-view="play">
+            <button><i data-lucide="play-circle"></i> Play Recipe</button>
           </li>
           <li class="nav-item" data-view="planner">
             <button><i data-lucide="calendar"></i> Meal Planner</button>
+          </li>
+          <li class="nav-item" data-view="faq">
+            <button><i data-lucide="circle-help"></i> FAQ</button>
           </li>
         </ul>
       </nav>
@@ -139,11 +150,11 @@
             <!-- Highlight Card -->
             <div class="glass-card interactive" style="background: linear-gradient(135deg, rgba(22, 28, 45, 0.45) 0%, rgba(139, 92, 246, 0.08) 100%);">
               <div class="card-title-bar">
-                <h2><i data-lucide="plus-circle"></i> Add Recipe</h2>
+                <h2><i data-lucide="book-open"></i> Recipe</h2>
               </div>
               <p style="margin-bottom: 20px; color: var(--text-muted);">Save a custom recipe with structured steps, one-cook or two-cook assignments, and timers that can run together.</p>
               <button class="btn-primary" onclick="switchView('ai-generator')">
-                <i data-lucide="plus"></i> Add Recipe
+                <i data-lucide="book-open"></i> Recipe
               </button>
             </div>
             
@@ -151,7 +162,7 @@
             <div class="glass-card">
               <div class="card-title-bar">
                 <h2><i data-lucide="award"></i> Handpicked Recommendations</h2>
-                <button class="btn-secondary" onclick="switchView('explore')" style="padding: 6px 12px; font-size: 12px;">See All</button>
+                <button class="btn-secondary" onclick="switchView('ai-generator')" style="padding: 6px 12px; font-size: 12px;">See All</button>
               </div>
               <div class="recipes-grid" id="dashboard-recommendations">
                 <!-- Recipe Cards will be rendered dynamically -->
@@ -161,10 +172,10 @@
           
           <!-- Side column -->
           <div class="side-column">
-            <!-- Pantry Overview -->
+            <!-- Ingredients Overview -->
             <div class="glass-card">
               <div class="card-title-bar">
-                <h2><i data-lucide="container"></i> Pantry Overview</h2>
+                <h2><i data-lucide="container"></i> Ingredients Overview</h2>
                 <button class="btn-icon" onclick="switchView('pantry')"><i data-lucide="plus"></i></button>
               </div>
               <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">Quickly matching recipes with what you have in stock.</p>
@@ -190,39 +201,11 @@
         </div>
       </section>
 
-      <!-- VIEW 2: EXPLORE RECIPES -->
-      <section id="view-explore" class="view-section">
-        <div class="app-header">
-          <div class="header-title">
-            <h1>Explore Recipes</h1>
-            <p>Browse, search, and discover gourmet instructions.</p>
-          </div>
-          
-          <!-- Search Control -->
-          <div style="position: relative;">
-            <input type="text" id="recipe-search" class="form-control" placeholder="Search recipe name..." style="padding-left: 40px; width: 260px;">
-            <i data-lucide="search" style="position: absolute; left: 14px; top: 13px; width: 16px; height: 16px; color: var(--text-muted);"></i>
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-bottom: 28px; flex-wrap: wrap;">
-          <button class="btn-secondary filter-btn active" data-filter="All">All Recipes</button>
-          <button class="btn-secondary filter-btn" data-filter="Breakfast">Breakfast</button>
-          <button class="btn-secondary filter-btn" data-filter="Lunch">Lunch</button>
-          <button class="btn-secondary filter-btn" data-filter="Dinner">Dinner</button>
-          <button class="btn-secondary filter-btn" data-filter="Matched">Matched Ingredients</button>
-        </div>
-
-        <div class="recipes-grid" id="explore-recipes-grid">
-          <!-- Populated by JavaScript -->
-        </div>
-      </section>
-
-      <!-- VIEW 3: PANTRY MANAGER -->
+      <!-- VIEW 2: PANTRY MANAGER -->
       <section id="view-pantry" class="view-section">
         <div class="app-header">
           <div class="header-title">
-            <h1>Ingredients Pantry</h1>
+            <h1>Ingredients</h1>
             <p>Log your kitchen supplies to automatically match recipe requirements.</p>
           </div>
         </div>
@@ -254,7 +237,7 @@
               <option value="tbsp">tbsp</option>
               <option value="tsp">tsp</option>
             </select>
-            <button id="pantry-add-btn" class="btn-primary" style="flex: 0.8; min-width: 140px; justify-content: center;"><i data-lucide="plus"></i> Add to Pantry</button>
+            <button id="pantry-add-btn" class="btn-primary" style="flex: 0.8; min-width: 140px; justify-content: center;"><i data-lucide="plus"></i> Add Ingredient</button>
           </div>
           
           <p style="color: var(--text-dim); font-size: 12px; margin-top: -12px;">Add ingredients you have in your kitchen. We will use these to calculate recipe matches and deduct portions when cooked.</p>
@@ -262,7 +245,7 @@
 
         <div class="glass-card">
           <div class="card-title-bar">
-            <h2><i data-lucide="list"></i> My Pantry Ingredients</h2>
+            <h2><i data-lucide="list"></i> My Ingredients</h2>
             <button id="pantry-clear-btn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px; border-color: rgba(239, 68, 68, 0.2); color: #ef4444;"><i data-lucide="trash-2"></i> Clear All</button>
           </div>
           
@@ -272,13 +255,39 @@
         </div>
       </section>
 
-      <!-- VIEW 4: ADD RECIPE -->
+      <!-- VIEW 3: RECIPE -->
       <section id="view-ai-generator" class="view-section">
         <div class="app-header">
           <div class="header-title">
-            <h1>Add Recipe</h1>
-            <p>Create recipes from a form, voice notes, or the optional AI generator.</p>
+            <h1>Recipe</h1>
+            <p>Explore, create, and manage recipes from one place.</p>
           </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button id="recipe-explore-toggle-btn" class="btn-secondary" type="button"><i data-lucide="compass"></i> Explore</button>
+            <button id="recipe-share-btn" class="btn-secondary" type="button"><i data-lucide="share-2"></i> Share</button>
+            <button id="recipe-export-btn" class="btn-secondary" type="button"><i data-lucide="download"></i> Export</button>
+            <button id="recipe-import-btn" class="btn-secondary" type="button"><i data-lucide="upload"></i> Import</button>
+            <button id="recipe-like-btn" class="btn-secondary" type="button"><i data-lucide="heart"></i> Like</button>
+            <input id="recipe-import-file" type="file" accept="application/json" style="display: none;">
+          </div>
+        </div>
+
+        <div id="recipe-explore-panel" style="margin-bottom: 18px; display: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 12px;">
+            <h2 style="font-size: 20px;"><i data-lucide="compass"></i> Explore</h2>
+            <div style="position: relative;">
+              <input type="text" id="recipe-search" class="form-control" placeholder="Search recipe name..." style="padding-left: 40px; width: 260px;">
+              <i data-lucide="search" style="position: absolute; left: 14px; top: 13px; width: 16px; height: 16px; color: var(--text-muted);"></i>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap;">
+            <button class="btn-secondary filter-btn active" data-filter="All">All Recipes</button>
+            <button class="btn-secondary filter-btn" data-filter="Breakfast">Breakfast</button>
+            <button class="btn-secondary filter-btn" data-filter="Lunch">Lunch</button>
+            <button class="btn-secondary filter-btn" data-filter="Dinner">Dinner</button>
+            <button class="btn-secondary filter-btn" data-filter="Matched">Matched Ingredients</button>
+          </div>
+          <div class="recipes-grid" id="explore-recipes-grid" style="margin-bottom: 24px;"></div>
         </div>
 
         <div class="dashboard-grid add-recipe-layout">
@@ -424,7 +433,7 @@
               <div class="ai-controls">
                 <!-- Ingredient Selection -->
                 <div class="form-group">
-                  <label>Select Pantry Ingredients to Use</label>
+                  <label>Select Ingredients to Use</label>
                   <div class="pantry-selection-grid" id="ai-selectable-ingredients">
                     <!-- Interactive chips toggled here -->
                   </div>
@@ -492,6 +501,46 @@
         </details>
       </section>
 
+      <!-- VIEW 4: PLAY RECIPE -->
+      <section id="view-play" class="view-section">
+        <div class="app-header">
+          <div class="header-title">
+            <h1>Play Recipe</h1>
+            <p>Run your recipe like a live kitchen board with timed step movement.</p>
+          </div>
+        </div>
+
+        <div class="glass-card" style="margin-bottom: 18px;">
+          <div class="pantry-input-group" style="align-items: end;">
+            <div class="form-group" style="flex: 2; min-width: 260px; margin-bottom: 0;">
+              <label for="play-recipe-select">Choose Recipe</label>
+              <select id="play-recipe-select" class="form-control"></select>
+            </div>
+            <button id="play-recipe-start-btn" class="btn-primary" type="button"><i data-lucide="play"></i> Play</button>
+            <button id="play-recipe-reset-btn" class="btn-secondary" type="button"><i data-lucide="rotate-ccw"></i> Reset</button>
+          </div>
+        </div>
+
+        <div class="play-board-grid">
+          <div class="glass-card play-column">
+            <div class="card-title-bar"><h2><i data-lucide="list-todo"></i> Upcoming</h2></div>
+            <div id="play-col-upcoming" class="play-column-list"></div>
+          </div>
+          <div class="glass-card play-column">
+            <div class="card-title-bar"><h2><i data-lucide="chef-hat"></i> Cook 1</h2></div>
+            <div id="play-col-cook1" class="play-column-list"></div>
+          </div>
+          <div class="glass-card play-column">
+            <div class="card-title-bar"><h2><i data-lucide="chef-hat"></i> Cook 2</h2></div>
+            <div id="play-col-cook2" class="play-column-list"></div>
+          </div>
+          <div class="glass-card play-column">
+            <div class="card-title-bar"><h2><i data-lucide="check-check"></i> Completed Items</h2></div>
+            <div id="play-col-completed" class="play-column-list"></div>
+          </div>
+        </div>
+      </section>
+
       <!-- VIEW 5: MEAL PLANNER -->
       <section id="view-planner" class="view-section">
         <div class="app-header">
@@ -532,13 +581,64 @@
           <div class="side-column">
             <div class="glass-card" style="background: linear-gradient(135deg, rgba(22, 28, 45, 0.3) 0%, rgba(16, 185, 129, 0.05) 100%); border-color: rgba(16, 185, 129, 0.1);">
               <h3 style="font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--success);"><i data-lucide="lightbulb"></i> Kitchen Tip</h3>
-              <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Your automated shopping list intelligently omits items you already have inside your **Ingredients Pantry**. Check off items in your pantry to keep grocery trips minimal!</p>
+              <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Your automated shopping list intelligently omits items you already have inside your **Ingredients**. Check off items in your list to keep grocery trips minimal!</p>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- VIEW 6: FAQ -->
+      <section id="view-faq" class="view-section">
+        <div class="app-header">
+          <div class="header-title">
+            <h1>FAQ</h1>
+            <p>Quick guide to all app features and workflows.</p>
+          </div>
+        </div>
+        <div class="glass-card">
+          <details class="ai-optional-card" open>
+            <summary><span><i data-lucide="layout-dashboard"></i> What is the fastest way to start?</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">Add your ingredients first, then open Recipe to explore or create. Use Play Recipe to execute with timers and board flow.</div>
+          </details>
+          <details class="ai-optional-card">
+            <summary><span><i data-lucide="container"></i> Ingredients</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">Track ingredient quantity/unit/category, auto-generate nutrition (with API key), and use stock for matching and deduction while cooking.</div>
+          </details>
+          <details class="ai-optional-card">
+            <summary><span><i data-lucide="book-open"></i> Recipe</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">Create recipes via form or voice, optionally generate with AI, import JSON, export selected recipes, like/share, and browse explore filters.</div>
+          </details>
+          <details class="ai-optional-card">
+            <summary><span><i data-lucide="play-circle"></i> Play Recipe Kanban</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">Steps move Upcoming -> Cook 1/Cook 2 while timers run -> Completed Items once done. Audio cues and step videos can be configured in Profile.</div>
+          </details>
+          <details class="ai-optional-card">
+            <summary><span><i data-lucide="user-cog"></i> Profile Settings</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">Set name/gender/diet/experience/API key plus play controls: performer type, performer gender, play videos, and mute audio.</div>
+          </details>
+          <details class="ai-optional-card">
+            <summary><span><i data-lucide="calendar"></i> Meal Planner & Shopping</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">Assign recipes per day and meal slot. Shopping list auto-computes required items minus current ingredients.</div>
+          </details>
+        </div>
+      </section>
+
     </main>
+  </div>
+
+  <div id="recipe-export-modal" class="modal-overlay" style="z-index: 103; display: none;">
+    <div class="modal-content" style="max-width: 560px; padding: 24px;">
+      <div class="card-title-bar" style="margin-bottom: 10px;">
+        <h3><i data-lucide="download"></i> Export Recipes</h3>
+        <button id="recipe-export-close-btn" class="modal-btn-close" aria-label="Close export modal"><i data-lucide="x"></i></button>
+      </div>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 14px;">Select one or more recipes to export as JSON.</p>
+      <div id="recipe-export-list" style="max-height: 320px; overflow: auto; display: grid; gap: 8px; margin-bottom: 16px;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="recipe-export-cancel-btn" class="btn-secondary" type="button">Cancel</button>
+        <button id="recipe-export-confirm-btn" class="btn-primary" type="button"><i data-lucide="download"></i> Export Selected</button>
+      </div>
+    </div>
   </div>
 
   <!-- RECIPE DETAILS DIALOG MODAL -->
@@ -650,6 +750,27 @@
             <option value="Keto">Keto</option>
           </select>
         </div>
+        <div class="form-group">
+          <label for="profile-performer-type-input">Play Performer</label>
+          <select id="profile-performer-type-input" class="form-control">
+            <option value="Human" selected>Human</option>
+            <option value="Cat">Cat</option>
+            <option value="Dog">Dog</option>
+            <option value="Fox">Fox</option>
+            <option value="Rabbit">Rabbit</option>
+            <option value="Parrot">Parrot</option>
+            <option value="Owl">Owl</option>
+            <option value="Eagle">Eagle</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="profile-performer-gender-input">Performer Gender</label>
+          <select id="profile-performer-gender-input" class="form-control">
+            <option value="Female" selected>Female</option>
+            <option value="Male">Male</option>
+            <option value="Non-binary">Non-binary</option>
+          </select>
+        </div>
         <div class="form-group profile-modal-wide">
           <label for="profile-email-input">Email (Read-only from login)</label>
           <input type="email" id="profile-email-input" class="form-control" readonly>
@@ -672,6 +793,26 @@
         <label class="profile-radio-row"><input type="radio" name="profile-experience" value="Beginner"> <span>Beginner (2x timer)</span></label>
       </div>
 
+      <div class="profile-exp-section" style="margin-top: 12px;">
+        <label class="profile-radio-row">
+          <input type="checkbox" id="profile-play-music-input">
+          <span>Play Background Music During Play Recipe</span>
+        </label>
+        <div class="form-group" style="margin-top: 8px;">
+          <label for="profile-music-file-input">Background Music (Local File)</label>
+          <input type="file" id="profile-music-file-input" class="form-control" accept="audio/*">
+          <span id="profile-music-file-name" style="font-size: 12px; color: var(--text-dim);">No file selected</span>
+        </div>
+        <label class="profile-radio-row">
+          <input type="checkbox" id="profile-play-video-input" checked>
+          <span>Play Step Videos</span>
+        </label>
+        <label class="profile-radio-row">
+          <input type="checkbox" id="profile-mute-audio-input">
+          <span>Silence Play Audio</span>
+        </label>
+      </div>
+
       <div class="profile-modal-actions">
         <button id="profile-cancel-btn" class="btn-secondary" type="button">Cancel</button>
         <button id="profile-save-btn" class="btn-primary" type="button"><i data-lucide="save"></i> Save Profile</button>
@@ -682,6 +823,13 @@
   <!-- Scripts -->
   <script src="recipes.js"></script>
   <script src="gemini.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="modules/firebase-config.js"></script>
+  <script src="modules/backend-auth-db.js"></script>
+  <script src="modules/user-profile.js"></script>
+  <script src="modules/faq-view.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

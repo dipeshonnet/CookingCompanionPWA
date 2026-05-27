@@ -1,13 +1,9 @@
+const DEFAULT_USER_PROFILE = window.DEFAULT_USER_PROFILE;
+const buildUserProfile = window.buildUserProfile;
+
 // Core State Manager
 const STATE = {
-  user: {
-    name: "Chef Guest",
-    email: "guest@cookingcompanion.local",
-    gender: "Prefer not to say",
-    dietPreference: "None",
-    experience: "Expert",
-    loggedIn: false
-  },
+  user: { ...DEFAULT_USER_PROFILE },
   pantry: [],
   scheduledMeals: {}, // key: "Day-Slot", value: recipeId
   activeTimers: [], // { id, title, stepIndex, cookName, stepLabel, timeLeft, totalDuration, intervalId }
@@ -21,7 +17,8 @@ const STORAGE_KEYS = {
   PANTRY: "cook_comp_pantry",
   SCHEDULE: "cook_comp_schedule",
   CUSTOM_RECIPES: "cook_comp_custom_recipes",
-  GEMINI_KEY: "cook_comp_gemini_key"
+  GEMINI_KEY: "cook_comp_gemini_key",
+  PLAY_VIDEO_CACHE: "cook_comp_play_video_cache"
 };
 
 // Servings adjustment active state in Modal
@@ -30,6 +27,21 @@ let activeModalServingsCount = 2;
 let activeModalServingsMultiplier = 1.0;
 let recipeSpeechRecognition = null;
 let recipeSpeechIsListening = false;
+let recipeExploreVisible = false;
+let playSession = {
+  recipeId: "",
+  upcoming: [],
+  running: { "Cook 1": null, "Cook 2": null },
+  completed: [],
+  intervalId: null,
+  tick: 0
+};
+let playVideoCache = {};
+let playMusicAudio = null;
+let playMusicTrack = { name: "", url: "" };
+let authUnsubscribe = null;
+let currentAuthUid = "";
+let suppressCloudSave = false;
 
 const FALLBACK_RECIPE_IMAGE = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop&q=60";
 
@@ -38,6 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initLucide();
   loadStateFromStorage();
   setupEventListeners();
+  initAuthenticationLayer();
   renderApp();
   
   // Register Service Worker for PWA Offline Support
@@ -55,19 +68,45 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+function initAuthenticationLayer() {
+  if (!window.BackendAuthDB || !window.BackendAuthDB.init()) {
+    console.warn("Backend auth/db not configured. Using local-only mode.");
+    return;
+  }
+  authUnsubscribe = window.BackendAuthDB.onAuthStateChanged(async (user) => {
+    if (!user) {
+      currentAuthUid = "";
+      STATE.user = { ...DEFAULT_USER_PROFILE, loggedIn: false };
+      saveStateToStorage();
+      renderApp();
+      return;
+    }
+    currentAuthUid = user.uid;
+    STATE.user.loggedIn = true;
+    STATE.user.email = cleanText(user.email || STATE.user.email);
+    STATE.user.name = cleanText(user.displayName || STATE.user.name || "Chef Explorer");
+
+    try {
+      const cloud = await window.BackendAuthDB.loadUserState(user.uid);
+      if (cloud) {
+        suppressCloudSave = true;
+        hydrateStateFromPayload(cloud);
+        suppressCloudSave = false;
+      } else {
+        await syncStateToCloud();
+      }
+    } catch (err) {
+      console.error("Cloud load failed:", err);
+    }
+    renderApp();
+  });
+}
+
 // Load state from localStorage
 function loadStateFromStorage() {
   const cachedUser = localStorage.getItem(STORAGE_KEYS.USER);
   if (cachedUser) {
-    const parsed = JSON.parse(cachedUser);
-    STATE.user = {
-      name: cleanText(parsed.name || "Chef Guest"),
-      email: cleanText(parsed.email || "guest@cookingcompanion.local"),
-      gender: cleanText(parsed.gender || "Prefer not to say"),
-      dietPreference: cleanText(parsed.dietPreference || "None"),
-      experience: cleanText(parsed.experience || "Expert"),
-      loggedIn: Boolean(parsed.loggedIn)
-    };
+    STATE.user = buildUserProfile(JSON.parse(cachedUser));
   }
   
   const cachedPantry = localStorage.getItem(STORAGE_KEYS.PANTRY);
@@ -99,6 +138,16 @@ function loadStateFromStorage() {
     STATE.customRecipes = JSON.parse(cachedCustom);
   }
 
+  const cachedVideoCache = localStorage.getItem(STORAGE_KEYS.PLAY_VIDEO_CACHE);
+  if (cachedVideoCache) {
+    try {
+      const parsed = JSON.parse(cachedVideoCache);
+      playVideoCache = parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      playVideoCache = {};
+    }
+  }
+
   // Key input placeholder filling
   const cachedKey = localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
   if (cachedKey) {
@@ -107,12 +156,53 @@ function loadStateFromStorage() {
   }
 }
 
+function hydrateStateFromPayload(payload) {
+  if (payload.user) STATE.user = buildUserProfile({ ...STATE.user, ...payload.user, loggedIn: true });
+  if (Array.isArray(payload.pantry)) STATE.pantry = payload.pantry;
+  if (payload.scheduledMeals && typeof payload.scheduledMeals === "object") STATE.scheduledMeals = payload.scheduledMeals;
+  if (Array.isArray(payload.customRecipes)) STATE.customRecipes = payload.customRecipes;
+  if (payload.playVideoCache && typeof payload.playVideoCache === "object") playVideoCache = payload.playVideoCache;
+}
+
 // Save state back to localStorage
 function saveStateToStorage() {
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(STATE.user));
   localStorage.setItem(STORAGE_KEYS.PANTRY, JSON.stringify(STATE.pantry));
   localStorage.setItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(STATE.scheduledMeals));
   localStorage.setItem(STORAGE_KEYS.CUSTOM_RECIPES, JSON.stringify(STATE.customRecipes));
+  syncStateToCloud();
+}
+
+function savePlayVideoCache() {
+  localStorage.setItem(STORAGE_KEYS.PLAY_VIDEO_CACHE, JSON.stringify(playVideoCache));
+  syncStateToCloud();
+}
+
+async function syncStateToCloud() {
+  if (suppressCloudSave) return;
+  if (!currentAuthUid || !window.BackendAuthDB || !window.BackendAuthDB.isReady()) return;
+  try {
+    await window.BackendAuthDB.saveUserState(currentAuthUid, {
+      user: {
+        name: STATE.user.name,
+        email: STATE.user.email,
+        gender: STATE.user.gender,
+        dietPreference: STATE.user.dietPreference,
+        performerType: STATE.user.performerType,
+        performerGender: STATE.user.performerGender,
+        playBackgroundMusic: STATE.user.playBackgroundMusic,
+        playStepVideo: STATE.user.playStepVideo,
+        mutePlayAudio: STATE.user.mutePlayAudio,
+        experience: STATE.user.experience
+      },
+      pantry: STATE.pantry,
+      scheduledMeals: STATE.scheduledMeals,
+      customRecipes: STATE.customRecipes,
+      playVideoCache
+    });
+  } catch (err) {
+    console.error("Cloud save failed:", err);
+  }
 }
 
 function formatQuantity(value) {
@@ -124,6 +214,7 @@ function formatQuantity(value) {
 
 // Navigation & Tab Management
 function switchView(viewId) {
+  if (viewId === "explore") viewId = "ai-generator";
   // Hide all sections
   document.querySelectorAll(".view-section").forEach(sec => sec.classList.remove("active"));
   
@@ -151,14 +242,16 @@ function switchView(viewId) {
   // Refresh current view contents
   if (viewId === "dashboard") {
     renderDashboard();
-  } else if (viewId === "explore") {
-    renderExploreRecipes();
   } else if (viewId === "pantry") {
     renderPantryView();
   } else if (viewId === "ai-generator") {
     renderAddRecipeView();
+  } else if (viewId === "play") {
+    renderPlayRecipeView();
   } else if (viewId === "planner") {
     renderPlannerView();
+  } else if (viewId === "faq") {
+    renderFAQView();
   }
   
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -166,14 +259,16 @@ function switchView(viewId) {
 
 // Setup core event handlers
 function setupEventListeners() {
-  // Mock login triggers
-  const mockLogins = ["btn-login-google", "btn-login-apple", "btn-login-email"];
-  mockLogins.forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) {
-      btn.addEventListener("click", () => handleMockLogin(id));
-    }
-  });
+  const googleBtn = document.getElementById("btn-login-google");
+  if (googleBtn) googleBtn.addEventListener("click", handleGoogleSignIn);
+  const emailBtn = document.getElementById("btn-login-email");
+  if (emailBtn) emailBtn.addEventListener("click", handleEmailSignIn);
+  const appleBtn = document.getElementById("btn-login-apple");
+  if (appleBtn) appleBtn.addEventListener("click", () => alert("Apple sign-in is not configured in this build yet."));
+  const emailSignInBtn = document.getElementById("btn-auth-email-signin");
+  if (emailSignInBtn) emailSignInBtn.addEventListener("click", handleEmailSignIn);
+  const emailSignUpBtn = document.getElementById("btn-auth-email-signup");
+  if (emailSignUpBtn) emailSignUpBtn.addEventListener("click", handleEmailSignUp);
 
   // Sidebar logout
   const btnLogout = document.getElementById("btn-logout");
@@ -248,6 +343,42 @@ function setupEventListeners() {
       renderExploreRecipes();
     });
   });
+
+  const recipeShareBtn = document.getElementById("recipe-share-btn");
+  if (recipeShareBtn) recipeShareBtn.addEventListener("click", handleRecipeShare);
+
+  const recipeExploreBtn = document.getElementById("recipe-explore-toggle-btn");
+  if (recipeExploreBtn) recipeExploreBtn.addEventListener("click", toggleRecipeExplorePanel);
+
+  const recipeExportBtn = document.getElementById("recipe-export-btn");
+  if (recipeExportBtn) recipeExportBtn.addEventListener("click", handleRecipeExport);
+
+  const recipeImportBtn = document.getElementById("recipe-import-btn");
+  const recipeImportFile = document.getElementById("recipe-import-file");
+  if (recipeImportBtn && recipeImportFile) {
+    recipeImportBtn.addEventListener("click", () => recipeImportFile.click());
+    recipeImportFile.addEventListener("change", handleRecipeImport);
+  }
+
+  const recipeLikeBtn = document.getElementById("recipe-like-btn");
+  if (recipeLikeBtn) {
+    recipeLikeBtn.addEventListener("click", () => {
+      recipeLikeBtn.classList.toggle("active");
+      alert("Liked!");
+    });
+  }
+
+  const playRecipeStartBtn = document.getElementById("play-recipe-start-btn");
+  if (playRecipeStartBtn) playRecipeStartBtn.addEventListener("click", startPlayRecipeSession);
+  const playRecipeResetBtn = document.getElementById("play-recipe-reset-btn");
+  if (playRecipeResetBtn) playRecipeResetBtn.addEventListener("click", resetPlayRecipeSession);
+
+  const exportCloseBtn = document.getElementById("recipe-export-close-btn");
+  if (exportCloseBtn) exportCloseBtn.addEventListener("click", closeRecipeExportModal);
+  const exportCancelBtn = document.getElementById("recipe-export-cancel-btn");
+  if (exportCancelBtn) exportCancelBtn.addEventListener("click", closeRecipeExportModal);
+  const exportConfirmBtn = document.getElementById("recipe-export-confirm-btn");
+  if (exportConfirmBtn) exportConfirmBtn.addEventListener("click", confirmRecipeExportSelected);
 
   // Gemini Settings Config
   const saveKeyBtn = document.getElementById("gemini-key-save-btn");
@@ -374,6 +505,10 @@ function setupEventListeners() {
     if (e.target === profileModal) {
       profileModal.style.display = "none";
     }
+    const recipeExportModal = document.getElementById("recipe-export-modal");
+    if (e.target === recipeExportModal) {
+      recipeExportModal.style.display = "none";
+    }
   });
 
   // Schedule meal planners modals handlers
@@ -453,6 +588,17 @@ function setupEventListeners() {
     profileSaveBtn.addEventListener("click", saveProfileSettings);
   }
 
+  const profileMusicFileInput = document.getElementById("profile-music-file-input");
+  if (profileMusicFileInput) {
+    profileMusicFileInput.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setPlayBackgroundMusicFile(file);
+      const label = document.getElementById("profile-music-file-name");
+      if (label) label.innerText = file.name;
+    });
+  }
+
   const experienceInfoBtn = document.getElementById("experience-info-btn");
   if (experienceInfoBtn) {
     experienceInfoBtn.addEventListener("click", () => {
@@ -469,40 +615,68 @@ function initLucide() {
 }
 
 // Authentication handling
-function handleMockLogin(loginId) {
-  let chefName = "Chef Explorer";
-  let emailAddress = "chef.explorer@cookingcompanion.local";
-  if (loginId === "btn-login-google") {
-    chefName = "Chef G. Harrison";
-    emailAddress = "chef.g.harrison@gmail.com";
-  } else if (loginId === "btn-login-apple") {
-    chefName = "Chef Macintosh";
-    emailAddress = "chef.macintosh@icloud.com";
-  } else if (loginId === "btn-login-email") {
-    const email = prompt("Enter your kitchen email address:", "chef@example.com");
-    if (!email) return;
-    emailAddress = email.trim().toLowerCase();
-    chefName = email.split("@")[0];
-    chefName = chefName.charAt(0).toUpperCase() + chefName.slice(1);
+async function handleGoogleSignIn() {
+  if (!window.BackendAuthDB || !window.BackendAuthDB.isReady()) {
+    alert("Authentication backend is not configured yet.");
+    return;
   }
+  try {
+    await window.BackendAuthDB.signInGoogle();
+  } catch (err) {
+    console.error(err);
+    alert("Google sign-in failed.");
+  }
+}
 
-  STATE.user.name = chefName;
-  STATE.user.email = emailAddress;
-  STATE.user.loggedIn = true;
-  saveStateToStorage();
-  renderApp();
+function getAuthCredentialsFromInputs() {
+  const email = cleanText(document.getElementById("auth-email-input")?.value || "");
+  const password = String(document.getElementById("auth-password-input")?.value || "");
+  if (!email || !password) {
+    alert("Enter email and password.");
+    return null;
+  }
+  return { email, password };
+}
+
+async function handleEmailSignIn() {
+  if (!window.BackendAuthDB || !window.BackendAuthDB.isReady()) {
+    alert("Authentication backend is not configured yet.");
+    return;
+  }
+  const creds = getAuthCredentialsFromInputs();
+  if (!creds) return;
+  try {
+    await window.BackendAuthDB.signInEmail(creds.email, creds.password);
+  } catch (err) {
+    console.error(err);
+    alert("Email sign-in failed.");
+  }
+}
+
+async function handleEmailSignUp() {
+  if (!window.BackendAuthDB || !window.BackendAuthDB.isReady()) {
+    alert("Authentication backend is not configured yet.");
+    return;
+  }
+  const creds = getAuthCredentialsFromInputs();
+  if (!creds) return;
+  try {
+    await window.BackendAuthDB.signUpEmail(creds.email, creds.password);
+  } catch (err) {
+    console.error(err);
+    alert("Email sign-up failed.");
+  }
 }
 
 function handleLogout() {
-  STATE.user.name = "Chef Guest";
-  STATE.user.email = "guest@cookingcompanion.local";
-  STATE.user.gender = "Prefer not to say";
-  STATE.user.dietPreference = "None";
-  STATE.user.experience = "Expert";
-  STATE.user.loggedIn = false;
-  STATE.scheduledMeals = {};
-  saveStateToStorage();
-  renderApp();
+  if (window.BackendAuthDB && window.BackendAuthDB.isReady()) {
+    window.BackendAuthDB.signOut().catch(err => console.error(err));
+  } else {
+    STATE.user = { ...DEFAULT_USER_PROFILE };
+    STATE.scheduledMeals = {};
+    saveStateToStorage();
+    renderApp();
+  }
 }
 
 // Render dynamic components based on authentication state
@@ -536,12 +710,24 @@ function openProfileModal() {
   const nameInput = document.getElementById("profile-name-input");
   const genderInput = document.getElementById("profile-gender-input");
   const dietInput = document.getElementById("profile-diet-input");
+  const performerTypeInput = document.getElementById("profile-performer-type-input");
+  const performerGenderInput = document.getElementById("profile-performer-gender-input");
+  const playMusicInput = document.getElementById("profile-play-music-input");
+  const playVideoInput = document.getElementById("profile-play-video-input");
+  const muteAudioInput = document.getElementById("profile-mute-audio-input");
+  const musicNameLabel = document.getElementById("profile-music-file-name");
   const emailInput = document.getElementById("profile-email-input");
   const apiInput = document.getElementById("profile-gemini-key-input");
 
   if (nameInput) nameInput.value = STATE.user.name || "";
   if (genderInput) genderInput.value = STATE.user.gender || "Prefer not to say";
   if (dietInput) dietInput.value = STATE.user.dietPreference || "None";
+  if (performerTypeInput) performerTypeInput.value = STATE.user.performerType || "Human";
+  if (performerGenderInput) performerGenderInput.value = STATE.user.performerGender || "Female";
+  if (playMusicInput) playMusicInput.checked = Boolean(STATE.user.playBackgroundMusic);
+  if (playVideoInput) playVideoInput.checked = STATE.user.playStepVideo !== false;
+  if (muteAudioInput) muteAudioInput.checked = Boolean(STATE.user.mutePlayAudio);
+  if (musicNameLabel) musicNameLabel.innerText = playMusicTrack.name || "No file selected";
   if (emailInput) emailInput.value = STATE.user.email || "";
   if (apiInput) apiInput.value = localStorage.getItem(STORAGE_KEYS.GEMINI_KEY) || "";
 
@@ -563,6 +749,11 @@ function saveProfileSettings() {
   const nameInput = document.getElementById("profile-name-input");
   const genderInput = document.getElementById("profile-gender-input");
   const dietInput = document.getElementById("profile-diet-input");
+  const performerTypeInput = document.getElementById("profile-performer-type-input");
+  const performerGenderInput = document.getElementById("profile-performer-gender-input");
+  const playMusicInput = document.getElementById("profile-play-music-input");
+  const playVideoInput = document.getElementById("profile-play-video-input");
+  const muteAudioInput = document.getElementById("profile-mute-audio-input");
   const apiInput = document.getElementById("profile-gemini-key-input");
   const selectedExperience = document.querySelector("input[name='profile-experience']:checked");
 
@@ -570,6 +761,11 @@ function saveProfileSettings() {
   STATE.user.name = nextName || STATE.user.name;
   STATE.user.gender = cleanText(genderInput?.value || "Prefer not to say");
   STATE.user.dietPreference = cleanText(dietInput?.value || "None");
+  STATE.user.performerType = cleanText(performerTypeInput?.value || "Human");
+  STATE.user.performerGender = cleanText(performerGenderInput?.value || "Female");
+  STATE.user.playBackgroundMusic = Boolean(playMusicInput?.checked);
+  STATE.user.playStepVideo = playVideoInput ? Boolean(playVideoInput.checked) : true;
+  STATE.user.mutePlayAudio = Boolean(muteAudioInput?.checked);
   STATE.user.experience = selectedExperience ? selectedExperience.value : "Expert";
 
   const apiKeyVal = cleanText(apiInput?.value || "");
@@ -581,6 +777,10 @@ function saveProfileSettings() {
 
   const aiInput = document.getElementById("gemini-key-input");
   if (aiInput) aiInput.value = apiKeyVal;
+
+  if (!STATE.user.playBackgroundMusic) {
+    stopPlayBackgroundMusic();
+  }
 
   saveStateToStorage();
   renderApp();
@@ -1024,12 +1224,34 @@ function removePantryIngredient(index) {
 let lastGeneratedRecipeObj = null;
 
 function renderAddRecipeView() {
+  setRecipeExploreVisibility(recipeExploreVisible);
+  if (recipeExploreVisible) renderExploreRecipes();
   ensureRecipeBuilderDefaults();
   const aiDiet = document.getElementById("ai-diet-preference");
   if (aiDiet) aiDiet.value = STATE.user.dietPreference || "None";
   renderAIIngredientSelector();
   updateStepCookControls();
   initLucide();
+}
+
+function setRecipeExploreVisibility(visible) {
+  recipeExploreVisible = Boolean(visible);
+  const panel = document.getElementById("recipe-explore-panel");
+  const toggleBtn = document.getElementById("recipe-explore-toggle-btn");
+  if (panel) panel.style.display = recipeExploreVisible ? "block" : "none";
+  if (toggleBtn) {
+    toggleBtn.classList.toggle("active", recipeExploreVisible);
+    toggleBtn.innerHTML = recipeExploreVisible
+      ? '<i data-lucide="chevron-up"></i> Explore'
+      : '<i data-lucide="compass"></i> Explore';
+  }
+  initLucide();
+}
+
+function toggleRecipeExplorePanel() {
+  const next = !recipeExploreVisible;
+  setRecipeExploreVisibility(next);
+  if (next) renderExploreRecipes();
 }
 
 function renderAIGeneratorView() {
@@ -1265,8 +1487,8 @@ function handleCustomRecipeSave(e) {
   STATE.customRecipes.unshift(recipe);
   saveStateToStorage();
   resetAddRecipeForm();
-  alert(`"${recipe.title}" has been added to Explore Recipes.`);
-  switchView("explore");
+  alert(`"${recipe.title}" has been added to Recipe.`);
+  switchView("ai-generator");
 }
 
 function resetAddRecipeForm() {
@@ -1713,8 +1935,403 @@ function saveGeneratedRecipeToExplore() {
   STATE.customRecipes.unshift(finalRecipe);
   saveStateToStorage();
   
-  alert(`"${finalRecipe.title}" has been added to your Explore tab successfully!`);
-  switchView("explore");
+  alert(`"${finalRecipe.title}" has been added to Recipe successfully!`);
+  switchView("ai-generator");
+}
+
+async function handleRecipeShare() {
+  const shareText = `Check out my Cooking Companion recipes: ${window.location.href}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "Cooking Companion Recipes", text: shareText, url: window.location.href });
+    } else {
+      await navigator.clipboard.writeText(shareText);
+      alert("Recipe link copied to clipboard.");
+    }
+  } catch (err) {
+    console.error("Share failed:", err);
+  }
+}
+
+function handleRecipeExport() {
+  openRecipeExportModal();
+}
+
+function openRecipeExportModal() {
+  const modal = document.getElementById("recipe-export-modal");
+  const list = document.getElementById("recipe-export-list");
+  if (!modal || !list) return;
+
+  const recipes = getVisibleRecipes();
+  if (!recipes.length) {
+    alert("No recipes available to export.");
+    return;
+  }
+
+  list.innerHTML = recipes.map(recipe => `
+    <label class="profile-radio-row">
+      <input type="checkbox" class="recipe-export-check" value="${escapeHtml(recipe.id)}">
+      <span>${escapeHtml(recipe.title)} (${escapeHtml(recipe.category)})</span>
+    </label>
+  `).join("");
+
+  modal.style.display = "flex";
+  initLucide();
+}
+
+function closeRecipeExportModal() {
+  const modal = document.getElementById("recipe-export-modal");
+  if (modal) modal.style.display = "none";
+}
+
+function confirmRecipeExportSelected() {
+  const selectedIds = Array.from(document.querySelectorAll(".recipe-export-check:checked")).map(input => input.value);
+  if (!selectedIds.length) {
+    alert("Select at least one recipe to export.");
+    return;
+  }
+  const selectedRecipes = getAllRecipes().filter(recipe => selectedIds.includes(recipe.id));
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    recipes: selectedRecipes
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "cooking-companion-selected-recipes.json";
+  anchor.click();
+  URL.revokeObjectURL(url);
+  closeRecipeExportModal();
+}
+
+async function handleRecipeImport(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const incoming = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.recipes) ? parsed.recipes : []);
+    if (!incoming.length) {
+      alert("No recipes found in this file.");
+      return;
+    }
+    const normalized = incoming.map(recipe => normalizeRecipeForStorage({
+      ...recipe,
+      id: cleanText(recipe.id) || `import-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    }));
+    STATE.customRecipes = [...normalized, ...STATE.customRecipes];
+    saveStateToStorage();
+    renderAddRecipeView();
+    alert(`Imported ${normalized.length} recipe(s).`);
+  } catch (err) {
+    console.error(err);
+    alert("Import failed. Please use a valid JSON recipe export file.");
+  } finally {
+    event.target.value = "";
+  }
+}
+
+function renderPlayRecipeView() {
+  const recipeSelect = document.getElementById("play-recipe-select");
+  if (recipeSelect) {
+    const selected = playSession.recipeId || recipeSelect.value;
+    recipeSelect.innerHTML = `<option value="">-- Select Recipe --</option>`;
+    getVisibleRecipes().forEach(recipe => {
+      const opt = document.createElement("option");
+      opt.value = recipe.id;
+      opt.innerText = `[${recipe.category}] ${recipe.title}`;
+      recipeSelect.appendChild(opt);
+    });
+    if (selected) recipeSelect.value = selected;
+  }
+
+  renderPlayBoards();
+  initLucide();
+}
+
+function formatTimerClock(seconds) {
+  const total = Math.max(0, Math.round(seconds || 0));
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function isPlayAudioMuted() {
+  return Boolean(STATE.user.mutePlayAudio);
+}
+
+function playShortBeep() {
+  if (isPlayAudioMuted()) return;
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 900;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.25, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+    osc.start(now);
+    osc.stop(now + 0.22);
+  } catch (err) {
+    console.error("Beep playback failed:", err);
+  }
+}
+
+function setPlayBackgroundMusicFile(file) {
+  if (!file) return;
+  if (playMusicTrack.url) {
+    URL.revokeObjectURL(playMusicTrack.url);
+  }
+  const fileUrl = URL.createObjectURL(file);
+  playMusicTrack = { name: file.name || "Selected track", url: fileUrl };
+  if (!playMusicAudio) {
+    playMusicAudio = new Audio();
+    playMusicAudio.loop = true;
+    playMusicAudio.volume = 0.35;
+  }
+  playMusicAudio.src = fileUrl;
+}
+
+function startPlayBackgroundMusic() {
+  if (!STATE.user.playBackgroundMusic || !playMusicTrack.url) return;
+  if (!playMusicAudio) {
+    playMusicAudio = new Audio(playMusicTrack.url);
+    playMusicAudio.loop = true;
+    playMusicAudio.volume = 0.35;
+  }
+  playMusicAudio.loop = true;
+  playMusicAudio.volume = 0.35;
+  playMusicAudio.play().catch(err => {
+    console.error("Background music play blocked:", err);
+  });
+}
+
+function stopPlayBackgroundMusic() {
+  if (!playMusicAudio) return;
+  playMusicAudio.pause();
+  playMusicAudio.currentTime = 0;
+}
+
+function speakPlayStep(step) {
+  if (isPlayAudioMuted() || !window.speechSynthesis) return;
+  try {
+    const utterance = new SpeechSynthesisUtterance(`${step.cook}, ${step.item}. ${step.action}`);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  } catch (err) {
+    console.error("Speech playback failed:", err);
+  }
+}
+
+function stepCardHtml(step, withTimer = false) {
+  const timer = withTimer ? `<span>${formatTimerClock(step.timeLeft)}</span>` : `<span>${formatDurationLabel(step.duration)}</span>`;
+  const showVideo = withTimer && STATE.user.playStepVideo !== false;
+  const videoHtml = showVideo
+    ? (step.videoUrl
+      ? `<video src="${escapeHtml(step.videoUrl)}" autoplay loop muted playsinline style="width: 100%; border-radius: 8px; margin-top: 8px;"></video>`
+      : `<div class="play-step-meta" style="margin-top: 8px;">${step.videoLoading ? "Generating step video..." : "Step video unavailable."}</div>`)
+    : "";
+  return `
+    <div class="play-step-card">
+      <div class="play-step-title">Step ${step.order + 1} - ${escapeHtml(step.item)}</div>
+      <div class="play-step-text">${escapeHtml(step.action)}</div>
+      ${videoHtml}
+      <div class="play-step-meta">
+        <span>${escapeHtml(step.cook)}</span>
+        <span>${timer}</span>
+      </div>
+    </div>
+  `;
+}
+
+function inferVesselFromAction(action) {
+  const text = cleanText(action).toLowerCase();
+  if (/boil|simmer|saucepan|pot/.test(text)) return "pot";
+  if (/fry|saute|sear|pan/.test(text)) return "pan";
+  if (/bake|roast|oven|tray/.test(text)) return "oven tray";
+  if (/mix|whisk|stir|bowl/.test(text)) return "mixing bowl";
+  if (/chop|slice|dice|mince/.test(text)) return "cutting board and knife";
+  return "kitchen counter and standard cookware";
+}
+
+function getStepVideoCacheKey(recipeId, step) {
+  const performer = `${STATE.user.performerType || "Human"}-${STATE.user.performerGender || "Female"}`;
+  return `${recipeId}::${step.order}::${performer}::${cleanText(step.item).toLowerCase()}::${cleanText(step.action).toLowerCase()}`;
+}
+
+function buildStepVideoPrompt(step) {
+  const performerType = STATE.user.performerType || "Human";
+  const performerGender = STATE.user.performerGender || "Female";
+  const vessel = inferVesselFromAction(step.action);
+  return `Front-facing kitchen shot with visible face. A ${performerGender.toLowerCase()} ${performerType.toLowerCase()} performs this cooking step using ${escapeHtml(vessel)}: ${step.action} on ${step.item}. Keep action clear, hands visible, realistic kitchen, cinematic but practical framing.`;
+}
+
+async function ensurePlayStepVideo(step) {
+  if (STATE.user.playStepVideo === false) return;
+  const cacheKey = getStepVideoCacheKey(playSession.recipeId, step);
+  if (playVideoCache[cacheKey]) {
+    step.videoUrl = playVideoCache[cacheKey];
+    step.videoLoading = false;
+    renderPlayBoards();
+    return;
+  }
+
+  const apiKey = localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
+  if (!apiKey || typeof fetchStepVideoFromGemini !== "function") {
+    step.videoLoading = false;
+    renderPlayBoards();
+    return;
+  }
+
+  try {
+    step.videoLoading = true;
+    renderPlayBoards();
+    const videoUrl = await fetchStepVideoFromGemini(apiKey, {
+      prompt: buildStepVideoPrompt(step),
+      durationSeconds: 4
+    });
+    if (videoUrl) {
+      step.videoUrl = videoUrl;
+      playVideoCache[cacheKey] = videoUrl;
+      savePlayVideoCache();
+    }
+  } catch (err) {
+    console.error("Step video generation failed:", err);
+  } finally {
+    step.videoLoading = false;
+    renderPlayBoards();
+  }
+}
+
+function renderPlayBoards() {
+  const upcomingCol = document.getElementById("play-col-upcoming");
+  const cook1Col = document.getElementById("play-col-cook1");
+  const cook2Col = document.getElementById("play-col-cook2");
+  const completedCol = document.getElementById("play-col-completed");
+  if (!upcomingCol || !cook1Col || !cook2Col || !completedCol) return;
+
+  upcomingCol.innerHTML = playSession.upcoming.length
+    ? playSession.upcoming.map(step => stepCardHtml(step)).join("")
+    : `<p class="play-empty">No upcoming steps.</p>`;
+
+  cook1Col.innerHTML = playSession.running["Cook 1"]
+    ? stepCardHtml(playSession.running["Cook 1"], true)
+    : `<p class="play-empty">Cook 1 is idle.</p>`;
+
+  cook2Col.innerHTML = playSession.running["Cook 2"]
+    ? stepCardHtml(playSession.running["Cook 2"], true)
+    : `<p class="play-empty">Cook 2 is idle.</p>`;
+
+  completedCol.innerHTML = playSession.completed.length
+    ? playSession.completed.map(step => stepCardHtml(step)).join("")
+    : `<p class="play-empty">No completed items yet.</p>`;
+}
+
+function resetPlayRecipeSession() {
+  if (playSession.intervalId) {
+    clearInterval(playSession.intervalId);
+  }
+  stopPlayBackgroundMusic();
+  playSession = {
+    recipeId: "",
+    upcoming: [],
+    running: { "Cook 1": null, "Cook 2": null },
+    completed: [],
+    intervalId: null,
+    tick: 0
+  };
+  const recipeSelect = document.getElementById("play-recipe-select");
+  if (recipeSelect) recipeSelect.value = "";
+  renderPlayBoards();
+}
+
+function startPlayRecipeSession() {
+  const recipeSelect = document.getElementById("play-recipe-select");
+  const recipeId = recipeSelect?.value || "";
+  if (!recipeId) {
+    alert("Choose a recipe to play.");
+    return;
+  }
+
+  const recipe = getAllRecipes().find(r => r.id === recipeId);
+  if (!recipe || !Array.isArray(recipe.steps) || recipe.steps.length === 0) {
+    alert("This recipe has no playable steps.");
+    return;
+  }
+
+  if (playSession.intervalId) clearInterval(playSession.intervalId);
+  stopPlayBackgroundMusic();
+
+  const cookCount = Number.parseInt(recipe.cookCount, 10) === 2 ? 2 : 1;
+  const normalized = recipe.steps.map((step, idx) => ({
+    order: idx,
+    item: cleanText(step.item || inferStepItem(step.text) || `Task ${idx + 1}`),
+    action: cleanText(step.action || step.text || "Prepare"),
+    duration: Math.max(1, Math.round(toNonNegativeNumber(step.duration, 60))),
+    cook: cookCount === 2 ? normalizeCookLabel(step.cook || "Cook 1") : "Cook 1",
+    timeLeft: Math.max(1, Math.round(toNonNegativeNumber(step.duration, 60))),
+    videoUrl: "",
+    videoLoading: false
+  }));
+
+  playSession = {
+    recipeId,
+    upcoming: normalized,
+    running: { "Cook 1": null, "Cook 2": null },
+    completed: [],
+    intervalId: null,
+    tick: 0
+  };
+
+  playSession.intervalId = setInterval(runPlayRecipeTick, 1000);
+  startPlayBackgroundMusic();
+  runPlayRecipeTick();
+}
+
+function pullNextStepForCook(cookName) {
+  const idx = playSession.upcoming.findIndex(step => step.cook === cookName);
+  if (idx < 0) return null;
+  const [nextStep] = playSession.upcoming.splice(idx, 1);
+  speakPlayStep(nextStep);
+  ensurePlayStepVideo(nextStep);
+  return nextStep;
+}
+
+function runPlayRecipeTick() {
+  ["Cook 1", "Cook 2"].forEach(cookName => {
+    if (!playSession.running[cookName]) {
+      playSession.running[cookName] = pullNextStepForCook(cookName);
+    }
+  });
+
+  ["Cook 1", "Cook 2"].forEach(cookName => {
+    const step = playSession.running[cookName];
+    if (!step) return;
+    if (step.timeLeft <= 3 && step.timeLeft > 0) {
+      playShortBeep();
+    }
+    step.timeLeft = Math.max(0, step.timeLeft - 1);
+    if (step.timeLeft <= 0) {
+      playSession.completed.push(step);
+      playSession.running[cookName] = null;
+    }
+  });
+
+  const done = playSession.upcoming.length === 0 && !playSession.running["Cook 1"] && !playSession.running["Cook 2"];
+  if (done && playSession.intervalId) {
+    clearInterval(playSession.intervalId);
+    playSession.intervalId = null;
+    stopPlayBackgroundMusic();
+  }
+
+  renderPlayBoards();
 }
 
 // ----------------------------------------------------

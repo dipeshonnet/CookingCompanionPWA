@@ -167,3 +167,63 @@ Return realistic approximate values for this exact amount.
   if (!rawText) throw new Error("No nutrition payload returned by Gemini");
   return JSON.parse(rawText);
 }
+
+/**
+ * Generate a short step video (4s default) using Gemini Veo and return downloadable URI.
+ * This uses long-running operation polling from Gemini Video API.
+ * @param {string} apiKey Gemini API Key
+ * @param {object} params { prompt, durationSeconds }
+ * @returns {Promise<string|null>} video URI if available
+ */
+async function fetchStepVideoFromGemini(apiKey, params) {
+  const duration = [4, 6, 8].includes(Number(params.durationSeconds)) ? Number(params.durationSeconds) : 4;
+  const base = "https://generativelanguage.googleapis.com/v1beta";
+  const predictUrl = `${base}/models/veo-3.1-fast-generate-preview:predictLongRunning`;
+
+  const startResponse = await fetch(predictUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey
+    },
+    body: JSON.stringify({
+      instances: [{ prompt: params.prompt }],
+      parameters: {
+        durationSeconds: duration,
+        aspectRatio: "16:9"
+      }
+    })
+  });
+
+  if (!startResponse.ok) {
+    const errText = await startResponse.text();
+    throw new Error(`Video start failed ${startResponse.status}: ${errText}`);
+  }
+
+  let operation = await startResponse.json();
+  if (!operation?.name) return null;
+
+  for (let i = 0; i < 30; i++) {
+    if (operation.done) break;
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    const statusResp = await fetch(`${base}/${operation.name}`, {
+      headers: { "x-goog-api-key": apiKey }
+    });
+    if (!statusResp.ok) {
+      const errText = await statusResp.text();
+      throw new Error(`Video poll failed ${statusResp.status}: ${errText}`);
+    }
+    operation = await statusResp.json();
+  }
+
+  if (!operation?.done) return null;
+  if (operation.error) throw new Error(`Video generation error: ${operation.error.message || "unknown"}`);
+
+  const uri =
+    operation.response?.generatedSamples?.[0]?.video?.uri ||
+    operation.response?.videos?.[0]?.uri ||
+    operation.response?.video?.uri ||
+    null;
+
+  return uri;
+}
