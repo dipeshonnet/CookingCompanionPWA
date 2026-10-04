@@ -9,9 +9,9 @@ Deployed October 4, 2026:
 | Resource | Production value |
 | --- | --- |
 | Public app | https://cooking.everydayai.work/ |
-| Cloudflare Pages project | `cooking-companion` |
-| Pages hostname | `cooking-companion-b64.pages.dev` |
-| Deployment method | Direct Upload; not Git-integrated |
+| Cloudflare Pages project | `cooking-companion-git-dipesh` |
+| Pages hostname | `cooking-companion-git-dipesh.pages.dev` |
+| Deployment method | GitHub integration, `dipeshonnet/CookingCompanionPWA` `main` |
 | Firebase project | `cooking-companion-6bd5b` |
 | Firebase plan | Spark, no cost |
 | Firebase web app | `1:471759035334:web:398e613a3c97c45136f0c7` |
@@ -21,7 +21,7 @@ Deployed October 4, 2026:
 
 The custom domain is active with SSL. Authentication authorizes the custom domain, the actual Pages hostname, `localhost`, and the project's Firebase hostnames. Owner-only Firestore rules and index exemptions have been deployed. No Firebase Storage, Functions, paid video service, or billing upgrade was enabled.
 
-The public browser configuration is in `config/firebase-web.json`; it is not an administrator credential. Development source keeps cloud authentication unconfigured. Use the production build command below to inject the public configuration.
+The public browser configuration is in local, Git-ignored `config/firebase-web.json`; it is not an administrator credential. Development source keeps cloud authentication unconfigured. Cloudflare's `FIREBASE_WEB_CONFIG` build variable injects the public configuration during Git builds.
 
 An unused setup project, `cooking-companion-9f6f6`, remains separate from production. Its automatically linked billing account was unlinked with approval. It was not deleted.
 
@@ -51,29 +51,20 @@ Official references, checked October 3, 2026: [Pages static pricing](https://dev
 3. Add `cooking.everydayai.work` to Authentication's authorized domains. Add `localhost` explicitly for development if it is absent. Authorize the Pages preview domain only when you intend to test login there.
 4. Keep the web configuration's `authDomain` as the project's Firebase-hosted auth domain, for example `YOUR_PROJECT.firebaseapp.com`. The app uses Google popup authentication. Do not set it to the cooking subdomain without also implementing Firebase's auth-helper hosting requirements.
 5. Deploy `firestore.rules` and `firestore.indexes.json` using the Firebase console/CLI. Example: `npx firebase-tools deploy --only firestore --project YOUR_PROJECT_ID`. This step requires your Firebase access; the repo does not provision a project automatically.
-6. Supply the **public web configuration JSON** through `FIREBASE_WEB_CONFIG` when building. Required fields: `apiKey`, `authDomain`, `projectId`, `appId`. The build writes it into `dist/modules/firebase-config.js`. For this Direct Upload project, the build runs locally, not in Cloudflare.
+6. Supply the **public web configuration JSON** through the Cloudflare Pages `FIREBASE_WEB_CONFIG` build variable. Required fields: `apiKey`, `authDomain`, `projectId`, `appId`. The Git build writes it into `dist/modules/firebase-config.js`. The local config file is not committed.
 7. Verify live Google login, email registration/sign-in, sign-out, and cross-account access before inviting users. Web config is public; Firestore rules, not hiding that config, protect data. Never supply a service-account JSON or AI API key to the build.
 
 For local testing, fill `modules/firebase-config.js` with the project's public web configuration, or use `node --env-file=.env tools/build.mjs` with a local `.env` containing `FIREBASE_WEB_CONFIG`. Secrets and `.env` files are ignored.
 
 ## Cloudflare Pages and DNS
 
-This project uses Cloudflare's dashboard Direct Upload. A GitHub push does **not** publish it. Existing Direct Upload projects cannot be switched to Git integration; see [Cloudflare's Direct Upload documentation](https://developers.cloudflare.com/pages/get-started/direct-upload/).
+The live Pages project is Git-integrated. Cloudflare clones `main`, runs `npm run build` with Node.js 22, and publishes `dist`. Production and preview builds use the project's `FIREBASE_WEB_CONFIG` build variable. Pushes to `main` automatically deploy; pull requests can create preview builds. The old Direct Upload project `cooking-companion` remains available at `cooking-companion-b64.pages.dev` as a rollback source, but has no custom domain and is not connected to GitHub. Cloudflare cannot convert a Direct Upload project to Git integration; see [Cloudflare's Direct Upload documentation](https://developers.cloudflare.com/pages/get-started/direct-upload/).
 
-For another production release, run in the repository folder with Node.js 22+:
-
-```powershell
-$env:FIREBASE_WEB_CONFIG = Get-Content -LiteralPath '.\config\firebase-web.json' -Raw
-node tools/build.mjs
-Compress-Archive -Path '.\dist\*' -DestinationPath '.\output\cooking-companion-pages.zip' -Force
-Remove-Item Env:FIREBASE_WEB_CONFIG
-```
-
-1. Open the existing Pages project `cooking-companion`, choose **Create deployment**, and select **Production**.
-2. Upload `output/cooking-companion-pages.zip`. Its contents must be the files inside `dist`, not a surrounding `dist` folder. Confirm all files uploaded, then choose **Save and deploy**.
-3. Verify the live `/asset-manifest.json` version matches the local build and that Google/email controls become enabled. Existing tabs may need a reload after the new service worker finishes installing. App-shell updates do not clear user recipes, settings, or local music.
-4. Keep **cooking.everydayai.work** attached under **Custom domains**. Its proxied CNAME points to `cooking-companion-b64.pages.dev`; no other domain records need changing.
-5. Open the HTTPS site and check login and offline startup. Do not upload the repository root, credentials, tests, or local output screenshots.
+1. Run `npm test`, `npm run test:browser`, and `npm run test:timers` locally. Browser tests use an isolated device-only profile and need Playwright installed or `PLAYWRIGHT_MODULE_PATH` set.
+2. Push the tested commit to `main` in `dipeshonnet/CookingCompanionPWA`. Confirm the `cooking-companion-git-dipesh` Pages deployment succeeds at that commit.
+3. Verify `https://cooking.everydayai.work/asset-manifest.json` matches the expected build version and that the Google/email controls are enabled. Existing tabs may need a reload after the new service worker installs. Finish running timers first because active sessions do not survive reload.
+4. Keep **cooking.everydayai.work** attached under the new project's **Custom domains**. Its proxied CNAME points to `cooking-companion-git-dipesh.pages.dev`; do not change other DNS records.
+5. Check HTTPS login and offline startup. Do not commit credentials, local Firebase config, tests' generated output, or screenshots to the deployment source.
 
 Deploy database rules separately when they change, using the official authenticated Firebase CLI:
 
@@ -87,7 +78,9 @@ See [Cloudflare's custom-domain instructions](https://developers.cloudflare.com/
 
 ## Deployment Verification
 
-The October 4 floating-timer update is live as release `ea6493b8a24c4263`. It includes the approved AI-provider changes from the same workspace. Thirty-two unit tests, 52 general browser checks, and 24 focused timer browser checks passed. HTTPS/security headers and 42 app assets were verified against the build. The live signed-in app showed a countdown on Ingredients, and the floating control returned to Play Recipe without restarting it. The verification session was reset afterward. Existing installed tabs may need a reload after the updated shell installs; finish running timers before reloading because sessions are not restored across reloads.
+The October 4 Git-integrated release is commit `3bf7e5f`, offline version `b3b29b38eab4f204`. Thirty-two unit tests, 62 general browser checks, and 24 focused timer browser checks passed. The new Pages build cloned that commit and produced the same version. The temporary Pages hostname and custom domain returned HTTP 200 with CSP and HSTS; the recipe-detail module, stylesheet, and Firebase web config matched the local build. Cloudflare marked the custom domain Active with SSL and its CNAME points to the Git project. Google/email controls were enabled on the temporary hostname; full sign-in on the migrated custom domain remains a manual check. Existing installed tabs may need a reload after the new shell installs; finish running timers first.
+
+The earlier floating-timer Direct Upload release was `ea6493b8a24c4263`. Its live signed-in verification showed a countdown on Ingredients and navigation back to Play Recipe without restarting it. That verification session was reset afterward.
 
 Release `3740e84b6fd6f1c9` was published successfully. HTTPS, CSP, HSTS, nosniff, and frame protection were verified. Forty static assets, including the service worker and public Firebase configuration, match the local build byte-for-byte. Cloudflare adds a platform security script to the HTML, so the HTML response is not byte-identical to the source.
 

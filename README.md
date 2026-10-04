@@ -34,7 +34,7 @@ Run `node tests/timer-browser.mjs` for focused floating-timer checks, including 
 - [Architecture and Data Ownership](docs/ARCHITECTURE.md)
 - The in-app FAQ covers recipes, ingredients, profile, playback, exports, and storage.
 
-The live app uses Firebase Spark project `cooking-companion-6bd5b`. Development source remains unconfigured; the production build injects `config/firebase-web.json` through `FIREBASE_WEB_CONFIG`. Device-only mode works without Firebase. Google/email buttons never simulate authentication. The current Cloudflare project uses Direct Upload, so GitHub pushes do not automatically deploy it; see the deployment guide for release commands.
+The live app uses Firebase Spark project `cooking-companion-6bd5b`. Development source remains unconfigured; the Cloudflare Pages build receives the public Firebase web config through its `FIREBASE_WEB_CONFIG` build variable. Device-only mode works without Firebase. Google/email buttons never simulate authentication. Cloudflare Pages project `cooking-companion-git-dipesh` deploys pushes to `main` from `dipeshonnet/CookingCompanionPWA`; see the deployment guide for release checks.
 
 ## Optional AI
 
