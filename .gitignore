@@ -1,0 +1,11 @@
+dist/
+node_modules/
+output/
+.playwright-cli/
+.env
+.env.*
+!.env.example
+firebase-debug.log
+firestore-debug.log
+.firebase/
+config/firebase-web.json

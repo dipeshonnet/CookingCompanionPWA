@@ -1,81 +1,48 @@
-const CACHE_NAME = 'cooking-companion-v3';
-const ASSETS_TO_CACHE = [
-  'index.html',
-  'styles.css',
-  'recipes.js',
-  'gemini.js',
-  'app.js',
-  'manifest.json',
-  'favicon.ico',
-  'assets/logo.png',
-  'assets/icon-192.png',
-  'assets/icon-512.png'
-];
+const CACHE_PREFIX = 'cooking-companion-shell-';
+const CACHE_NAME = CACHE_PREFIX + 'development-ai-providers-1';
+const VENDOR_CACHE = 'cooking-companion-vendor-10.14.1';
+const AUTH_SCRIPTS = ['app', 'auth', 'firestore'].map(name => `https://www.gstatic.com/firebasejs/10.14.1/firebase-${name}-compat.js`);
 
-// Install Event - Pre-cache App Shell
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache and caching assets');
-        return cache.addAll(ASSETS_TO_CACHE);
-      })
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const response = await fetch('/asset-manifest.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Offline asset manifest unavailable');
+    const { assets } = await response.json();
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(assets.map(path => new Request(path, { cache: 'reload' })));
+    await self.skipWaiting();
+  })());
 });
 
-// Activate Event - Clean up old caches
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cache => {
-          if (cache !== CACHE_NAME) {
-            console.log('Clearing old cache:', cache);
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    for (const name of await caches.keys()) {
+      if (name !== CACHE_NAME && (name.startsWith(CACHE_PREFIX) || /^cooking-companion-v\d+$/.test(name))) await caches.delete(name);
+    }
+    await self.clients.claim();
+  })());
 });
 
-// Fetch Event - Cache first / Network fallback
 self.addEventListener('fetch', event => {
-  // Only handle standard requests (exclude chrome-extension or external tools URLs)
-  if (!event.request.url.startsWith(self.location.origin)) {
+  const url = new URL(event.request.url);
+  if (event.request.method === 'GET' && AUTH_SCRIPTS.includes(url.href)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(VENDOR_CACHE);
+      const existing = await cache.match(event.request);
+      if (existing) return existing;
+      const response = await fetch(event.request);
+      if (response.ok || response.type === 'opaque') await cache.put(event.request, response.clone());
+      return response;
+    })());
     return;
   }
-
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-
-        // Clone the request for fetch
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(response => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-
-          // Clone the response to store in cache
-          const responseToCache = response.clone();
-
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return response;
-        }).catch(err => {
-          console.log('Fetch failed, offline mode active for request:', event.request.url);
-        });
-      })
-  );
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname === '/asset-manifest.json') return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    if (event.request.mode === 'navigate') {
+      try { return await fetch(event.request); }
+      catch { return await cache.match('/index.html') || Response.error(); }
+    }
+    return await cache.match(event.request) || fetch(event.request).catch(() => Response.error());
+  })());
 });

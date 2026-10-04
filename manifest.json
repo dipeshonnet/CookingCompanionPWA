@@ -1,8 +1,10 @@
 {
   "name": "Cooking Companion",
   "short_name": "CookingCompanion",
-  "description": "Your ultimate kitchen assistant with recipe matching, AI cooking helper, and personalized meal planner.",
-  "start_url": "index.html",
+  "description": "Recipes, ingredients, parallel cooking timers, and meal planning.",
+  "id": "/",
+  "scope": "/",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#f59e0b",

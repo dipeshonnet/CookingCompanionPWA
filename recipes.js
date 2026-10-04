@@ -1,4 +1,4 @@
-const APP_RECIPES = [
+export const APP_RECIPES = [
   {
     id: "r1",
     title: "Gourmet Garlic Butter Tuscan Salmon",

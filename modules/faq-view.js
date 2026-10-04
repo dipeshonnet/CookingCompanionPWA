@@ -1,5 +1,5 @@
-window.renderFAQView = function renderFAQView() {
-  if (typeof window.initLucide === "function") {
-    window.initLucide();
-  }
-};
+import { initLucide } from './navigation.js';
+
+export function renderFAQView() {
+  initLucide();
+}

@@ -1,0 +1,14 @@
+{
+  "name": "cooking-companion-pwa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node tools/dev-server.mjs",
+    "build": "node tools/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "test:timers": "node tests/timer-browser.mjs"
+  },
+  "engines": { "node": ">=22" }
+}

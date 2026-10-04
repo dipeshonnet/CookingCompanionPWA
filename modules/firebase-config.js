@@ -1,6 +1,6 @@
-// Replace with your Firebase project config.
-// This file is intentionally local so you can keep environment-specific settings.
-window.FIREBASE_CONFIG = window.FIREBASE_CONFIG || {
+// Public web config only. Production builds can supply FIREBASE_WEB_CONFIG.
+// Firebase rules protect data; this config is not an admin credential.
+export const FIREBASE_CONFIG = globalThis.FIREBASE_CONFIG || {
   apiKey: "",
   authDomain: "",
   projectId: "",

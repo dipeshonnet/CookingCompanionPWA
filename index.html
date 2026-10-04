@@ -7,6 +7,7 @@
   
   <!-- SEO Meta Tags -->
   <meta name="description" content="Your kitchen assistant with custom recipe building, ingredient matching, timers, and meal planning.">
+  <link rel="canonical" href="https://cooking.everydayai.work/">
   <meta name="theme-color" content="#f59e0b">
   
   <!-- PWA Manifest & Apple Web App Tags -->
@@ -21,7 +22,7 @@
   <link rel="stylesheet" href="styles.css">
   
   <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="vendor/lucide.min.js" defer></script>
 </head>
 <body>
   
@@ -42,27 +43,28 @@
       <p class="auth-subtitle">Elevate your kitchen experience with custom recipes, ingredient matching, timers, and meal planning.</p>
       
       <div class="auth-btn-group">
-        <button id="btn-login-google" class="auth-btn auth-btn-google">
+        <button id="btn-login-google" class="auth-btn auth-btn-google" disabled>
           <i data-lucide="globe"></i> Continue with Google
         </button>
-        <button id="btn-login-apple" class="auth-btn auth-btn-apple">
-          <i data-lucide="apple"></i> Continue with Apple
+        <button id="btn-login-local" class="auth-btn auth-btn-apple">
+          <i data-lucide="hard-drive"></i> Continue on This Device
         </button>
-        <button id="btn-login-email" class="auth-btn auth-btn-email">
+        <button id="btn-login-email" class="auth-btn auth-btn-email" disabled>
           <i data-lucide="mail"></i> Continue with Email
         </button>
       </div>
-      <div style="display: grid; gap: 10px; margin-top: 12px;">
-        <input id="auth-email-input" type="email" class="form-control" placeholder="Email">
-        <input id="auth-password-input" type="password" class="form-control" placeholder="Password">
+      <form id="auth-email-form" style="display: grid; gap: 10px; margin-top: 12px;">
+        <input id="auth-email-input" type="email" class="form-control" placeholder="Email" autocomplete="email">
+        <input id="auth-password-input" type="password" class="form-control" placeholder="Password" autocomplete="current-password">
         <div style="display: flex; gap: 10px;">
           <button id="btn-auth-email-signin" class="btn-secondary" type="button"><i data-lucide="log-in"></i> Sign In</button>
           <button id="btn-auth-email-signup" class="btn-secondary" type="button"><i data-lucide="user-plus"></i> Sign Up</button>
         </div>
-      </div>
+      </form>
+      <p id="auth-status" role="status" class="auth-subtitle"></p>
       
       <div class="auth-footer">
-        By continuing, you agree to our Terms of Service and Privacy Policy.
+        Device-only data stays in this browser. Cloud accounts sync privately after sign-in.
       </div>
     </div>
   </div>
@@ -153,7 +155,7 @@
                 <h2><i data-lucide="book-open"></i> Recipe</h2>
               </div>
               <p style="margin-bottom: 20px; color: var(--text-muted);">Save a custom recipe with structured steps, one-cook or two-cook assignments, and timers that can run together.</p>
-              <button class="btn-primary" onclick="switchView('ai-generator')">
+              <button class="btn-primary" data-navigate="ai-generator">
                 <i data-lucide="book-open"></i> Recipe
               </button>
             </div>
@@ -162,7 +164,7 @@
             <div class="glass-card">
               <div class="card-title-bar">
                 <h2><i data-lucide="award"></i> Handpicked Recommendations</h2>
-                <button class="btn-secondary" onclick="switchView('ai-generator')" style="padding: 6px 12px; font-size: 12px;">See All</button>
+                <button class="btn-secondary" data-navigate="ai-generator" style="padding: 6px 12px; font-size: 12px;">See All</button>
               </div>
               <div class="recipes-grid" id="dashboard-recommendations">
                 <!-- Recipe Cards will be rendered dynamically -->
@@ -176,7 +178,7 @@
             <div class="glass-card">
               <div class="card-title-bar">
                 <h2><i data-lucide="container"></i> Ingredients Overview</h2>
-                <button class="btn-icon" onclick="switchView('pantry')"><i data-lucide="plus"></i></button>
+                <button class="btn-icon" data-navigate="pantry"><i data-lucide="plus"></i></button>
               </div>
               <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">Quickly matching recipes with what you have in stock.</p>
               <div class="pantry-tags-container" id="dashboard-pantry-list" style="margin-bottom: 16px;">
@@ -240,7 +242,7 @@
             <button id="pantry-add-btn" class="btn-primary" style="flex: 0.8; min-width: 140px; justify-content: center;"><i data-lucide="plus"></i> Add Ingredient</button>
           </div>
           
-          <p style="color: var(--text-dim); font-size: 12px; margin-top: -12px;">Add ingredients you have in your kitchen. We will use these to calculate recipe matches and deduct portions when cooked.</p>
+          <p style="color: var(--text-dim); font-size: 12px; margin-top: -12px;">Add ingredients you have in your kitchen. We use these to calculate recipe matches; pantry deduction is optional when you cook.</p>
         </div>
 
         <div class="glass-card">
@@ -416,13 +418,22 @@
             <!-- API Key settings panel -->
             <div class="ai-settings-card">
               <div class="card-title-bar">
-                <h2><i data-lucide="key"></i> Gemini Configuration</h2>
+                <h2><i data-lucide="key"></i> AI Configuration</h2>
               </div>
+              <div class="form-group">
+                <label for="ai-provider-select">AI Provider</label>
+                <select id="ai-provider-select" class="form-control">
+                  <option value="openai">OpenAI</option>
+                  <option value="gemini">Gemini</option>
+                  <option value="groq" selected>Groq</option>
+                </select>
+              </div>
+              <label id="ai-key-label" for="ai-key-input">Groq API Key</label>
               <div class="pantry-input-group">
-                <input type="password" id="gemini-key-input" class="form-control" placeholder="Enter your Gemini API Key..." style="flex-grow: 1;" aria-label="Gemini API Key">
-                <button id="gemini-key-save-btn" class="btn-secondary">Save Key</button>
+                <input type="password" id="ai-key-input" class="form-control" placeholder="Enter your Groq API Key" style="flex-grow: 1;" aria-label="Groq API Key" autocomplete="off" spellcheck="false">
+                <button id="ai-key-save-btn" class="btn-secondary">Save Key</button>
               </div>
-              <p style="font-size: 12px; color: var(--text-muted); margin-top: -12px;">Your API Key is saved locally in your browser's localStorage and is only sent directly to Google's API servers.</p>
+              <p style="font-size: 12px; color: var(--text-muted); margin-top: -12px;">Each provider's key is saved separately in this browser account and sent directly to that provider. API usage follows your provider's pricing and quota.</p>
             </div>
 
             <div>
@@ -480,7 +491,7 @@
             <!-- Dynamic loader -->
             <div class="ai-loading-box" id="ai-loader">
               <div class="ai-pulse-sphere"></div>
-              <h2 style="font-family: var(--font-title); font-size: 20px;">Gemini is drafting your recipe...</h2>
+              <h2 style="font-family: var(--font-title); font-size: 20px;">AI is drafting your recipe...</h2>
               <p style="color: var(--text-muted); font-size: 14px; max-width: 400px; margin: 0 auto;">Structuring ingredients, step details, cook assignments, and timers.</p>
             </div>
 
@@ -511,8 +522,8 @@
         </div>
 
         <div class="glass-card" style="margin-bottom: 18px;">
-          <div class="pantry-input-group" style="align-items: end;">
-            <div class="form-group" style="flex: 2; min-width: 260px; margin-bottom: 0;">
+          <div class="pantry-input-group play-controls" style="align-items: end;">
+            <div class="form-group" style="flex: 2; min-width: 0; margin-bottom: 0;">
               <label for="play-recipe-select">Choose Recipe</label>
               <select id="play-recipe-select" class="form-control"></select>
             </div>
@@ -602,7 +613,7 @@
           </details>
           <details class="ai-optional-card">
             <summary><span><i data-lucide="container"></i> Ingredients</span><i data-lucide="chevron-down"></i></summary>
-            <div class="ai-optional-content">Track ingredient quantity/unit/category, auto-generate nutrition (with API key), and use stock for matching and deduction while cooking.</div>
+            <div class="ai-optional-content">Track ingredient quantity/unit/category, auto-generate nutrition (with API key), and use stock for recipe matching. Cooking leaves pantry quantities unchanged by default; you can choose to deduct them.</div>
           </details>
           <details class="ai-optional-card">
             <summary><span><i data-lucide="book-open"></i> Recipe</span><i data-lucide="chevron-down"></i></summary>
@@ -610,20 +621,41 @@
           </details>
           <details class="ai-optional-card">
             <summary><span><i data-lucide="play-circle"></i> Play Recipe Kanban</span><i data-lucide="chevron-down"></i></summary>
-            <div class="ai-optional-content">Steps move Upcoming -> Cook 1/Cook 2 while timers run -> Completed Items once done. Audio cues and step videos can be configured in Profile.</div>
+            <div class="ai-optional-content">Steps move from Upcoming to the assigned cook, then to Completed when the timer ends. Each cook follows their own sequence; assign only independent tasks to different cooks. Active countdowns remain visible in a floating panel on every app page; select it to return to Play Recipe. Expert uses original times, Somewhat uses 1.5x, and Beginner uses 2x. Reset stops the session. Timers are not restored after reload.</div>
           </details>
           <details class="ai-optional-card">
             <summary><span><i data-lucide="user-cog"></i> Profile Settings</span><i data-lucide="chevron-down"></i></summary>
-            <div class="ai-optional-content">Set name/gender/diet/experience/API key plus play controls: performer type, performer gender, play videos, and mute audio.</div>
+            <div class="ai-optional-content">Set your name, gender, dietary preference, experience and optional OpenAI, Gemini, or Groq key. Email is read-only from cloud login. Choose a local music file, video playback preference and performer. Silence Play Audio mutes announcements, countdown sounds, chimes and background music.</div>
           </details>
           <details class="ai-optional-card">
             <summary><span><i data-lucide="calendar"></i> Meal Planner & Shopping</span><i data-lucide="chevron-down"></i></summary>
-            <div class="ai-optional-content">Assign recipes per day and meal slot. Shopping list auto-computes required items minus current ingredients.</div>
+            <div class="ai-optional-content">Assign recipes to day and meal slots, or select the empty option to remove a meal. The shopping list combines compatible units and subtracts available quantities. It does not convert weight to volume or match different foods by partial names. Previously assigned meals remain saved when you change diet; review those choices.</div>
+          </details>
+          <details class="ai-optional-card">
+            <summary><span><i data-lucide="cloud"></i> Login and offline data</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">Continue on This Device works without an account. Configured Google/email accounts sync profile, ingredients, recipes, likes and meal slots privately. Guest data and each account are separate. Sign-out retains local data; clear site data on a shared device when needed. Offline changes are saved locally and retried when connected. Export recipes for a portable backup.</div>
+          </details>
+          <details class="ai-optional-card">
+            <summary><span><i data-lucide="sparkles"></i> Free AI and step videos</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">Manual recipes and timers do not require AI. Choose OpenAI, Gemini, or Groq for optional recipe generation and approximate nutrition, using your own API key. Requests send selected ingredients and recipe preferences to your selected provider. Each key stays in this browser account's storage, outside the app database. Usage follows the provider's pricing and quota; OpenAI requires API billing. Automatic AI video generation is disabled in this deployment.</div>
+          </details>
+          <details class="ai-optional-card">
+            <summary><span><i data-lucide="music"></i> Music, audio and local caching</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">A selected audio file under 50 MB is stored in this browser and can loop during Play Recipe. It survives reloads but does not sync to another device. Browser storage clearing or eviction removes local media. Spoken instructions are queued for both cooks; each final countdown second beeps once. Sound and dictation depend on browser permissions and device support.</div>
+          </details>
+          <details class="ai-optional-card">
+            <summary><span><i data-lucide="heart"></i> Likes, sharing and nutrition</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">Recipe hearts are saved in your profile; Like shows the liked subset in Explore. Export selects individual recipes as JSON; Import skips existing IDs. Share sends the app link, not private recipes. Nutrition is an AI estimate for the stored quantity and scales when that quantity changes; it is not verified nutritional or medical advice. Dietary filters use recipe tags, so tag custom recipes accurately.</div>
           </details>
         </div>
       </section>
 
     </main>
+    <button id="floating-active-timers" class="floating-active-timers" type="button" data-navigate="play" aria-label="Open Play Recipe" aria-describedby="floating-timer-title floating-timer-rows" title="Open Play Recipe" hidden>
+      <span class="floating-timer-heading"><i data-lucide="timer" aria-hidden="true"></i><span id="floating-timer-count"></span><i data-lucide="arrow-up-right" aria-hidden="true"></i></span>
+      <span id="floating-timer-title" class="floating-timer-title"></span>
+      <span id="floating-timer-rows" class="floating-timer-rows"></span>
+    </button>
   </div>
 
   <div id="recipe-export-modal" class="modal-overlay" style="z-index: 103; display: none;">
@@ -690,11 +722,45 @@
             <i data-lucide="timer"></i> Start Parallel Timers
           </button>
           <button id="modal-btn-cook" class="btn-primary" style="padding: 14px 28px; background: var(--success-gradient); box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);">
-            <i data-lucide="chef-hat"></i> Cook this Meal!
+            <i data-lucide="chef-hat"></i> Cook this Meal
           </button>
         </div>
       </div>
     </div>
+  </div>
+
+  <div id="cook-meal-modal" class="modal-overlay cook-meal-overlay" role="dialog" aria-modal="true" aria-labelledby="cook-meal-title" aria-describedby="cook-meal-summary">
+    <div class="cook-meal-dialog">
+      <div class="cook-meal-header">
+        <div class="cook-meal-heading"><i data-lucide="chef-hat" aria-hidden="true"></i><h2 id="cook-meal-title">Cook this meal</h2></div>
+        <button id="cook-meal-close-btn" class="cook-meal-close" type="button" aria-label="Close cook meal dialog"><i data-lucide="x" aria-hidden="true"></i></button>
+      </div>
+      <p id="cook-meal-summary" class="cook-meal-summary"></p>
+      <div id="cook-meal-shortages" class="cook-meal-shortages" hidden>
+        <div class="cook-meal-shortages-title"><i data-lucide="triangle-alert" aria-hidden="true"></i><span>Pantry check</span></div>
+        <ul id="cook-meal-shortage-list"></ul>
+      </div>
+      <fieldset class="cook-meal-options">
+        <legend>Update ingredients?</legend>
+        <label class="cook-meal-option">
+          <input type="radio" name="cook-pantry-mode" value="keep" checked>
+          <span><strong>Keep pantry unchanged</strong><small>Cook without deducting any ingredients.</small></span>
+        </label>
+        <label class="cook-meal-option">
+          <input type="radio" name="cook-pantry-mode" value="deduct">
+          <span><strong>Deduct from pantry</strong><small id="cook-meal-deduct-note">Subtract recipe amounts from available ingredients.</small></span>
+        </label>
+      </fieldset>
+      <div class="cook-meal-actions">
+        <button id="cook-meal-cancel-btn" class="btn-secondary" type="button">Cancel</button>
+        <button id="cook-meal-confirm-btn" class="btn-primary" type="button"><i data-lucide="check" aria-hidden="true"></i> Cook meal</button>
+      </div>
+    </div>
+  </div>
+  <div id="cook-meal-toast" class="cook-meal-toast" role="status" aria-live="polite" hidden>
+    <i data-lucide="circle-check" aria-hidden="true"></i>
+    <span id="cook-meal-toast-message"></span>
+    <button id="cook-meal-toast-close" type="button" aria-label="Dismiss notification"><i data-lucide="x" aria-hidden="true"></i></button>
   </div>
 
   <!-- SELECT MEAL SLOT MODAL -->
@@ -776,8 +842,16 @@
           <input type="email" id="profile-email-input" class="form-control" readonly>
         </div>
         <div class="form-group profile-modal-wide">
-          <label for="profile-gemini-key-input">API Key (Gemini)</label>
-          <input type="password" id="profile-gemini-key-input" class="form-control" placeholder="Enter your Gemini API Key">
+          <label for="profile-ai-provider-select">AI Provider</label>
+          <select id="profile-ai-provider-select" class="form-control">
+            <option value="openai">OpenAI</option>
+            <option value="gemini">Gemini</option>
+            <option value="groq" selected>Groq</option>
+          </select>
+        </div>
+        <div class="form-group profile-modal-wide">
+          <label id="profile-ai-key-label" for="profile-ai-key-input">Groq API Key</label>
+          <input type="password" id="profile-ai-key-input" class="form-control" placeholder="Enter your Groq API Key" autocomplete="off" spellcheck="false">
         </div>
       </div>
 
@@ -821,15 +895,6 @@
   </div>
 
   <!-- Scripts -->
-  <script src="recipes.js"></script>
-  <script src="gemini.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-  <script src="modules/firebase-config.js"></script>
-  <script src="modules/backend-auth-db.js"></script>
-  <script src="modules/user-profile.js"></script>
-  <script src="modules/faq-view.js"></script>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

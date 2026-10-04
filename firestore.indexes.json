@@ -1,0 +1,10 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    { "collectionGroup": "recipes", "fieldPath": "steps", "indexes": [] },
+    { "collectionGroup": "recipes", "fieldPath": "ingredients", "indexes": [] },
+    { "collectionGroup": "recipes", "fieldPath": "description", "indexes": [] },
+    { "collectionGroup": "pantry", "fieldPath": "nutrition", "indexes": [] },
+    { "collectionGroup": "app", "fieldPath": "user", "indexes": [] }
+  ]
+}

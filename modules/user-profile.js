@@ -1,6 +1,6 @@
-window.DEFAULT_USER_PROFILE = {
+export const DEFAULT_USER_PROFILE = {
   name: "Chef Guest",
-  email: "guest@cookingcompanion.local",
+  email: "",
   gender: "Prefer not to say",
   dietPreference: "None",
   performerType: "Human",
@@ -12,9 +12,10 @@ window.DEFAULT_USER_PROFILE = {
   loggedIn: false
 };
 
-window.buildUserProfile = function buildUserProfile(raw = {}) {
+export function buildUserProfile(raw = {}) {
+  if (!raw || typeof raw !== 'object') raw = {};
   const clean = (v) => String(v ?? "").trim();
-  const defaults = window.DEFAULT_USER_PROFILE;
+  const defaults = DEFAULT_USER_PROFILE;
   return {
     name: clean(raw.name || defaults.name),
     email: clean(raw.email || defaults.email),
@@ -25,7 +26,8 @@ window.buildUserProfile = function buildUserProfile(raw = {}) {
     playStepVideo: raw.playStepVideo !== false,
     playBackgroundMusic: Boolean(raw.playBackgroundMusic),
     mutePlayAudio: Boolean(raw.mutePlayAudio),
-    experience: clean(raw.experience || defaults.experience),
+    experience: ['Expert', 'Somewhat', 'Beginner'].includes(raw.experience) ? raw.experience : defaults.experience,
+    likedRecipeIds: Array.isArray(raw.likedRecipeIds) ? raw.likedRecipeIds.filter(id => typeof id === 'string').slice(0, 2000) : [],
     loggedIn: Boolean(raw.loggedIn)
   };
 };

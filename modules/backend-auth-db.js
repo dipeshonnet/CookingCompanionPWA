@@ -1,76 +1,90 @@
-window.BackendAuthDB = (function () {
-  let ready = false;
-  let auth = null;
-  let db = null;
+import { toCloudRecords, diffCloudRecords } from './cloud-records.js';
+import { FIREBASE_CONFIG } from './firebase-config.js';
 
-  function hasConfig() {
-    const cfg = window.FIREBASE_CONFIG || {};
-    return Boolean(cfg.apiKey && cfg.authDomain && cfg.projectId && cfg.appId);
-  }
+export function createBackend(config, sdk = () => globalThis.firebase) {
+  let auth;
+  let db;
+  const baselines = new Map();
+  const ready = () => Boolean(auth && db);
 
-  function init() {
-    if (!window.firebase || !hasConfig()) return false;
-    if (!firebase.apps.length) {
-      firebase.initializeApp(window.FIREBASE_CONFIG);
+  async function init() {
+    if (!config.apiKey || !config.authDomain || !config.projectId || !config.appId) return false;
+    if (!sdk()) {
+      for (const component of ['app', 'auth', 'firestore']) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = `https://www.gstatic.com/firebasejs/10.14.1/firebase-${component}-compat.js`;
+          const timeout = setTimeout(() => reject(new Error('Authentication SDK timed out')), 15000);
+          script.onload = () => { clearTimeout(timeout); resolve(); };
+          script.onerror = () => { clearTimeout(timeout); reject(new Error('Authentication SDK unavailable')); };
+          document.head.appendChild(script);
+        });
+      }
     }
+    const firebase = sdk();
+    if (!firebase.apps.length) firebase.initializeApp(config);
     auth = firebase.auth();
     db = firebase.firestore();
-    try {
-      db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-    } catch (_) {}
-    ready = true;
+    if ('caches' in globalThis) {
+      const urls = ['app', 'auth', 'firestore'].map(name => `https://www.gstatic.com/firebasejs/10.14.1/firebase-${name}-compat.js`);
+      caches.open('cooking-companion-vendor-10.14.1').then(cache => cache.addAll(urls)).catch(() => {});
+    }
     return true;
   }
 
-  function isReady() {
-    return ready;
-  }
-
-  function onAuthStateChanged(handler) {
-    if (!ready || !auth) return () => {};
-    return auth.onAuthStateChanged(handler);
-  }
-
-  async function signInGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    const result = await auth.signInWithPopup(provider);
-    return result.user;
-  }
-
-  async function signInEmail(email, password) {
-    const result = await auth.signInWithEmailAndPassword(email, password);
-    return result.user;
-  }
-
-  async function signUpEmail(email, password) {
-    const result = await auth.createUserWithEmailAndPassword(email, password);
-    return result.user;
-  }
-
-  async function signOut() {
-    await auth.signOut();
-  }
-
   async function loadUserState(uid) {
-    if (!ready) return null;
-    const snap = await db.collection("users").doc(uid).collection("app").doc("state").get();
-    return snap.exists ? snap.data() : null;
+    if (!ready()) throw new Error('Database not initialized');
+    const root = db.collection('users').doc(uid);
+    const profile = await root.collection('app').doc('profile').get();
+    if (profile.exists && profile.data().schemaVersion === 2) {
+      const [pantry, recipes, meals] = await Promise.all(['pantry', 'recipes', 'meals'].map(name => root.collection(name).get()));
+      const payload = {
+        user: profile.data().user || {}, pantry: pantry.docs.map(doc => doc.data()),
+        customRecipes: recipes.docs.map(doc => doc.data()),
+        scheduledMeals: Object.fromEntries(meals.docs.map(doc => [decodeURIComponent(doc.id), doc.data().recipeId]))
+      };
+      baselines.set(uid, toCloudRecords(payload));
+      return payload;
+    }
+    const app = root.collection('app');
+    const [pantry, schedule, recipes, legacy] = await Promise.all(['pantry', 'schedule', 'recipes', 'state'].map(name => app.doc(name).get()));
+    const payload = profile.exists || pantry.exists || schedule.exists || recipes.exists ? {
+      user: profile.exists ? profile.data().user : {}, pantry: pantry.data()?.items || [],
+      customRecipes: recipes.data()?.items || [], scheduledMeals: schedule.data()?.items || {}
+    } : legacy.exists ? legacy.data() : null;
+    baselines.set(uid, new Map());
+    return payload;
   }
 
   async function saveUserState(uid, payload) {
-    if (!ready) return;
-    await db.collection("users").doc(uid).collection("app").doc("state").set(payload, { merge: true });
+    if (!ready() || auth.currentUser?.uid !== uid) throw new Error('Not authenticated for this account');
+    const next = toCloudRecords(payload);
+    const changes = diffCloudRecords(baselines.get(uid) || new Map(), next).sort((a, b) => Number(a.path === 'app/profile') - Number(b.path === 'app/profile'));
+    for (const change of changes) {
+      if (new TextEncoder().encode(JSON.stringify(change.value || {})).length > 800_000) throw new Error('Record exceeds the safe document size');
+    }
+    for (let offset = 0; offset < changes.length; offset += 450) {
+      const batch = db.batch();
+      for (const change of changes.slice(offset, offset + 450)) {
+        const reference = db.doc(`users/${uid}/${change.path}`);
+        if (change.remove) batch.delete(reference);
+        else batch.set(reference, change.value);
+      }
+      await batch.commit();
+    }
+    baselines.set(uid, next);
   }
 
   return {
-    init,
-    isReady,
-    onAuthStateChanged,
-    signInGoogle,
-    signInEmail,
-    signUpEmail,
-    signOut,
-    loadUserState,
-    saveUserState
+    init, isReady: ready, loadUserState, saveUserState,
+    currentUser: () => auth?.currentUser || null,
+    needsMigration: uid => baselines.has(uid) && baselines.get(uid).size === 0,
+    onAuthStateChanged: handler => auth.onAuthStateChanged(handler),
+    signInGoogle: () => auth.signInWithPopup(new (sdk().auth.GoogleAuthProvider)()),
+    signInEmail: (email, password) => auth.signInWithEmailAndPassword(email, password),
+    signUpEmail: (email, password) => auth.createUserWithEmailAndPassword(email, password),
+    signOut: async () => { await auth.signOut(); baselines.clear(); }
   };
-})();
+}
+
+export const BackendAuthDB = createBackend(FIREBASE_CONFIG);
