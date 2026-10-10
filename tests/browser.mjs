@@ -27,6 +27,59 @@ try {
   await page.locator('#app-view').waitFor({ state: 'visible' });
   check('explicit device-only sign-in', await page.locator('#view-dashboard').isVisible());
   check('real auth disabled until configured', await page.locator('#btn-login-google').isDisabled());
+  check('pantry markup stays text on dashboard after storage reload', await page.evaluate(async () => {
+    const { STATE } = await import('/modules/state.js');
+    const { saveStateToStorage, loadStateFromStorage } = await import('/modules/storage.js');
+    const { renderDashboard } = await import('/modules/recipe-views.js');
+    const name = 'Rice & "beans" <img src=x onerror="window.pantryInjected=true">';
+    const unit = '<button id="injected-pantry-button">Sign in</button>';
+    STATE.pantry = [{ id: 'markup-test', name, unit, quantity: 2 }];
+    saveStateToStorage({ sync: false });
+    loadStateFromStorage('guest');
+    renderDashboard();
+    const tag = document.querySelector('#dashboard-pantry-list .pantry-tag');
+    const safe = tag.textContent.includes(name) && tag.textContent.includes(unit)
+      && !tag.querySelector('img, button') && !window.pantryInjected;
+    STATE.pantry = [];
+    saveStateToStorage({ sync: false });
+    renderDashboard();
+    return safe;
+  }));
+  check('email sign-in and sign-up clear passwords before successful or failed requests', await page.evaluate(async () => {
+    const { BackendAuthDB } = await import('/modules/backend-auth-db.js');
+    const { handleEmailSignIn, handleEmailSignUp } = await import('/modules/auth.js');
+    const originalReady = BackendAuthDB.isReady;
+    const originalSignIn = BackendAuthDB.signInEmail;
+    const originalSignUp = BackendAuthDB.signUpEmail;
+    const email = document.getElementById('auth-email-input');
+    const password = document.getElementById('auth-password-input');
+    BackendAuthDB.isReady = () => true;
+    try {
+      for (const [method, action] of [['signInEmail', handleEmailSignIn], ['signUpEmail', handleEmailSignUp]]) {
+        for (const fails of [false, true]) {
+          let captured;
+          let emptyDuringRequest;
+          BackendAuthDB[method] = async (...credentials) => {
+            captured = credentials;
+            emptyDuringRequest = password.value === '';
+            if (fails) throw new Error('Simulated authentication failure');
+          };
+          email.value = 'chef@example.test';
+          password.value = 'test-password';
+          await action();
+          if (captured?.[0] !== email.value || captured?.[1] !== 'test-password'
+            || !emptyDuringRequest || password.value !== '') return false;
+        }
+      }
+      return true;
+    } finally {
+      BackendAuthDB.isReady = originalReady;
+      BackendAuthDB.signInEmail = originalSignIn;
+      BackendAuthDB.signUpEmail = originalSignUp;
+      email.value = '';
+      password.value = '';
+    }
+  }));
   await page.locator('[data-view="pantry"]').click();
   await page.locator('#pantry-ingredient-input').fill('Tomato');
   await page.locator('#pantry-quantity-input').fill('200');
@@ -255,9 +308,13 @@ try {
   check('offline module shell reloads', await page.locator('#sidebar-name').innerText() === 'Test Chef');
   await context.setOffline(false);
   await page.locator('#mobile-menu-toggle').click();
+  await page.evaluate(() => { document.getElementById('auth-password-input').value = 'stale-password'; });
   await page.locator('#btn-logout').click();
   await page.locator('#auth-view').waitFor({ state: 'visible' });
+  check('logout clears any stale login password', await page.locator('#auth-password-input').inputValue() === '');
+  await page.locator('#auth-password-input').fill('stale-password');
   await page.locator('#btn-login-local').click();
+  check('device-only sign-in clears any stale login password', await page.locator('#auth-password-input').inputValue() === '');
   check('device-only logout retains recipes', await page.evaluate(async () => (await import('/modules/state.js')).STATE.customRecipes.length) === 1);
   check('stale account loads cannot overwrite a newer account', await page.evaluate(async () => {
     const { BackendAuthDB } = await import('/modules/backend-auth-db.js');

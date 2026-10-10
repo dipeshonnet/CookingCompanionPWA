@@ -4,7 +4,13 @@ import { renderApp } from './navigation.js';
 import { STATE, RUNTIME } from './state.js';
 import { scopedStorageKey, readStored, loadStateFromStorage, hydrateStateFromPayload, getPersistentState, saveStateToStorage, hasPendingCloudChanges, syncStateToCloud, resetSignedOutRuntimeState } from './storage.js';
 
+function clearAuthPassword() {
+  const input = document.getElementById('auth-password-input');
+  if (input) input.value = '';
+}
+
 export async function applyAuthUser(user) {
+  clearAuthPassword();
   const generation = ++RUNTIME.authGeneration;
   RUNTIME.suppressCloudSave = true;
   resetSignedOutRuntimeState();
@@ -52,6 +58,7 @@ export async function initAuthenticationLayer() {
 }
 
 async function authenticate(action) {
+  clearAuthPassword();
   if (!BackendAuthDB.isReady()) return;
   try { await action(); } catch (error) {
     console.warn('Sign-in failed:', error.code);
@@ -65,10 +72,12 @@ export function getAuthCredentialsFromInputs() {
   const email = document.getElementById('auth-email-input')?.value.trim();
   const password = document.getElementById('auth-password-input')?.value || '';
   if (!email || !password) { alert('Enter email and password.'); return null; }
+  clearAuthPassword();
   return { email, password };
 }
 
 export async function signInLocalOnly() {
+  clearAuthPassword();
   if (RUNTIME.currentAuthUid) await handleLogout();
   else if (BackendAuthDB.currentUser()) await BackendAuthDB.signOut();
   ++RUNTIME.authGeneration;
@@ -91,6 +100,7 @@ export function handleEmailSignUp() {
 }
 
 export async function handleLogout() {
+  clearAuthPassword();
   saveStateToStorage({ sync: false });
   if (RUNTIME.currentAuthUid) {
     if (hasPendingCloudChanges()) await syncStateToCloud();
