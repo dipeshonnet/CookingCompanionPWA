@@ -6,10 +6,18 @@ export function getActiveTimerEntries(session, individualTimers, recipes) {
   const title = recipes.find(recipe => recipe.id === session.recipeId)?.title || 'Playing recipe';
   const playing = Object.entries(session.running).filter(([, step]) => step).map(([cook, step]) => ({
     id: `play:${cook}`, source: 'play', title, cookName: cook,
-    stepIndex: step.order, stepLabel: step.item, action: step.action,
+    stepIndex: step.order, stepLabel: step.title || step.item, action: step.action, attention: step.attention,
     totalDuration: step.duration, timeLeft: step.timeLeft
   }));
-  return [...playing, ...individualTimers.map(timer => ({ ...timer, source: 'individual' }))];
+  const passive = (session.passiveRunning || []).map(step => ({
+    id: `play:passive:${step.id}`, source: 'play', title, cookName: 'Unattended', attention: 'passive',
+    stepIndex: step.order, stepLabel: step.title || step.item, action: step.action, totalDuration: step.duration, timeLeft: step.timeLeft
+  }));
+  return [...playing, ...passive, ...individualTimers.map(timer => ({ ...timer, source: 'individual' }))];
+}
+
+export function timerOwnerLabel(timer) {
+  return timer.attention === 'passive' ? 'Unattended' : timer.source === 'play' ? timer.cookName : processLabel(timer.cookName);
 }
 
 export function getRemainingTimerFraction(timer) {
@@ -34,9 +42,9 @@ export function renderFloatingTimers(entries = getActiveTimerEntries(RUNTIME.pla
   const signature = JSON.stringify(entries.map(timer => [timer.id, timer.title, timer.cookName, timer.stepIndex, timer.stepLabel, timer.action]));
   if (rows.dataset.signature !== signature) {
     rows.innerHTML = entries.map(timer => `<span class="floating-timer-row" data-cook="${escapeHtml(timer.cookName)}" title="${escapeHtml(`Step ${timer.stepIndex + 1}: ${timer.stepLabel || timer.title}${timer.action ? ` - ${timer.action}` : ''}`)}">
-      <span class="floating-timer-label"><strong>${escapeHtml(processLabel(timer.cookName))}</strong><span>${escapeHtml(timer.stepLabel || `Step ${timer.stepIndex + 1}`)}</span></span>
+      <span class="floating-timer-label"><strong>${escapeHtml(timerOwnerLabel(timer))}</strong><span>${escapeHtml(timer.stepLabel || `Step ${timer.stepIndex + 1}`)}</span></span>
       <span class="floating-timer-clock" data-timer-clock aria-live="off"></span>
-      <progress max="1" aria-label="${escapeHtml(processLabel(timer.cookName))} time remaining"></progress>
+      <progress max="1" aria-label="${escapeHtml(timerOwnerLabel(timer))} time remaining"></progress>
     </span>`).join('');
     rows.dataset.signature = signature;
   }

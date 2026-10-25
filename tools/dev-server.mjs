@@ -5,7 +5,7 @@ import { clientFiles } from './client-files.mjs';
 
 const root = resolve(process.env.SERVE_DIST === '1' ? 'dist' : '.');
 const port = Number(process.env.PORT || 5175);
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon', '.LICENSE': 'text/plain' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp', '.webm': 'video/webm', '.ico': 'image/x-icon', '.LICENSE': 'text/plain' };
 const allowed = new Set(await clientFiles());
 allowed.add('asset-manifest.json');
 const securityHeaders = {};

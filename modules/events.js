@@ -1,12 +1,13 @@
 import { handleGoogleSignIn, signInLocalOnly, handleEmailSignIn, handleEmailSignUp, handleLogout } from './auth.js';
 import { renderPantryView, addPantryIngredient } from './ingredients.js';
+import { setupIngredientAutocomplete } from './ingredient-autocomplete.js';
 import { switchView } from './navigation.js';
 import { saveScheduledMealSelection } from './planner.js';
 import { setPlayBackgroundMusicFile } from './play-media.js';
-import { resetPlayRecipeSession, startPlayRecipeSession } from './play-recipe.js';
+import { resetPlayRecipeSession, startPlayRecipeSession, changePlayRecipe, updatePlayCookCount, startGuidedRecipe } from './play-recipe.js';
 import { openProfileModal, closeProfileModal, saveProfileSettings } from './profile.js';
 import { handleAIGeneration, saveGeneratedRecipeToExplore } from './recipe-ai.js';
-import { setRecipeExploreVisibility, toggleRecipeExplorePanel, addRecipeIngredientRow, addRecipeStepRow, removeRecipeBuilderRow, updateStepCookControls, recalculateRecipeTimeTotals, handleCustomRecipeSave, resetAddRecipeForm } from './recipe-builder.js';
+import { setRecipeExploreVisibility, toggleRecipeExplorePanel, addRecipeIngredientRow, addRecipeStepRow, removeRecipeBuilderRow, updateStepCookControls, updateStepDependencyControls, recalculateRecipeTimeTotals, handleCustomRecipeSave, resetAddRecipeForm } from './recipe-builder.js';
 import { updateRecipeModalIngredientsAndButtons, handleCookMeal, closeCookMealDialog, confirmCookMeal } from './recipe-detail.js';
 import { handleRecipeShare, handleRecipeExport, closeRecipeExportModal, confirmRecipeExportSelected, handleRecipeImport } from './recipe-transfer.js';
 import { renderDashboard, renderExploreRecipes } from './recipe-views.js';
@@ -14,7 +15,6 @@ import { buildRecipeDraftFromTalk, updateVoiceStatus, startRecipeVoiceInput, sto
 import { STATE, RUNTIME } from './state.js';
 import { getAiProvider, setAiProvider, getApiKey, setApiKey, saveStateToStorage } from './storage.js';
 import { getProviderConfig, updateAiSettingsFields } from './ai-providers.js';
-import { startParallelRecipeTimers } from './timers.js';
 
 export function setupEventListeners() {
   document.querySelectorAll('[data-navigate]').forEach(button => button.addEventListener('click', () => switchView(button.dataset.navigate)));
@@ -72,14 +72,19 @@ export function setupEventListeners() {
   const pantryAddBtn = document.getElementById("pantry-add-btn");
   const pantryInput = document.getElementById("pantry-ingredient-input");
   if (pantryAddBtn && pantryInput) {
+    const handleAutocomplete = setupIngredientAutocomplete(pantryInput, document.getElementById('pantry-category-input'));
     pantryAddBtn.addEventListener("click", () => {
       addPantryIngredient(pantryInput.value);
       pantryInput.value = "";
+      pantryInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    pantryInput.addEventListener("keypress", (e) => {
+    pantryInput.addEventListener("keydown", (e) => {
+      if (handleAutocomplete(e)) return;
       if (e.key === "Enter") {
+        e.preventDefault();
         addPantryIngredient(pantryInput.value);
         pantryInput.value = "";
+        pantryInput.dispatchEvent(new Event('input', { bubbles: true }));
       }
     });
   }
@@ -141,6 +146,8 @@ export function setupEventListeners() {
   if (playRecipeStartBtn) playRecipeStartBtn.addEventListener("click", startPlayRecipeSession);
   const playRecipeResetBtn = document.getElementById("play-recipe-reset-btn");
   if (playRecipeResetBtn) playRecipeResetBtn.addEventListener("click", resetPlayRecipeSession);
+  document.getElementById('play-recipe-select')?.addEventListener('change', changePlayRecipe);
+  document.getElementById('play-cook-count')?.addEventListener('change', updatePlayCookCount);
 
   const exportCloseBtn = document.getElementById("recipe-export-close-btn");
   if (exportCloseBtn) exportCloseBtn.addEventListener("click", closeRecipeExportModal);
@@ -212,6 +219,14 @@ export function setupEventListeners() {
 
   const stepsList = document.getElementById("recipe-steps-list");
   if (stepsList) {
+    stepsList.addEventListener('input', event => {
+      if (event.target.matches('.recipe-step-title, .recipe-step-action')) updateStepDependencyControls();
+    });
+    stepsList.addEventListener('change', event => {
+      if (event.target.matches('.recipe-step-dependencies')) {
+        event.target.closest('.recipe-step-row').dataset.dependsOn = JSON.stringify([...event.target.selectedOptions].map(option => option.value));
+      }
+    });
     stepsList.addEventListener("click", (e) => {
       const removeBtn = e.target.closest("[data-remove-step-row]");
       if (removeBtn) {
@@ -364,7 +379,7 @@ export function setupEventListeners() {
   const parallelTimerBtn = document.getElementById("modal-btn-start-parallel-timers");
   if (parallelTimerBtn) {
     parallelTimerBtn.addEventListener("click", () => {
-      if (RUNTIME.activeModalRecipe) startParallelRecipeTimers(RUNTIME.activeModalRecipe);
+      if (RUNTIME.activeModalRecipe) startGuidedRecipe(RUNTIME.activeModalRecipe, document.getElementById('modal-cook-count')?.value);
     });
   }
 
@@ -401,7 +416,7 @@ export function setupEventListeners() {
   const experienceInfoBtn = document.getElementById("experience-info-btn");
   if (experienceInfoBtn) {
     experienceInfoBtn.addEventListener("click", () => {
-      alert("Timers are adjusted when playing a recipe: Expert 1x, Somewhat 1.5x, Beginner 2x.");
+      alert("Hands-on timers use Expert 1x, Somewhat 1.5x, or Beginner 2x. Unattended waits keep their original duration. Times are set when cooking starts.");
     });
   }
 }

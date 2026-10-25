@@ -1,4 +1,4 @@
-import { normalizeProcessCount, processKeys, processLabel } from './modules/recipe-domain.js';
+import { normalizeProcessCount, processKeys, processLabel, validateRecipeSteps, hasCombinedCommands } from './modules/recipe-domain.js';
 import { APP_CONFIG } from './modules/app-config.js';
 import { getProviderConfig } from './modules/ai-providers.js';
 
@@ -25,9 +25,10 @@ Follow these exact constraints:
 
 Make sure that:
 1. The ingredients list is precise, specifying exact decimal amounts and units (e.g. g, pcs, cup, tbsp).
-2. The steps are broken down clearly. For every step, include "item", "action", "duration" in SECONDS, "cook", and a combined "text" summary. Assign each task to one of the requested processes using its cook field key (Cook 1 through Cook ${normalizeProcessCount(params.cookCount)}). Keep sequential tasks within the same process and put independent tasks in parallel processes. If a step doesn't require a countdown (like assembling/plating), set duration to 60.
-3. The tags are relevant, creative dietary labels.
-4. Output a highly professional, cohesive gourmet creation.
+2. Use stepSchemaVersion 2. Every step contains exactly ONE operation with its own positive duration in SECONDS and a brief verb-first title (for example "Chop onion"). Split rinse, drain, soften, chopping each ingredient, transfers, flipping, and plating into separate actions. Do not combine successive commands with "then", "meanwhile" or "and". An ingredient list used in one mixing operation is fine.
+3. Give each action a unique stable id, item, action, duration, cook process key, stepType, text, attention (active or passive), and dependsOn (an array of prerequisite action IDs). Use active for hands-on work including attended frying/stirring, passive only for unattended waiting after setup. Include all ingredient and shared-cookware prerequisites. Independent chopping actions must not depend on one another. A process is a logical group, not a cook; playback independently supports one or two cooks. Use only requested process keys Cook 1 through Cook ${normalizeProcessCount(params.cookCount)}. All dependencies must exist and form an acyclic graph. Set realistic estimates even for short operations.
+4. The tags are relevant dietary labels. Preserve one operation per action in both action and text.
+5. Output a cohesive recipe including every preparation operation needed by its ingredients.
   `;
 
   // Schema for structured JSON output
@@ -35,6 +36,7 @@ Make sure that:
     type: "object",
     additionalProperties: false,
     properties: {
+      stepSchemaVersion: { type: "integer", enum: [2] },
       title: { type: "string", description: "An elegant, creative gourmet title for the recipe" },
       description: { type: "string", description: "A highly descriptive, mouth-watering marketing summary of the dish" },
       category: { type: "string", description: "Must be Breakfast, Lunch, or Dinner" },
@@ -65,6 +67,10 @@ Make sure that:
           type: "object",
           additionalProperties: false,
           properties: {
+            id: { type: "string", description: "Unique action identifier" },
+            title: { type: "string", description: "Brief verb-first action title, such as Chop onion" },
+            dependsOn: { type: "array", items: { type: "string" }, description: "IDs of all actions that must finish before this action; empty if independent" },
+            attention: { type: "string", enum: ["active", "passive"], description: "active occupies a cook; passive is unattended waiting" },
             item: { type: "string", description: "The ingredient, component, pan, pot, or dish part being worked on" },
             action: { type: "string", description: "What to do to that item during this step" },
             duration: { type: "integer", description: "Active countdown timer duration in seconds for this cooking step" },
@@ -72,14 +78,17 @@ Make sure that:
             stepType: { type: "string", enum: ["Prep", "Cook"], description: "Whether this is a preparation or cooking step" },
             text: { type: "string", description: "Detailed, chef-like cooking instructions for the step" }
           },
-          required: ["item", "action", "duration", "cook", "stepType", "text"]
+          required: ["id", "title", "dependsOn", "attention", "item", "action", "duration", "cook", "stepType", "text"]
         }
       }
     },
-    required: ["title", "description", "category", "prepTime", "cookTime", "servings", "tags", "ingredients", "steps"]
+    required: ["stepSchemaVersion", "title", "description", "category", "prepTime", "cookTime", "servings", "tags", "ingredients", "steps"]
   };
 
-  return requestJson(provider, apiKey, promptText, schema, 'Recipe', 4096);
+  const recipe = await requestJson(provider, apiKey, promptText, schema, 'Recipe', 8192);
+  validateRecipeSteps(recipe.steps);
+  if (recipe.steps.some(step => hasCombinedCommands(step.action))) throw new Error('Generated instructions combine multiple actions. Please generate the recipe again.');
+  return recipe;
 }
 
 /**

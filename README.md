@@ -28,6 +28,10 @@ npm run test:browser
 
 Run `node tests/timer-browser.mjs` for focused floating-timer checks, including parallel cooks, page navigation, desktop/mobile layouts, reset, completion, individual timers, and sign-out. These checks use an isolated device-only browser and write screenshots to `output/playwright/`.
 
+Run `npm run test:recipes` for recipe dependency checks in the browser: action titles, Gantt previews, one/two-cook changes, unattended timers, editor prerequisites, invalid imports, and mobile layouts. Set `PLAYWRIGHT_CHANNEL=msedge` to use an installed Edge browser when bundled Chromium is unavailable.
+
+Built-in recipes use individually timed actions. In Play Recipe, choose one or two cooks; unattended waits run alongside hands-on work. Dependencies appear in recipe details and the live cooking timeline. Older saved recipes remain playable in conservative sequential order.
+
 ## Documentation
 
 - [Free Hosting and Domain Setup](docs/DEPLOYMENT.md)

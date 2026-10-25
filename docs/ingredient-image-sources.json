@@ -1,0 +1,782 @@
+{
+  "Potato": {
+    "file": "assets/ingredients/potato.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Potatoes-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Onion": {
+    "file": "assets/ingredients/onion.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Onion-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Spinach": {
+    "file": "assets/ingredients/spinach.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Spinach-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Cauliflower": {
+    "file": "assets/ingredients/cauliflower.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/cauliflower.jpg",
+    "provider": "Spoonacular"
+  },
+  "Carrot": {
+    "file": "assets/ingredients/carrot.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Carrots-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Green peas": {
+    "file": "assets/ingredients/green-peas.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Peas-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Cabbage": {
+    "file": "assets/ingredients/cabbage.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Cabbage-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Green bell pepper": {
+    "file": "assets/ingredients/green-bell-pepper.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Green%20Pepper-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Green chilli": {
+    "file": "assets/ingredients/green-chilli.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Green%20chilli-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Tomato": {
+    "file": "assets/ingredients/tomato.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Tomato-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Garlic": {
+    "file": "assets/ingredients/garlic.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Garlic-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Cucumber": {
+    "file": "assets/ingredients/cucumber.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Cucumber-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Ginger": {
+    "file": "assets/ingredients/ginger.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Ginger-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Okra": {
+    "file": "assets/ingredients/okra.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/okra.png",
+    "provider": "Spoonacular"
+  },
+  "Broccoli": {
+    "file": "assets/ingredients/broccoli.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Broccoli-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Mushroom": {
+    "file": "assets/ingredients/mushroom.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Mushrooms-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Brinjal": {
+    "file": "assets/ingredients/brinjal.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Aubergine-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Sweet potato": {
+    "file": "assets/ingredients/sweet-potato.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/sweet-potato.png",
+    "provider": "Spoonacular"
+  },
+  "Beetroot": {
+    "file": "assets/ingredients/beetroot.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Beetroot-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Pumpkin": {
+    "file": "assets/ingredients/pumpkin.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Pumpkin-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Bottle gourd": {
+    "file": "assets/ingredients/bottle-gourd.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/bottle-gourd.jpg",
+    "provider": "Spoonacular"
+  },
+  "Fresh coriander": {
+    "file": "assets/ingredients/fresh-coriander.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Cilantro-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Bitter gourd": {
+    "file": "assets/ingredients/bitter-gourd.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/bitter-melon.jpg",
+    "provider": "Spoonacular"
+  },
+  "French beans": {
+    "file": "assets/ingredients/french-beans.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Green%20Beans-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Radish": {
+    "file": "assets/ingredients/radish.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Radish-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Banana": {
+    "file": "assets/ingredients/banana.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Banana-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Curry leaves": {
+    "file": "assets/ingredients/curry-leaves.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/curry-leaves.jpg",
+    "provider": "Spoonacular"
+  },
+  "Apple": {
+    "file": "assets/ingredients/apple.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Apples-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Mango": {
+    "file": "assets/ingredients/mango.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Mango-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Lemon": {
+    "file": "assets/ingredients/lemon.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Lemon-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Mint": {
+    "file": "assets/ingredients/mint.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Mint-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Lemon juice": {
+    "file": "assets/ingredients/lemon-juice.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Lemon juice: a small simple clear glass of pale cloudy yellow freshly squeezed lemon juice with one lemon half next to it. NO branded squeeze bottle, NO label. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No plate, no unrelated props, no retail packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Lime": {
+    "file": "assets/ingredients/lime.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Lime-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Pomegranate": {
+    "file": "assets/ingredients/pomegranate.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Pomegranate-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Watermelon": {
+    "file": "assets/ingredients/watermelon.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/watermelon.png",
+    "provider": "Spoonacular"
+  },
+  "Grapes": {
+    "file": "assets/ingredients/grapes.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/red-grapes.jpg",
+    "provider": "Spoonacular"
+  },
+  "Papaya": {
+    "file": "assets/ingredients/papaya.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Papaya-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Pineapple": {
+    "file": "assets/ingredients/pineapple.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Pineapple-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Guava": {
+    "file": "assets/ingredients/guava.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/guava.jpg",
+    "provider": "Spoonacular"
+  },
+  "Strawberry": {
+    "file": "assets/ingredients/strawberry.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Strawberries-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Orange": {
+    "file": "assets/ingredients/orange.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Orange-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Raisins": {
+    "file": "assets/ingredients/raisins.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Raisins-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Dates": {
+    "file": "assets/ingredients/dates.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Medjool%20Dates-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Cumin powder": {
+    "file": "assets/ingredients/cumin-powder.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Ground%20Cumin-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Coriander powder": {
+    "file": "assets/ingredients/coriander-powder.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/ground-coriander.jpg",
+    "provider": "Spoonacular"
+  },
+  "Turmeric": {
+    "file": "assets/ingredients/turmeric.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/turmeric.jpg",
+    "provider": "Spoonacular"
+  },
+  "Mustard seeds": {
+    "file": "assets/ingredients/mustard-seeds.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/mustard-seeds.png",
+    "provider": "Spoonacular"
+  },
+  "Coriander seeds": {
+    "file": "assets/ingredients/coriander-seeds.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/coriander-seeds.jpg",
+    "provider": "Spoonacular"
+  },
+  "Cumin seeds": {
+    "file": "assets/ingredients/cumin-seeds.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Whole cumin seeds (jeera): a small loose mound of dry tan-brown narrow elongated ridged cumin seeds. WHOLE SEEDS, NOT ground cumin powder, no bowl. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Red chilli powder": {
+    "file": "assets/ingredients/red-chilli-powder.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Red%20chilli%20powder-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Garam masala": {
+    "file": "assets/ingredients/garam-masala.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/garam-masala.jpg",
+    "provider": "Spoonacular"
+  },
+  "Black pepper": {
+    "file": "assets/ingredients/black-pepper.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/pepper.jpg",
+    "provider": "Spoonacular"
+  },
+  "Cinnamon": {
+    "file": "assets/ingredients/cinnamon.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/cinnamon.jpg",
+    "provider": "Spoonacular"
+  },
+  "Bay leaf": {
+    "file": "assets/ingredients/bay-leaf.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Bay%20leaf-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Cloves": {
+    "file": "assets/ingredients/cloves.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Cloves-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Fenugreek seeds": {
+    "file": "assets/ingredients/fenugreek-seeds.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/fenugreek.jpg",
+    "provider": "Spoonacular"
+  },
+  "Fennel seeds": {
+    "file": "assets/ingredients/fennel-seeds.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/fennel-seeds.jpg",
+    "provider": "Spoonacular"
+  },
+  "Ginger-garlic paste": {
+    "file": "assets/ingredients/ginger-garlic-paste.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/ginger-garlic-paste.png",
+    "provider": "Spoonacular"
+  },
+  "Salt": {
+    "file": "assets/ingredients/salt.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/salt.jpg",
+    "provider": "Spoonacular"
+  },
+  "Cardamom": {
+    "file": "assets/ingredients/cardamom.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Cardamom-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Amchur": {
+    "file": "assets/ingredients/amchur.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/amchoor.jpg",
+    "provider": "Spoonacular"
+  },
+  "Toor dal": {
+    "file": "assets/ingredients/toor-dal.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Toor dal: a small mound of RAW DRY SPLIT PEELED pigeon peas, yellow flat round disc halves. NOT whole beige pigeon peas, NOT cooked food. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Chickpeas": {
+    "file": "assets/ingredients/chickpeas.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/chickpeas.png",
+    "provider": "Spoonacular"
+  },
+  "Kabuli chana": {
+    "file": "assets/ingredients/kabuli-chana.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/chickpeas.png",
+    "provider": "Spoonacular"
+  },
+  "Rajma": {
+    "file": "assets/ingredients/rajma.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/kidney-beans.jpg",
+    "provider": "Spoonacular"
+  },
+  "Urad dal": {
+    "file": "assets/ingredients/urad-dal.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/urad-dal.png",
+    "provider": "Spoonacular"
+  },
+  "Yogurt": {
+    "file": "assets/ingredients/yogurt.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/plain-yogurt.jpg",
+    "provider": "Spoonacular"
+  },
+  "Curd": {
+    "file": "assets/ingredients/curd.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/plain-yogurt.jpg",
+    "provider": "Spoonacular"
+  },
+  "Lentils": {
+    "file": "assets/ingredients/lentils.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/lentils-brown.jpg",
+    "provider": "Spoonacular"
+  },
+  "Soybeans": {
+    "file": "assets/ingredients/soybeans.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/soy-beans.png",
+    "provider": "Spoonacular"
+  },
+  "Butter": {
+    "file": "assets/ingredients/butter.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/butter-sliced.jpg",
+    "provider": "Spoonacular"
+  },
+  "Paneer": {
+    "file": "assets/ingredients/paneer.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/paneer.png",
+    "provider": "Spoonacular"
+  },
+  "Ghee": {
+    "file": "assets/ingredients/ghee.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/ghee.jpg",
+    "provider": "Spoonacular"
+  },
+  "Buttermilk": {
+    "file": "assets/ingredients/buttermilk.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/buttermilk.jpg",
+    "provider": "Spoonacular"
+  },
+  "Milk": {
+    "file": "assets/ingredients/milk.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Milk-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Condensed milk": {
+    "file": "assets/ingredients/condensed-milk.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/evaporated-milk.png",
+    "provider": "Spoonacular"
+  },
+  "Cream": {
+    "file": "assets/ingredients/cream.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/fluid-cream.jpg",
+    "provider": "Spoonacular"
+  },
+  "Rice": {
+    "file": "assets/ingredients/rice.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/uncooked-white-rice.png",
+    "provider": "Spoonacular"
+  },
+  "Cheese": {
+    "file": "assets/ingredients/cheese.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Cheese-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Brown rice": {
+    "file": "assets/ingredients/brown-rice.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Brown rice: a small loose mound of RAW DRY uncooked tan light-brown long rice grains, visible bran coating. NOT cooked rice. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Semolina (rava)": {
+    "file": "assets/ingredients/semolina-rava.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Raw semolina (rava or sooji): a small neat mound of coarse dry cream pale-yellow granules milled from wheat, visible grainy sandy texture, NOT fine flour, NOT a cooked dish. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Maida": {
+    "file": "assets/ingredients/maida.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/flour.png",
+    "provider": "Spoonacular"
+  },
+  "Oats": {
+    "file": "assets/ingredients/oats.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/rolled-oats.jpg",
+    "provider": "Spoonacular"
+  },
+  "Quinoa": {
+    "file": "assets/ingredients/quinoa.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/quinoa.jpg",
+    "provider": "Spoonacular"
+  },
+  "Jowar": {
+    "file": "assets/ingredients/jowar.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/sorghum.jpg",
+    "provider": "Spoonacular"
+  },
+  "Corn flour": {
+    "file": "assets/ingredients/corn-flour.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/corn-flour.jpg",
+    "provider": "Spoonacular"
+  },
+  "Bajra": {
+    "file": "assets/ingredients/bajra.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/pearl-millet.jpg",
+    "provider": "Spoonacular"
+  },
+  "Basmati rice": {
+    "file": "assets/ingredients/basmati-rice.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Basmati rice: a small loose mound of RAW DRY uncooked ivory white extra long slender basmati rice grains. NOT cooked rice. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Besan": {
+    "file": "assets/ingredients/besan.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Besan (chickpea gram flour): a small neat mound of finely ground pale golden yellow chickpea flour. NOT white wheat flour. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Pav bread rolls": {
+    "file": "assets/ingredients/pav-bread-rolls.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Bread%20Rolls-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Bread": {
+    "file": "assets/ingredients/bread.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Bread-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Pasta": {
+    "file": "assets/ingredients/pasta.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/fusilli.jpg",
+    "provider": "Spoonacular"
+  },
+  "Chicken thigh": {
+    "file": "assets/ingredients/chicken-thigh.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Chicken%20Thighs-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Lamb": {
+    "file": "assets/ingredients/lamb.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Lamb-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Chicken breast": {
+    "file": "assets/ingredients/chicken-breast.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/chicken-breasts.png",
+    "provider": "Spoonacular"
+  },
+  "Noodles": {
+    "file": "assets/ingredients/noodles.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/egg-noodles.jpg",
+    "provider": "Spoonacular"
+  },
+  "Beef": {
+    "file": "assets/ingredients/beef.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Beef-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Goat meat": {
+    "file": "assets/ingredients/goat-meat.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Goat%20meat-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Pork": {
+    "file": "assets/ingredients/pork.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/pork-chops.jpg",
+    "provider": "Spoonacular"
+  },
+  "Mutton": {
+    "file": "assets/ingredients/mutton.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Goat%20Meat-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Turkey": {
+    "file": "assets/ingredients/turkey.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/turkey-raw-whole.jpg",
+    "provider": "Spoonacular"
+  },
+  "Fish": {
+    "file": "assets/ingredients/fish.webp",
+    "source": "https://www.themealdb.com/images/ingredients/White%20Fish-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Prawns": {
+    "file": "assets/ingredients/prawns.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Prawns-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Minced meat": {
+    "file": "assets/ingredients/minced-meat.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Minced%20Beef-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Chicken": {
+    "file": "assets/ingredients/chicken.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/whole-chicken.jpg",
+    "provider": "Spoonacular"
+  },
+  "Tuna": {
+    "file": "assets/ingredients/tuna.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Tuna-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Shrimp": {
+    "file": "assets/ingredients/shrimp.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Shrimp-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Salmon": {
+    "file": "assets/ingredients/salmon.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Salmon-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Pomfret": {
+    "file": "assets/ingredients/pomfret.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/pomfret.jpg",
+    "provider": "Spoonacular"
+  },
+  "Squid": {
+    "file": "assets/ingredients/squid.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Squid: two small fresh raw cleaned squid, ivory pearlescent translucent elongated bodies with their short tentacles neatly beside them. Raw seafood ingredient, NOT cooked calamari rings, NOT a can. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Oil": {
+    "file": "assets/ingredients/oil.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Oil-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Lobster": {
+    "file": "assets/ingredients/lobster.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/lobster.jpg",
+    "provider": "Spoonacular"
+  },
+  "Sardines": {
+    "file": "assets/ingredients/sardines.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Sardines-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Mussels": {
+    "file": "assets/ingredients/mussels.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/mussels.jpg",
+    "provider": "Spoonacular"
+  },
+  "Sunflower oil": {
+    "file": "assets/ingredients/sunflower-oil.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Sunflower oil: a small clear unlabelled glass cruet of pale golden transparent liquid cooking oil, a few sunflower seeds beside its base. NO brand, NO plastic package. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No plate, no unrelated props, no retail packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Mustard oil": {
+    "file": "assets/ingredients/mustard-oil.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Mustard oil: a small clear unlabelled glass cruet of golden amber liquid mustard cooking oil, with a tiny loose cluster of dark mustard seeds beside its base. The main subject is LIQUID OIL. NO powder, NO mustard paste. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No plate, no unrelated props, no retail packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Sugar": {
+    "file": "assets/ingredients/sugar.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/sugar-in-bowl.png",
+    "provider": "Spoonacular"
+  },
+  "Honey": {
+    "file": "assets/ingredients/honey.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Honey-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Olive oil": {
+    "file": "assets/ingredients/olive-oil.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/olive-oil.jpg",
+    "provider": "Spoonacular"
+  },
+  "Peanuts": {
+    "file": "assets/ingredients/peanuts.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Peanuts-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Jaggery": {
+    "file": "assets/ingredients/jaggery.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/jaggery.jpg",
+    "provider": "Spoonacular"
+  },
+  "Egg": {
+    "file": "assets/ingredients/egg.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Egg-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Water": {
+    "file": "assets/ingredients/water.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/water.png",
+    "provider": "Spoonacular"
+  },
+  "Cashews": {
+    "file": "assets/ingredients/cashews.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Cashews-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Sesame seeds": {
+    "file": "assets/ingredients/sesame-seeds.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/sesame-seeds.png",
+    "provider": "Spoonacular"
+  },
+  "Vinegar": {
+    "file": "assets/ingredients/vinegar.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: White vinegar: a small transparent unlabelled glass bottle of colorless clear white vinegar liquid, with a simple glass stopper. NO label, NO text, NO brand. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No plate, no unrelated props, no retail packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Baking soda": {
+    "file": "assets/ingredients/baking-soda.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/white-powder.jpg",
+    "provider": "Spoonacular"
+  },
+  "Almonds": {
+    "file": "assets/ingredients/almonds.webp",
+    "source": "https://www.themealdb.com/images/ingredients/Almonds-Small.png",
+    "provider": "TheMealDB"
+  },
+  "Soy sauce": {
+    "file": "assets/ingredients/soy-sauce.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/soy-sauce.jpg",
+    "provider": "Spoonacular"
+  },
+  "Baking powder": {
+    "file": "assets/ingredients/baking-powder.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/white-powder.jpg",
+    "provider": "Spoonacular"
+  },
+  "Tofu": {
+    "file": "assets/ingredients/tofu.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/tofu.png",
+    "provider": "Spoonacular"
+  },
+  "Yeast": {
+    "file": "assets/ingredients/yeast.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/yeast-granules.jpg",
+    "provider": "Spoonacular"
+  },
+  "Tamarind": {
+    "file": "assets/ingredients/tamarind.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/tamarind.png",
+    "provider": "Spoonacular"
+  },
+  "Moong dal": {
+    "file": "assets/ingredients/moong-dal.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/moong-dal.png",
+    "provider": "Spoonacular"
+  },
+  "Masoor dal": {
+    "file": "assets/ingredients/masoor-dal.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/red-lentils.png",
+    "provider": "Spoonacular"
+  },
+  "Black-eyed peas": {
+    "file": "assets/ingredients/black-eyed-peas.webp",
+    "source": "https://www.themealdb.com/images/ingredients/black_eyed_peas.png",
+    "provider": "TheMealDB"
+  },
+  "Green gram": {
+    "file": "assets/ingredients/green-gram.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/mung-beans.png",
+    "provider": "Spoonacular"
+  },
+  "Ragi": {
+    "file": "assets/ingredients/ragi.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/finger-millet.png",
+    "provider": "Spoonacular"
+  },
+  "Crab": {
+    "file": "assets/ingredients/crab.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Crab: one whole fresh uncooked blue swimming crab, gray olive blue shell, two claws and natural legs, legs spread gently, raw seafood ingredient, realistic anatomy. NOT a can or crabmeat package. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Coconut oil": {
+    "file": "assets/ingredients/coconut-oil.webp",
+    "source": "https://www.themealdb.com/images/ingredients/coconut_oil.png",
+    "provider": "TheMealDB"
+  },
+  "Coconut": {
+    "file": "assets/ingredients/coconut.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/coconut.jpg",
+    "provider": "Spoonacular"
+  },
+  "Wheat flour": {
+    "file": "assets/ingredients/wheat-flour.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/flour.png",
+    "provider": "Spoonacular"
+  },
+  "Barley": {
+    "file": "assets/ingredients/barley.webp",
+    "source": "https://img.spoonacular.com/ingredients_250x250/pearl-barley.png",
+    "provider": "Spoonacular"
+  },
+  "Sambar powder": {
+    "file": "assets/ingredients/sambar-powder.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Sambar powder: finely ground warm orange-brown South Indian sambar spice blend, a small neat mound. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. This must visually match a consistent catalogue of isolated grocery ingredient photos and remain recognizable at 32px."
+  },
+  "Pav bhaji masala": {
+    "file": "assets/ingredients/pav-bhaji-masala.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Pav bhaji masala powder: finely ground reddish-brown Indian spice blend, a small neat mound. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. This must visually match a consistent catalogue of isolated grocery ingredient photos and remain recognizable at 32px."
+  },
+  "Chaat masala": {
+    "file": "assets/ingredients/chaat-masala.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Chaat masala powder: finely ground pale taupe beige Indian spice blend with subtle dark spice flecks, a small neat mound. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. This must visually match a consistent catalogue of isolated grocery ingredient photos and remain recognizable at 32px."
+  },
+  "Asafoetida": {
+    "file": "assets/ingredients/asafoetida.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Asafoetida (hing) cooking spice: a small neat mound of fine pale cream-yellow compounded asafoetida powder. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Kasuri methi": {
+    "file": "assets/ingredients/kasuri-methi.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Kasuri methi: a small loose mound of dried fenugreek leaves, olive green crumbled papery leaves. Leaves, NOT seeds, NOT fresh whole plants. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Chana dal": {
+    "file": "assets/ingredients/chana-dal.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Raw dry chana dal: a small mound of bright golden yellow split peeled Bengal gram chickpeas, round thick halves, NOT whole chickpeas, NOT cooked food. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Kala chana": {
+    "file": "assets/ingredients/kala-chana.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Kala chana: a small mound of raw dry whole desi chickpeas, small dark reddish-brown angular wrinkled chickpeas, NOT pale beige kabuli chickpeas. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Horse gram": {
+    "file": "assets/ingredients/horse-gram.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Horse gram (kulthi): a small mound of raw dry small flat oval brown reddish speckled Macrotyloma uniflorum pulses, NOT kidney beans, NOT lentil discs. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Khoya": {
+    "file": "assets/ingredients/khoya.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Khoya (mawa): a small irregular block of dense ivory cream reduced milk solids with crumbly slightly grainy texture, a few small crumbs beside it. NOT white paneer cheese cubes. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Whole wheat flour": {
+    "file": "assets/ingredients/whole-wheat-flour.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Whole wheat flour (atta): a small neat mound of finely milled light tan wheat flour with visible subtle brown bran flecks, NOT pure white refined flour. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Poha": {
+    "file": "assets/ingredients/poha.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Raw thick poha (flattened rice): a small loose mound of uncooked dry ivory white flattened rice flakes, thin irregular oblong flattened discs, NOT puffed rice, NOT cooked yellow poha dish. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Thick poha (flattened rice)": {
+    "file": "assets/ingredients/thick-poha-flattened-rice.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Raw thick poha (flattened rice): a small loose mound of uncooked dry ivory white flattened rice flakes, thin irregular oblong flattened discs, NOT puffed rice, NOT cooked yellow poha dish. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  },
+  "Rohu": {
+    "file": "assets/ingredients/rohu.webp",
+    "provider": "Built-in ImageGen",
+    "prompt": "Use case: product-mockup. Asset type: tiny ingredient catalogue photograph. Subject: Rohu fish (Labeo rohita): one whole fresh raw silver Indian carp with subtle gray scales, reddish orange fins, darker back, head at left and tail at right. Raw ingredient, NOT cooked. Natural fish anatomy. Photorealistic studio food product photo on pure white (#ffffff) seamless background, square 1:1 framing. Single ingredient centered, occupying 72% of frame with generous white margins. Slight overhead 45 degree view. Soft diffuse daylight, subtle natural shadow, crisp realistic texture. No bowl, no plate, no props, no packaging, no label, no text, no collage, no watermark. Match a consistent catalogue of isolated grocery ingredient photos, recognizable at 32px."
+  }
+}

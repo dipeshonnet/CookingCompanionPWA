@@ -7,6 +7,7 @@ import { renderActiveTimers } from './timers.js';
 import { availableQuantity } from './units.js';
 import { formatQuantity, escapeHtml } from './utils.js';
 import { HANDPICKED_RECIPES } from '../recipes.js';
+import { ingredientLabel } from './ingredient-images.js';
 
 export function renderDashboard() {
   document.getElementById("dashboard-welcome-heading").innerText = `Welcome, ${STATE.user.name}!`;
@@ -36,7 +37,7 @@ export function renderDashboard() {
       tag.className = "pantry-tag";
       tag.style.padding = "4px 10px";
       tag.style.fontSize = "11px";
-      tag.innerHTML = `${escapeHtml(item.name)} <span class="pantry-tag-qty" style="padding: 1px 4px; border-radius: 4px; font-size: 9px; margin-left: 4px;">${formatQuantity(item.quantity)} ${escapeHtml(item.unit)}</span>`;
+      tag.innerHTML = `${ingredientLabel(item.name)} <span class="pantry-tag-qty" style="padding: 1px 4px; border-radius: 4px; font-size: 9px; margin-left: 4px;">${formatQuantity(item.quantity)} ${escapeHtml(item.unit)}</span>`;
       pantryTags.appendChild(tag);
     });
     if (STATE.pantry.length > 8) {

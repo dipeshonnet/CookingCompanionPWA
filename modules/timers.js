@@ -1,14 +1,14 @@
 import { initLucide, switchView } from './navigation.js';
 import { isPlayAudioMuted, getAudioContext, playShortBeep, speakPlayStep } from './play-media.js';
 import { getExperienceTimerMultiplier } from './profile.js';
-import { normalizeRecipeForStorage, getAllRecipes, processLabel } from './recipe-domain.js';
+import { getAllRecipes } from './recipe-domain.js';
 import { STATE, RUNTIME } from './state.js';
 import { escapeHtml, formatTimerClock } from './utils.js';
-import { getActiveTimerEntries, getRemainingTimerFraction, renderFloatingTimers } from './active-timer-summary.js';
+import { getActiveTimerEntries, getRemainingTimerFraction, renderFloatingTimers, timerOwnerLabel } from './active-timer-summary.js';
 
 export function startCookingTimer(recipeTitle, stepIdx, durationSeconds, cookName = "Cook 1", stepLabel = "", options = {}) {
   const timerMultiplier = getExperienceTimerMultiplier();
-  const adjustedDuration = Math.max(1, Math.round(durationSeconds * timerMultiplier));
+  const adjustedDuration = Math.max(1, Math.round(durationSeconds * (options.attention === 'passive' ? 1 : timerMultiplier)));
 
   // Prevent duplicate timers for same step
   const timerId = `${recipeTitle}-${stepIdx}-${cookName}`;
@@ -27,6 +27,7 @@ export function startCookingTimer(recipeTitle, stepIdx, durationSeconds, cookNam
     title: recipeTitle,
     stepIndex: stepIdx,
     cookName,
+    attention: options.attention || 'active',
     stepLabel,
     totalDuration: adjustedDuration,
     deadline: Date.now() + adjustedDuration * 1000,
@@ -52,9 +53,9 @@ export function startCookingTimer(recipeTitle, stepIdx, durationSeconds, cookNam
   }, 1000);
 
   STATE.activeTimers.push(newTimer);
-  speakPlayStep({ cook: cookName, item: stepLabel || `Step ${stepIdx + 1}`, action: options.action || recipeTitle });
+  speakPlayStep({ cook: cookName, title: stepLabel, item: stepLabel || `Step ${stepIdx + 1}`, attention: options.attention, action: options.action || recipeTitle });
   renderActiveTimers();
-  if (!options.silent) alert(`Started ${processLabel(cookName)} timer for Step ${stepIdx + 1}!`);
+  if (!options.silent) alert(`Started timer: ${stepLabel || `Step ${stepIdx + 1}`}.`);
   return true;
 }
 
@@ -116,7 +117,7 @@ export function renderActiveTimers() {
       </div>
       <div class="timer-info">
         <span class="timer-title">${escapeHtml(t.title)}</span>
-        <span class="timer-step">${escapeHtml(processLabel(t.cookName))} &middot; Step ${t.stepIndex + 1}${t.stepLabel ? ` &middot; ${escapeHtml(t.stepLabel)}` : ""}</span>
+        <span class="timer-step">${escapeHtml(timerOwnerLabel(t))} &middot; ${escapeHtml(t.stepLabel || `Step ${t.stepIndex + 1}`)}</span>
       </div>
       <button class="btn-icon timer-action-btn" style="${t.source === 'individual' ? 'color: var(--error); border-color: rgba(239, 68, 68, 0.2);' : ''} width: 28px; height: 28px;" type="button" aria-label="${t.source === 'play' ? 'Open Play Recipe' : 'Cancel timer'}" title="${t.source === 'play' ? 'Open Play Recipe' : 'Cancel timer'}">
         <i data-lucide="${t.source === 'play' ? 'arrow-up-right' : 'square'}" style="width: 12px; height: 12px;"></i>
@@ -143,11 +144,11 @@ export function triggerTimerFinishedAlert(timer) {
   // Desktop alert notifications
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification("Cooking Timer Finished!", {
-      body: `"${timer.title}": ${processLabel(timer.cookName)} Step ${timer.stepIndex + 1} is now complete!`,
+      body: `"${timer.title}": ${timer.stepLabel || `Step ${timer.stepIndex + 1}`} is now complete!`,
       icon: "assets/icon-192.png"
     });
   } else {
-    alert(`[COOKING ALERT] "${timer.title}": ${processLabel(timer.cookName)} Step ${timer.stepIndex + 1} is finished!`);
+    alert(`[COOKING ALERT] "${timer.title}": ${timer.stepLabel || `Step ${timer.stepIndex + 1}`} is finished!`);
   }
 }
 

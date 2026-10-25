@@ -4,6 +4,7 @@ import { STATE, RUNTIME } from './state.js';
 import { getAiProvider, getApiKey, saveStateToStorage } from './storage.js';
 import { formatQuantity, escapeHtml } from './utils.js';
 import { fetchIngredientNutrition } from '../ai.js';
+import { ingredientLabel } from './ingredient-images.js';
 
 export function renderPantryView() {
   const container = document.getElementById("pantry-manager-tags");
@@ -22,13 +23,15 @@ export function renderPantryView() {
       ? `<span class="pantry-nutrition">~${formatQuantity(nutrition.calories * item.quantity / (item.nutritionQuantity || item.quantity))} kcal | P ${formatQuantity(nutrition.protein_g * item.quantity / (item.nutritionQuantity || item.quantity))}g | C ${formatQuantity(nutrition.carbs_g * item.quantity / (item.nutritionQuantity || item.quantity))}g | F ${formatQuantity(nutrition.fat_g * item.quantity / (item.nutritionQuantity || item.quantity))}g</span>`
       : (item.nutritionLoading ? `<span class="pantry-nutrition">Calculating nutrition...</span>` : "");
     tag.innerHTML = `
-      <span>${escapeHtml(item.name)}</span>
+      ${ingredientLabel(item.name)}
       <span class="pantry-tag-qty">${escapeHtml(item.category || "Other")}</span>
       <span class="pantry-tag-qty">${formatQuantity(item.quantity)} ${escapeHtml(item.unit)}</span>
       ${nutritionHtml}
-      <button type="button" class="pantry-qty-btn" data-qty="-1" aria-label="Decrease quantity">-</button>
-      <button type="button" class="pantry-qty-btn" data-qty="1" aria-label="Increase quantity">+</button>
-      <button type="button" data-remove aria-label="Remove ${escapeHtml(item.name)}"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+      <span class="pantry-item-actions">
+        <button type="button" class="pantry-qty-btn" data-qty="-1" aria-label="Decrease quantity">-</button>
+        <button type="button" class="pantry-qty-btn" data-qty="1" aria-label="Increase quantity">+</button>
+        <button type="button" data-remove aria-label="Remove ${escapeHtml(item.name)}"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+      </span>
     `;
     tag.querySelectorAll('[data-qty]').forEach(button => button.addEventListener('click', () => adjustPantryQty(index, Number(button.dataset.qty))));
     tag.querySelector('[data-remove]').addEventListener('click', () => removePantryIngredient(index));

@@ -8,6 +8,8 @@
     "build": "node tools/build.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node tests/browser.mjs",
+    "test:ingredients": "node tests/ingredient-images-browser.mjs",
+    "test:recipes": "node tests/recipe-browser.mjs",
     "test:timers": "node tests/timer-browser.mjs"
   },
   "engines": { "node": ">=22" }

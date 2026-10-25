@@ -16,7 +16,7 @@
 | `recipe-transfer.js` | Share, selection-based JSON export and validated import |
 | `recipe-views.js`, `recipe-detail.js` | Recommendations, Explore, likes, servings and stock deduction |
 | `ingredients.js`, `units.js` | Ingredient UI, estimated nutrition and compatible quantity conversions |
-| `play-engine.js`, `play-recipe.js` | Deterministic two-cook scheduling and kanban rendering |
+| `play-engine.js`, `play-recipe.js`, `recipe-timeline.js` | Dependency scheduling, one/two-cook playback and Gantt timeline |
 | `play-media.js`, `media-store.js` | Shared audio context, speech queue and IndexedDB media |
 | `timers.js` | Standalone recipe-detail timers |
 | `planner.js` | Meal slots and shopping-list calculation |
@@ -47,10 +47,13 @@ Firestore rules deny other-user and anonymous access. The database adapter uses 
 
 ## Playback Contract
 
-- Per-cook steps retain their relative recipe order. Tasks assigned to different cooks are assumed independent; the current recipe schema does not express cross-cook dependencies.
-- Expert durations are unchanged, Somewhat is 1.5x, Beginner is 2x. Values are frozen when a session starts.
+- Version 2 recipes use stable action `id`, brief `title`, `dependsOn` IDs and `attention` (`active`/`passive`), alongside existing step fields. The recipe's `stepSchemaVersion` is 2. Validation rejects invalid durations, IDs, references and cycles before saving, importing or playing. The legacy `cook`/`cookCount` fields describe logical processes, independent of available people.
+- Playback defaults to one cook; two may be selected before or during playback. All expired actions finish before ready unattended waits start and ready hands-on work is assigned in recipe order. Each hands-on action consumes one cook; unattended waits consume none. Explicit dependencies also serialize shared cookware. Reducing to one cook lets a busy Cook 2 finish before retiring that slot.
+- Expert hands-on durations are unchanged, Somewhat is 1.5x, Beginner is 2x. Unattended waits retain their original duration. Values are frozen when a session starts, including standalone timers.
+- Legacy recipes retain original instructions and gain deterministic IDs, descriptive fallback titles, hands-on attention and a conservative full sequential dependency chain. They are not automatically rewritten into single operations.
+- Timeline previews and live projections simulate the same pure scheduling engine. Projections clone the live snapshot and preserve actual start/completion history; they never advance the real session. Estimated elapsed time is separate from summed preparation/cooking totals.
 - A new step keeps its full duration. Countdown uses deadlines, not callback counts, so throttled callbacks do not accumulate drift.
-- Finishing a task moves it to Completed and starts that cook's next task immediately. Returning after a suspended tab starts the next step at the current time; it does not mark unperformed future steps as done.
+- Finishing an action moves it to Completed and unlocks ready dependent work. Returning after a suspended tab starts new actions at the current time; it does not mark unperformed future actions as done.
 - Countdown-only updates retain DOM video nodes. Speech is queued for both cooks, rather than cancelling the first cook's announcement.
 - Muting suppresses voice, beeps, chimes and background music. It does not change timer progression.
 - Sessions and standalone timers are deliberately not restored after reload. They are runtime-only and are not inferred to be running on another device.

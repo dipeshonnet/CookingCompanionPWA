@@ -5,6 +5,7 @@ import { STATE } from './state.js';
 import { saveStateToStorage } from './storage.js';
 import { buildShoppingList } from './units.js';
 import { escapeHtml } from './utils.js';
+import { ingredientLabel } from './ingredient-images.js';
 
 const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const MEAL_SLOTS = ["Breakfast", "Lunch", "Dinner"];
@@ -119,7 +120,7 @@ export function renderPlannerShoppingList() {
     item.innerHTML = `
       <div style="display: flex; align-items: center; gap: 10px;">
         <input type="checkbox" style="accent-color: var(--accent);">
-        <span>${escapeHtml(ing.name)}</span>
+        ${ingredientLabel(ing.name)}
       </div>
       <span style="color: var(--text-muted);">${Math.round(ing.amount * 100) / 100} ${escapeHtml(ing.unit)}</span>
     `;

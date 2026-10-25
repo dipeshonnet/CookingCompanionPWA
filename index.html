@@ -218,7 +218,10 @@
           </div>
           
           <div class="pantry-input-group" style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <input type="text" id="pantry-ingredient-input" class="form-control" placeholder="Ingredient name (e.g., Salmon)" style="flex: 2; min-width: 180px;" aria-label="Ingredient name">
+            <div class="ingredient-autocomplete">
+              <input type="text" id="pantry-ingredient-input" class="form-control" placeholder="Ingredient name (e.g., Potato)" aria-label="Ingredient name" autocomplete="off" spellcheck="false" aria-autocomplete="inline" aria-describedby="pantry-ingredient-help">
+              <div id="pantry-ingredient-suggestion" class="ingredient-autocomplete-ghost" aria-hidden="true"></div>
+            </div>
             <input type="number" id="pantry-quantity-input" class="form-control" placeholder="Qty" value="1" min="0.1" step="any" style="flex: 0.5; min-width: 70px;" aria-label="Quantity">
             <select id="pantry-category-input" class="form-control" style="flex: 1; min-width: 130px;" aria-label="Ingredient category">
               <option value="Vegetables" selected>Vegetables</option>
@@ -242,7 +245,8 @@
             <button id="pantry-add-btn" class="btn-primary" style="flex: 0.8; min-width: 140px; justify-content: center;"><i data-lucide="plus"></i> Add Ingredient</button>
           </div>
           
-          <p style="color: var(--text-dim); font-size: 12px; margin-top: -12px;">Add ingredients you have in your kitchen. We use these to calculate recipe matches; pantry deduction is optional when you cook.</p>
+          <p id="pantry-ingredient-help" style="color: var(--text-dim); font-size: 12px; margin-top: -12px;">Choose a category and type an ingredient. Press Enter or → to complete a suggestion. Add ingredients to calculate recipe matches; pantry deduction is optional when you cook.</p>
+          <span id="pantry-ingredient-status" class="ingredient-autocomplete-status" role="status" aria-live="polite"></span>
         </div>
 
         <div class="glass-card">
@@ -338,7 +342,7 @@
                   <label for="recipe-cook-count-input">Number of processes</label>
                   <input id="recipe-cook-count-input" class="form-control" type="number" min="1" max="500" step="1" value="1">
                   <button id="recipe-add-parallel-process" class="btn-secondary" type="button" style="margin-top:8px">+ Add in parallel process</button>
-                  <small>One primary process, plus any processes that run in parallel.</small>
+                  <small>Group related actions into processes. Choose the number of cooks when playing; prerequisites control which actions can overlap.</small>
                 </div>
 
                 <div class="form-group">
@@ -524,17 +528,21 @@
               <label for="play-recipe-select">Choose Recipe</label>
               <select id="play-recipe-select" class="form-control"></select>
             </div>
+            <div class="form-group" style="margin-bottom:0"><label for="play-cook-count">Number of cooks</label><select id="play-cook-count" class="form-control"><option value="1">1 cook</option><option value="2">2 cooks</option></select></div>
             <button id="play-recipe-start-btn" class="btn-primary" type="button"><i data-lucide="play"></i> Play</button>
             <button id="play-recipe-reset-btn" class="btn-secondary" type="button"><i data-lucide="rotate-ccw"></i> Reset</button>
           </div>
         </div>
 
+        <p id="play-cook-status" role="status"></p>
+        <div id="play-recipe-timeline" class="glass-card recipe-timeline"></div>
         <div class="play-board-grid">
           <div class="glass-card play-column">
             <div class="card-title-bar"><h2><i data-lucide="list-todo"></i> Upcoming</h2></div>
             <div id="play-col-upcoming" class="play-column-list"></div>
           </div>
           <div id="play-process-columns" style="display:contents"></div>
+          <div class="glass-card play-column"><div class="card-title-bar"><h2>Unattended</h2></div><div id="play-col-unattended" class="play-column-list"></div></div>
           <div class="glass-card play-column">
             <div class="card-title-bar"><h2><i data-lucide="check-check"></i> Completed Items</h2></div>
             <div id="play-col-completed" class="play-column-list"></div>
@@ -611,7 +619,7 @@
           </details>
           <details class="ai-optional-card">
             <summary><span><i data-lucide="play-circle"></i> Play Recipe Kanban</span><i data-lucide="chevron-down"></i></summary>
-            <div class="ai-optional-content">Steps move from Upcoming to the assigned cook, then to Completed when the timer ends. Each cook follows their own sequence; assign only independent tasks to different cooks. Active countdowns remain visible in a floating panel on every app page; select it to return to Play Recipe. Expert uses original times, Somewhat uses 1.5x, and Beginner uses 2x. Reset stops the session. Timers are not restored after reload.</div>
+            <div class="ai-optional-content">Actions move from Upcoming to a free cook after all prerequisites finish, then to Completed when their timer ends. Choose one or two cooks before or during playback. A departing cook finishes their current action first. Unattended waits run separately, so one cook can chop while poha softens. The timeline shows action dependencies and estimated elapsed time. Expert uses original hands-on times, Somewhat uses 1.5x, and Beginner uses 2x; unattended waits stay unchanged. Active timers remain visible on every app page. Reset stops the session. Timers are not restored after reload. Older saved recipes play sequentially until reviewed.</div>
           </details>
           <details class="ai-optional-card">
             <summary><span><i data-lucide="user-cog"></i> Profile Settings</span><i data-lucide="chevron-down"></i></summary>
@@ -706,10 +714,12 @@
           </div>
         </div>
 
+        <div class="form-group"><label for="modal-cook-count">Number of cooks</label><select id="modal-cook-count" class="form-control"><option value="1">1 cook</option><option value="2">2 cooks</option></select></div>
+        <div id="modal-recipe-timeline" class="recipe-timeline"></div>
         <!-- Action Row -->
         <div style="margin-top: 32px; border-top: 1px solid var(--border-glass); padding-top: 24px; display: flex; justify-content: flex-end; gap: 16px;">
           <button id="modal-btn-start-parallel-timers" class="btn-secondary" style="padding: 14px 20px; display: none;">
-            <i data-lucide="timer"></i> Start Parallel Timers
+            <i data-lucide="play"></i> Start guided cooking
           </button>
           <button id="modal-btn-cook" class="btn-primary" style="padding: 14px 28px; background: var(--success-gradient); box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);">
             <i data-lucide="chef-hat"></i> Cook this Meal
@@ -852,9 +862,9 @@
             <i data-lucide="info"></i>
           </button>
         </div>
-        <label class="profile-radio-row"><input type="radio" name="profile-experience" value="Expert"> <span>Expert (1x timer)</span></label>
-        <label class="profile-radio-row"><input type="radio" name="profile-experience" value="Somewhat"> <span>Somewhat (1.5x timer)</span></label>
-        <label class="profile-radio-row"><input type="radio" name="profile-experience" value="Beginner"> <span>Beginner (2x timer)</span></label>
+        <label class="profile-radio-row"><input type="radio" name="profile-experience" value="Expert"> <span>Expert (1x hands-on time)</span></label>
+        <label class="profile-radio-row"><input type="radio" name="profile-experience" value="Somewhat"> <span>Somewhat (1.5x hands-on time)</span></label>
+        <label class="profile-radio-row"><input type="radio" name="profile-experience" value="Beginner"> <span>Beginner (2x hands-on time)</span></label>
       </div>
 
       <div class="profile-exp-section" style="margin-top: 12px;">

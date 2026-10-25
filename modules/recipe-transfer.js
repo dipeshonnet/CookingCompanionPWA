@@ -1,6 +1,6 @@
 import { initLucide } from './navigation.js';
 import { renderAddRecipeView } from './recipe-builder.js';
-import { getAllRecipes, getVisibleRecipes, normalizeRecipeForStorage } from './recipe-domain.js';
+import { getAllRecipes, getVisibleRecipes, normalizeRecipeForStorage, hasCombinedCommands } from './recipe-domain.js';
 import { STATE } from './state.js';
 import { saveStateToStorage } from './storage.js';
 import { escapeHtml, cleanText } from './utils.js';
@@ -84,6 +84,7 @@ export async function handleRecipeImport(event) {
       return;
     }
     if (incoming.some(recipe => !recipe || typeof recipe !== 'object' || !recipe.title || !Array.isArray(recipe.ingredients) || !Array.isArray(recipe.steps))) throw new Error('Invalid recipe structure');
+    if (incoming.some(recipe => recipe.stepSchemaVersion === 2 && recipe.steps.some(step => hasCombinedCommands(step?.action || '')))) throw new Error('Split combined commands into single actions before importing.');
     const normalized = incoming.map(recipe => normalizeRecipeForStorage({
       ...recipe,
       id: cleanText(recipe.id) || `import-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -100,7 +101,7 @@ export async function handleRecipeImport(event) {
     alert(`Imported ${unique.length} recipe(s). Existing recipe IDs were skipped.`);
   } catch (err) {
     console.error(err);
-    alert("Import failed. Please use a valid JSON recipe export file.");
+    alert(`Import failed. ${err.message || 'Please use a valid JSON recipe export file.'}`);
   } finally {
     event.target.value = "";
   }

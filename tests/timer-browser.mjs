@@ -31,16 +31,17 @@ try {
     const { STATE } = await import('/modules/state.js');
     STATE.user.mutePlayAudio = true;
     STATE.user.playStepVideo = false;
-    STATE.customRecipes = [{ id: 'timer-test', title: 'Garden Vegetable Soup with Rice and Fresh Herbs', category: 'Dinner', cookCount: 2,
+    STATE.customRecipes = [{ stepSchemaVersion: 2, id: 'timer-test', title: 'Garden Vegetable Soup with Rice and Fresh Herbs', category: 'Dinner', cookCount: 2,
       steps: [
-        { item: 'Chopped garden vegetables and fresh tomatoes', action: 'Simmer in the pot', cook: 'Cook 1', stepType: 'Cook', duration: 120 },
-        { item: 'Rice', action: 'Boil in a saucepan', cook: 'Cook 2', stepType: 'Cook', duration: 180 },
-        { item: 'Basil', action: 'Stir into the soup', cook: 'Cook 1', stepType: 'Cook', duration: 60 }
+        { id: 'vegetables', title: 'Simmer vegetables', attention: 'active', dependsOn: [], item: 'Chopped garden vegetables and fresh tomatoes', action: 'Simmer in the pot', cook: 'Cook 1', stepType: 'Cook', duration: 120 },
+        { id: 'rice', title: 'Boil rice', attention: 'active', dependsOn: [], item: 'Rice', action: 'Boil in a saucepan', cook: 'Cook 2', stepType: 'Cook', duration: 180 },
+        { id: 'basil', title: 'Stir basil', attention: 'active', dependsOn: ['vegetables'], item: 'Basil', action: 'Stir into the soup', cook: 'Cook 1', stepType: 'Cook', duration: 60 }
       ] }];
   });
   const startRecipe = async () => {
     await page.evaluate(async () => (await import('/modules/navigation.js')).switchView('play'));
     await page.locator('#play-recipe-select').selectOption('timer-test');
+    await page.locator('#play-cook-count').selectOption('2');
     await page.locator('#play-recipe-start-btn').click();
   };
   await startRecipe();
@@ -95,7 +96,7 @@ try {
     for (const step of Object.values(RUNTIME.playSession.running)) step.deadline = Date.now() - 1;
     (await import('/modules/play-recipe.js')).runPlayRecipeTick();
   });
-  check('next step replaces completed cook countdown', await widget.locator('.floating-timer-row').count() === 1 && (await widget.innerText()).includes('Basil'));
+  check('next step replaces completed cook countdown', await widget.locator('.floating-timer-row').count() === 1 && (await widget.innerText()).includes('Stir basil'));
   await page.evaluate(async () => {
     const { RUNTIME } = await import('/modules/state.js');
     RUNTIME.playSession.running['Cook 1'].deadline = Date.now() - 1;

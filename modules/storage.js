@@ -40,6 +40,8 @@ export function setApiKey(value, provider = getAiProvider()) {
   const key = String(value || '').trim();
   if (key) localStorage.setItem(scopedStorageKey(storageKey), JSON.stringify(key));
   else localStorage.removeItem(scopedStorageKey(storageKey));
+  // The old unscoped Gemini entry belongs to the guest, never a signed-in account.
+  if (RUNTIME.storageScope === 'guest' && provider === 'gemini') localStorage.removeItem(STORAGE_KEYS.GEMINI_KEY);
 }
 
 export function normalizePantry(items) {
@@ -71,11 +73,15 @@ function migrateLegacyGuest() {
 export function loadStateFromStorage(scope = 'guest') {
   RUNTIME.storageScope = scope;
   if (scope === 'guest') migrateLegacyGuest();
-  // Preserve the original unscoped Gemini key only in the guest's Gemini slot.
-  if (scope === 'guest' && !localStorage.getItem(scopedStorageKey('legacy-ai-migrated'))) {
-    const oldKey = localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
-    if (oldKey && !localStorage.getItem(scopedStorageKey(STORAGE_KEYS.GEMINI_KEY))) setApiKey(oldKey, 'gemini');
-    localStorage.setItem(scopedStorageKey('legacy-ai-migrated'), 'true');
+  // Move the legacy credential; do not retain a secret recovery copy after clearing it.
+  if (scope === 'guest') {
+    if (!localStorage.getItem(scopedStorageKey('legacy-ai-migrated'))) {
+      const oldKey = localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
+      if (oldKey && !localStorage.getItem(scopedStorageKey(STORAGE_KEYS.GEMINI_KEY))) setApiKey(oldKey, 'gemini');
+      localStorage.setItem(scopedStorageKey('legacy-ai-migrated'), 'true');
+    }
+    // Also clean up browsers migrated by older releases, without restoring cleared keys.
+    localStorage.removeItem(STORAGE_KEYS.GEMINI_KEY);
   }
   RUNTIME.localMode = scope === 'guest' && readStored('local-mode', false);
   STATE.user = buildUserProfile({ ...readStored(STORAGE_KEYS.USER, {}), loggedIn: RUNTIME.localMode });
@@ -166,7 +172,7 @@ export function resetSignedOutRuntimeState() {
   RUNTIME.recipeSpeechRecognition?.stop();
   RUNTIME.recipeSpeechRecognition = null;
   RUNTIME.recipeSpeechIsListening = false;
-  RUNTIME.playSession = { recipeId: '', upcoming: [], running: { 'Cook 1': null }, completed: [], intervalId: null };
+  RUNTIME.playSession = { recipeId: '', availableCooks: 1, startedAt: null, upcoming: [], running: { 'Cook 1': null }, passiveRunning: [], completed: [], intervalId: null };
   RUNTIME.currentView = 'dashboard';
   RUNTIME.activeModalRecipe = null;
   RUNTIME.lastGeneratedRecipeObj = null;

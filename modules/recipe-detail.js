@@ -1,4 +1,5 @@
 import { renderPantryView } from './ingredients.js';
+import { ingredientLabel, ingredientThumbnail } from './ingredient-images.js';
 import { initLucide } from './navigation.js';
 import { renderPlannerView } from './planner.js';
 import { normalizeRecipeForStorage, formatDurationLabel, processLabel } from './recipe-domain.js';
@@ -8,6 +9,8 @@ import { saveStateToStorage } from './storage.js';
 import { startCookingTimer, playSynthesizedChime } from './timers.js';
 import { convertQuantity, findPantryMatch } from './units.js';
 import { escapeHtml } from './utils.js';
+import { renderRecipeTimeline } from './recipe-timeline.js';
+import { getExperienceTimerMultiplier } from './profile.js';
 
 export function showRecipeDetailsModal(recipe) {
   const displayRecipe = normalizeRecipeForStorage(recipe);
@@ -35,10 +38,11 @@ export function showRecipeDetailsModal(recipe) {
     
     card.innerHTML = `
       <div class="step-card-header">
-        <span class="step-card-num">Step ${idx + 1}</span>
+        <span class="step-card-num">${escapeHtml(step.title)}</span>
         <span style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           ${displayRecipe.cookCount > 1 ? `<span class="cook-pill">${escapeHtml(processLabel(step.cook))}</span>` : ""}
           <span class="step-duration-pill">${formatDurationLabel(step.duration)}</span>
+          <span class="cook-pill">${step.attention === 'passive' ? 'Unattended' : 'Hands-on'}</span>
           ${step.duration > 0 ? `
             <button class="step-card-btn-timer" type="button">
               <i data-lucide="play" style="width: 12px; height: 12px;"></i> Start Timer
@@ -46,13 +50,13 @@ export function showRecipeDetailsModal(recipe) {
           ` : ""}
         </span>
       </div>
-      <p class="step-detail-text"><span class="step-detail-item">${escapeHtml(step.item)}:</span> ${escapeHtml(step.action)}</p>
+      <p class="step-detail-text"><span class="step-detail-item">${ingredientThumbnail(step.item)} ${escapeHtml(step.item)}:</span> ${escapeHtml(step.action)}</p>
     `;
 
     const timerBtn = card.querySelector(".step-card-btn-timer");
     if (timerBtn) {
       timerBtn.addEventListener("click", () => {
-        startCookingTimer(displayRecipe.title, idx, step.duration, step.cook, step.item, { action: step.action });
+        startCookingTimer(displayRecipe.title, idx, step.duration, step.cook, step.title, { action: step.action, attention: step.attention });
       });
     }
 
@@ -62,8 +66,14 @@ export function showRecipeDetailsModal(recipe) {
   const parallelBtn = document.getElementById("modal-btn-start-parallel-timers");
   if (parallelBtn) {
     const hasTimedSteps = displayRecipe.steps.some(step => step.duration > 0);
-    parallelBtn.style.display = displayRecipe.cookCount > 1 && hasTimedSteps ? "inline-flex" : "none";
+    parallelBtn.style.display = hasTimedSteps ? "inline-flex" : "none";
   }
+
+  const cookSelect = document.getElementById('modal-cook-count');
+  cookSelect.value = '1';
+  const renderTimeline = () => renderRecipeTimeline('modal-recipe-timeline', displayRecipe, { availableCooks: Number(cookSelect.value), multiplier: getExperienceTimerMultiplier() });
+  cookSelect.onchange = renderTimeline;
+  renderTimeline();
 
   document.getElementById("recipe-modal").style.display = "flex";
   initLucide();
@@ -101,7 +111,7 @@ export function updateRecipeModalIngredientsAndButtons() {
     }
 
     item.innerHTML = `
-      <span>${checkIcon} ${escapeHtml(ing.name)} ${stockLabel}</span>
+      <span class="ingredient-stock-label">${ingredientLabel(ing.name)} ${checkIcon} ${stockLabel}</span>
       <span style="color: var(--text-muted); font-weight: 500;">${Math.round(requiredQty * 100) / 100} ${escapeHtml(ing.unit)}</span>
     `;
     ingContainer.appendChild(item);
@@ -122,18 +132,19 @@ export function handleCookMeal() {
     const pantryMatch = findPantryMatch(STATE.pantry, ing);
 
     if (!pantryMatch) {
-      shortages.push(`${ing.name}: missing`);
+      shortages.push({ name: ing.name, message: `${ing.name}: missing` });
     } else if (convertQuantity(pantryMatch.quantity, pantryMatch.unit, ing.unit) < requiredQty) {
-      shortages.push(`${ing.name}: need ${Math.round(requiredQty * 100) / 100} ${ing.unit}, have ${pantryMatch.quantity} ${pantryMatch.unit}`);
+      shortages.push({ name: ing.name, message: `${ing.name}: need ${Math.round(requiredQty * 100) / 100} ${ing.unit}, have ${pantryMatch.quantity} ${pantryMatch.unit}` });
     }
   });
 
   document.getElementById("cook-meal-summary").textContent = `${RUNTIME.activeModalRecipe.title} for ${RUNTIME.activeModalServingsCount} ${RUNTIME.activeModalServingsCount === 1 ? "person" : "people"}`;
   const shortagePanel = document.getElementById("cook-meal-shortages");
   const shortageList = document.getElementById("cook-meal-shortage-list");
-  shortageList.replaceChildren(...shortages.map(message => {
+  shortageList.replaceChildren(...shortages.map(({ name, message }) => {
     const item = document.createElement("li");
-    item.textContent = message;
+    item.className = 'ingredient-shortage-name';
+    item.innerHTML = `${ingredientThumbnail(name)}<span>${escapeHtml(message)}</span>`;
     return item;
   }));
   shortagePanel.hidden = shortages.length === 0;

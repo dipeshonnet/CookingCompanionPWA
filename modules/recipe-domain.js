@@ -1,3 +1,4 @@
+import { normalizeActionType, inferActionType } from './action-types.js';
 import { STATE, FALLBACK_RECIPE_IMAGE } from './state.js';
 import { cleanText, toNonNegativeNumber } from './utils.js';
 import { APP_RECIPES } from '../recipes.js';
@@ -76,8 +77,13 @@ export function normalizeStep(step, index, cookCount = 1) {
   const cook = normalizeCookLabel(step.cook || step.assignee || step.person);
 
   return {
+    id: cleanText(step.id) || `action-${index + 1}`,
+    title: cleanText(step.title) || action.split(/[.!?]/)[0].split(/\s+/).slice(0, 8).join(' '),
+    dependsOn: Array.isArray(step.dependsOn) ? step.dependsOn.map(cleanText) : [],
+    attention: step.attention === 'passive' ? 'passive' : 'active',
     item,
     action,
+    actionType: step.actionType == null ? inferActionType(action) : normalizeActionType(step.actionType),
     duration,
     stepType: normalizeStepType(step.stepType || step.type || inferStepTypeFromAction(action)),
     cook: Number.parseInt(cook.split(' ')[1], 10) <= normalizeProcessCount(cookCount) ? cook : 'Cook 1',
@@ -103,12 +109,22 @@ export function safeImageSource(value) {
 
 export function normalizeRecipeForStorage(recipe) {
   if (!recipe || typeof recipe !== 'object') throw new Error('Invalid recipe');
+  if (recipe.stepSchemaVersion === 2) validateRecipeSteps(recipe.steps);
   const cookCount = recipeProcessCount(recipe);
   const steps = Array.isArray(recipe.steps)
-    ? recipe.steps.slice(0, 500).map((step, index) => normalizeStep(step, index, cookCount))
+    ? recipe.steps.slice(0, 500).map((step, index) => {
+      const normalized = normalizeStep(step, index, cookCount);
+      if (recipe.stepSchemaVersion !== 2) {
+        normalized.id = `action-${index + 1}`;
+        normalized.dependsOn = index ? [`action-${index}`] : [];
+        normalized.attention = 'active';
+      }
+      return normalized;
+    })
     : [];
 
   return {
+    stepSchemaVersion: recipe.stepSchemaVersion === 2 ? 2 : 1,
     id: cleanText(recipe.id).slice(0, 200) || crypto.randomUUID(),
     title: cleanText(recipe.title).slice(0, 200) || 'Untitled Recipe',
     description: cleanText(recipe.description).slice(0, 10000),
@@ -125,6 +141,41 @@ export function normalizeRecipeForStorage(recipe) {
     steps,
     ...deriveRecipeTimes(steps)
   };
+}
+
+export function validateRecipeSteps(steps) {
+  if (!Array.isArray(steps) || !steps.length || steps.length > 500) throw new Error('Use between 1 and 500 actions.');
+  const byId = new Map();
+  for (const step of steps) {
+    if (!step || typeof step.id !== 'string' || !step.id.trim() || step.id !== step.id.trim()) throw new Error('Every action needs a unique ID.');
+    if (byId.has(step.id)) throw new Error(`Duplicate action ID: ${step.id}`);
+    if (typeof step.title !== 'string' || !step.title.trim() || typeof step.action !== 'string' || !step.action.trim()) throw new Error('Every action needs a brief title and an instruction.');
+    if (typeof step.duration !== 'number' || !Number.isFinite(step.duration) || step.duration < 1) throw new Error(`${step.title}: duration must be at least one second.`);
+    if (!['active', 'passive'].includes(step.attention)) throw new Error(`${step.title}: choose hands-on or unattended.`);
+    if (!Array.isArray(step.dependsOn) || step.dependsOn.some(id => typeof id !== 'string')) throw new Error(`${step.title}: invalid prerequisites.`);
+    byId.set(step.id, step);
+  }
+  const visiting = new Set(), visited = new Set();
+  function visit(id) {
+    if (visiting.has(id)) throw new Error('Action dependencies contain a cycle.');
+    if (visited.has(id)) return;
+    visiting.add(id);
+    for (const dependency of byId.get(id).dependsOn) {
+      if (dependency === id) throw new Error('An action cannot depend on itself.');
+      if (!byId.has(dependency)) throw new Error(`Missing prerequisite: ${dependency}`);
+      visit(dependency);
+    }
+    visiting.delete(id);
+    visited.add(id);
+  }
+  for (const id of byId.keys()) visit(id);
+  return true;
+}
+
+// Warn about distinct commands, without treating ingredient lists as commands.
+export function hasCombinedCommands(action) {
+  const verb = '(?:rinse|drain|chop|slice|dice|mince|peel|heat|add|pour|transfer|remove|stir|mix|fold|serve|garnish|flip|cook|simmer|cover|steam|toast|blend|whisk|season|turn|sprinkle|finish|mash|boil|reserve|cut|spread|top|drizzle)';
+  return new RegExp(`(?:[.;]\\s*|\\b(?:then|meanwhile|and)\\s+)${verb}\\b`, 'i').test(action);
 }
 
 export function formatDurationLabel(seconds) {

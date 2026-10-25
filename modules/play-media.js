@@ -85,7 +85,8 @@ export function stopPlayBackgroundMusic() {
 
 export function speakPlayStep(step) {
   if (isPlayAudioMuted() || !window.speechSynthesis) return;
-  const utterance = new SpeechSynthesisUtterance(`${processLabel(step.cook)}, ${step.item}. ${step.action}`);
+  const owner = step.attention === 'passive' ? 'Unattended' : step.assignedCook || processLabel(step.cook);
+  const utterance = new SpeechSynthesisUtterance(`${owner}, ${step.title || step.item}. ${step.action}`);
   window.speechSynthesis.speak(utterance);
 }
 

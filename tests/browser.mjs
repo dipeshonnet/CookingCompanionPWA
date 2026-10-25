@@ -81,29 +81,73 @@ try {
     }
   }));
   await page.locator('[data-view="pantry"]').click();
+  const ingredientInput = page.locator('#pantry-ingredient-input');
+  const ingredientGhost = page.locator('#pantry-ingredient-suggestion');
+  await page.locator('#pantry-category-input').selectOption('Masala');
+  await ingredientInput.fill('Tur');
+  check('category suggestion appears as inline ghost text', await ingredientGhost.textContent() === 'Turmeric');
+  await mkdir('output/playwright', { recursive: true });
+  await page.screenshot({ path: 'output/playwright/ingredient-autocomplete-desktop.png', animations: 'disabled' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: 'output/playwright/ingredient-autocomplete-mobile.png', animations: 'disabled' });
+  check('inline ingredient suggestion fits mobile input', await page.evaluate(() => {
+    const input = document.getElementById('pantry-ingredient-input').getBoundingClientRect();
+    const ghost = document.getElementById('pantry-ingredient-suggestion').getBoundingClientRect();
+    return input.left >= 0 && input.right <= innerWidth && Math.abs(input.left - ghost.left) < 1 && Math.abs((input.top + input.bottom) / 2 - (ghost.top + ghost.bottom) / 2) < 1;
+  }));
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await ingredientInput.press('Enter');
+  check('Enter completes without adding to pantry', await ingredientInput.inputValue() === 'Turmeric' && await page.locator('#pantry-manager-tags .pantry-tag').count() === 0);
+  await ingredientInput.fill('Tur');
+  await ingredientInput.press('ArrowRight');
+  check('right arrow completes ingredient name', await ingredientInput.inputValue() === 'Turmeric');
+  await ingredientInput.fill('Tur');
+  await page.locator('#pantry-category-input').selectOption('Fruits');
+  await ingredientInput.focus();
+  check('switching category clears unrelated suggestion', await ingredientGhost.innerText() === '');
+  await page.locator('#pantry-category-input').selectOption('Masala');
+  await ingredientInput.focus();
+  await ingredientInput.press('Home');
+  await ingredientInput.press('ArrowRight');
+  check('right arrow inside name keeps ordinary caret movement', await ingredientInput.inputValue() === 'Tur');
+  await ingredientInput.press('End');
+  await ingredientInput.press('Escape');
+  check('Escape dismisses inline suggestion', await ingredientGhost.innerText() === '');
+  await ingredientInput.fill('Tur');
+  await ingredientInput.press('Enter');
+  await ingredientInput.press('Enter');
+  check('second Enter adds completed ingredient', (await page.locator('#pantry-manager-tags').innerText()).includes('Turmeric') && await ingredientInput.inputValue() === '' && await ingredientGhost.innerText() === '');
+  await page.locator('#pantry-manager-tags [data-remove]').click();
   await page.locator('#pantry-ingredient-input').fill('Tomato');
   await page.locator('#pantry-quantity-input').fill('200');
   await page.locator('#pantry-unit-input').selectOption('g');
   await page.locator('#pantry-category-input').selectOption('Vegetables');
   await page.locator('#pantry-add-btn').click();
   check('ingredient quantity/unit/category', (await page.locator('#pantry-manager-tags').innerText()).includes('200 g'));
+  await page.waitForFunction(() => document.querySelector('#pantry-manager-tags .ingredient-thumbnail')?.naturalWidth > 0);
+  check('new pantry ingredient has a locally loaded matching photo', (await page.locator('#pantry-manager-tags img.ingredient-thumbnail').getAttribute('src')).endsWith('/tomato.webp'));
+  await page.screenshot({ path: 'output/playwright/ingredient-photos-pantry.png', animations: 'disabled' });
   await page.locator('#pantry-manager-tags [data-qty="1"]').click();
   check('quantity controls', (await page.locator('#pantry-manager-tags').innerText()).includes('201 g'));
   await page.locator('[data-view="ai-generator"]').click();
   check('explore remains hidden initially', !(await page.locator('#recipe-explore-panel').isVisible()));
+  check('ingredient selector uses the same photo as the pantry', (await page.locator('#ai-selectable-ingredients img.ingredient-thumbnail').first().getAttribute('src')).endsWith('/tomato.webp'));
   await page.locator('#recipe-title-input').fill('Browser Test Soup');
   await page.locator('#recipe-tags-input').fill('Vegan');
   await page.locator('#recipe-add-parallel-process').click();
   await page.locator('#recipe-add-parallel-process').click();
   check('add multiple parallel processes', await page.locator('#recipe-cook-count-input').inputValue() === '3');
   await page.locator('.recipe-ingredient-name').first().fill('Tomato');
+  check('recipe ingredient editor updates its photo when the name changes', (await page.locator('.recipe-ingredient-row img.ingredient-thumbnail').first().getAttribute('src')).endsWith('/tomato.webp'));
   await page.locator('.recipe-ingredient-amount').first().fill('100');
   await page.locator('.recipe-ingredient-unit').first().selectOption('g');
+  await page.locator('.recipe-step-title').first().fill('Chop tomato');
   await page.locator('.recipe-step-item').first().fill('Tomato');
   await page.locator('.recipe-step-action').first().fill('Chop on cutting board');
   await page.locator('.recipe-step-duration').first().fill('1');
   await page.locator('.recipe-step-type').first().selectOption('Prep');
   await page.locator('#recipe-add-step-row').click();
+  await page.locator('.recipe-step-title').nth(1).fill('Simmer tomato');
   await page.locator('.recipe-step-item').nth(1).fill('Tomato');
   await page.locator('.recipe-step-action').nth(1).fill('Simmer in pot');
   await page.locator('.recipe-step-duration').nth(1).fill('1');
@@ -111,6 +155,8 @@ try {
   check('process assignments use new names', await page.locator('.recipe-step-cook').first().innerText() === 'Primary process\nIn parallel process 1\nIn parallel process 2');
   check('automatic prep/cook totals', await page.locator('#recipe-prep-input').inputValue() === '1' && await page.locator('#recipe-cook-time-input').inputValue() === '1');
   await page.locator('#recipe-add-step-row').click();
+  await page.locator('.recipe-step-title').nth(2).fill('Chop herbs');
+  await page.locator('.recipe-step-dependencies').nth(2).selectOption([]);
   await page.locator('.recipe-step-item').nth(2).fill('Herbs');
   await page.locator('.recipe-step-action').nth(2).fill('Chop herbs');
   await page.locator('.recipe-step-duration').nth(2).fill('1');
@@ -136,6 +182,7 @@ try {
   const cookDialogs = [];
   page.on('dialog', dialog => cookDialogs.push(dialog.message()));
   await page.locator('#explore-recipes-grid .recipe-card').click();
+  check('recipe ingredient details include photos', await page.locator('#modal-ingredients img.ingredient-thumbnail').count() === 1);
   await page.locator('#modal-btn-cook').click();
   check('cook dialog defaults to keeping pantry unchanged', await page.locator('#cook-meal-modal').isVisible() && await page.locator('input[name="cook-pantry-mode"][value="keep"]').isChecked());
   check('stocked recipe has no shortage warning', !(await page.locator('#cook-meal-shortages').isVisible()));
@@ -177,9 +224,11 @@ try {
   check('diet filters recipes', await page.evaluate(async () => (await import('/modules/recipe-domain.js')).getVisibleRecipes().every(recipe => recipe.tags.includes('Vegan'))));
   await page.locator('[data-view="play"]').click();
   await page.locator('#play-recipe-select').selectOption({ label: '[Dinner] Browser Test Soup' });
+  check('play defaults to one cook', await page.locator('#play-cook-count').inputValue() === '1');
+  await page.locator('#play-cook-count').selectOption('2');
   await page.locator('#play-recipe-start-btn').click();
   check('primary and parallel boards', await page.locator('#play-col-cook1 .play-step-card').count() === 1 && await page.locator('#play-col-cook2 .play-step-card').count() === 1);
-  check('additional parallel board runs after saving and reloading', await page.locator('#play-col-cook3 .play-step-card').count() === 1);
+  check('third logical process uses the second cook after reload', await page.locator('#play-col-cook3').count() === 0 && (await page.locator('#play-col-cook2').innerText()).includes('Chop herbs'));
   check('boards display process names', (await page.locator('#play-process-columns').innerText()).includes('In parallel process 2'));
   check('experience multiplier applied to Play Recipe', await page.evaluate(async () => (await import('/modules/state.js')).RUNTIME.playSession.running['Cook 2'].duration) === 120);
   await page.evaluate(async () => {
@@ -190,6 +239,11 @@ try {
     (await import('/modules/play-recipe.js')).runPlayRecipeTick();
   });
   check('timer redraw preserves video element', await page.evaluate(() => window.originalVideoNode === document.querySelector('#play-col-cook1 video')));
+  await page.evaluate(async () => {
+    const { RUNTIME } = await import('/modules/state.js');
+    for (const step of Object.values(RUNTIME.playSession.running)) if (step) step.deadline = Date.now() - 1;
+    (await import('/modules/play-recipe.js')).runPlayRecipeTick();
+  });
   await page.evaluate(async () => {
     const { RUNTIME } = await import('/modules/state.js');
     for (const step of Object.values(RUNTIME.playSession.running)) if (step) step.deadline = Date.now() - 1;
@@ -219,7 +273,7 @@ try {
     aiRequests.push({ provider, schema });
     const result = schema.properties.calories
       ? { calories: 100, protein_g: 10, carbs_g: 20, fat_g: 2, fiber_g: 1 }
-      : { title: 'Mock ' + provider + ' Rice', description: 'A simple rice dish', prepTime: 1, cookTime: 2, servings: 2, tags: ['Vegan'], category: 'Dinner', ingredients: [{ name: 'Rice', amount: 100, unit: 'g' }], steps: [{ item: 'Rice', action: 'Boil rice in pot', text: 'Boil rice in pot', duration: 120, stepType: 'Cook', cook: 'Cook 1' }] };
+      : { stepSchemaVersion: 2, title: 'Mock ' + provider + ' Rice', description: 'A simple rice dish', prepTime: 1, cookTime: 2, servings: 2, tags: ['Vegan'], category: 'Dinner', ingredients: [{ name: 'Rice', amount: 100, unit: 'g' }], steps: [{ id: 'boil-rice', title: 'Boil rice', attention: 'active', dependsOn: [], item: 'Rice', action: 'Boil rice in pot', text: 'Boil rice in pot', duration: 120, stepType: 'Cook', cook: 'Cook 1' }] };
     const body = provider === 'gemini' ? { candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(result) }] } }] } : { choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(result) } }] };
     await route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(body) });
   });
@@ -316,6 +370,15 @@ try {
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.locator('#app-view').waitFor({ state: 'visible' });
   check('offline module shell reloads', await page.locator('#sidebar-name').innerText() === 'Test Chef');
+  check('all ingredient photos are cached for offline use', await page.evaluate(async () => {
+    const { COMMON_INGREDIENTS } = await import('/modules/ingredient-catalogue.js');
+    const { ingredientImageSource } = await import('/modules/ingredient-images.js');
+    for (const name of Object.values(COMMON_INGREDIENTS).flat()) {
+      const response = await fetch(ingredientImageSource(name));
+      if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) return false;
+    }
+    return true;
+  }));
   await context.setOffline(false);
   await page.locator('#mobile-menu-toggle').click();
   await page.evaluate(() => { document.getElementById('auth-password-input').value = 'stale-password'; });

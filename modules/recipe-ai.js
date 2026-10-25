@@ -5,6 +5,7 @@ import { getAiProvider, getApiKey, saveStateToStorage } from './storage.js';
 import { escapeHtml } from './utils.js';
 import { fetchCustomRecipe } from '../ai.js';
 import { getProviderConfig } from './ai-providers.js';
+import { ingredientLabel } from './ingredient-images.js';
 
 export function renderAIIngredientSelector() {
   const selectableGrid = document.getElementById("ai-selectable-ingredients");
@@ -22,7 +23,8 @@ export function renderAIIngredientSelector() {
     if (STATE.user.dietPreference === 'Vegan' && item.category === 'Dairy') return;
     const chip = document.createElement("span");
     chip.className = "selectable-tag";
-    chip.innerText = item.name;
+    chip.dataset.ingredientName = item.name;
+    chip.innerHTML = ingredientLabel(item.name);
     chip.addEventListener("click", () => {
       chip.classList.toggle("selected");
     });
@@ -40,7 +42,7 @@ export async function handleAIGeneration() {
   }
 
   const selectedChips = document.querySelectorAll("#ai-selectable-ingredients .selectable-tag.selected");
-  const selectedIngredients = Array.from(selectedChips).map(c => c.innerText);
+  const selectedIngredients = Array.from(selectedChips).map(c => c.dataset.ingredientName);
   
   if (selectedIngredients.length === 0) {
     alert("Please select at least one ingredient chip to guide the AI!");
@@ -88,7 +90,7 @@ export async function handleAIGeneration() {
             <h4 style="font-size: 15px; margin-bottom: 10px; color: var(--accent);"><i data-lucide="shopping-cart"></i> Ingredients Needed</h4>
             <ul class="ingredients-list">
               ${normalizedGenerated.ingredients.map(i => `
-                <li class="ingredient-item"><span>${escapeHtml(i.name)}</span><span>${escapeHtml(i.amount)} ${escapeHtml(i.unit)}</span></li>
+                <li class="ingredient-item">${ingredientLabel(i.name)}<span>${escapeHtml(i.amount)} ${escapeHtml(i.unit)}</span></li>
               `).join("")}
             </ul>
           </div>
@@ -106,13 +108,14 @@ export async function handleAIGeneration() {
           ${normalizedGenerated.steps.map((s, idx) => `
             <div class="step-card">
               <div class="step-card-header">
-                <span class="step-card-num">Step ${idx + 1}</span>
+                <span class="step-card-num">${escapeHtml(s.title)}</span>
                 <span style="display: flex; gap: 8px; align-items: center;">
                   ${normalizedGenerated.cookCount > 1 ? `<span class="cook-pill">${escapeHtml(processLabel(s.cook))}</span>` : ""}
                   <span class="step-duration-pill">${formatDurationLabel(s.duration)}</span>
+                  <span class="cook-pill">${s.attention === 'passive' ? 'Unattended' : 'Hands-on'}</span>
                 </span>
               </div>
-              <p class="step-detail-text"><span class="step-detail-item">${escapeHtml(s.item)}:</span> ${escapeHtml(s.action)}</p>
+              <p class="step-detail-text"><span class="step-detail-item">${ingredientLabel(s.item)}:</span> ${escapeHtml(s.action)}</p>
             </div>
           `).join("")}
         </div>

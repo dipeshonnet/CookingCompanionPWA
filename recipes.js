@@ -1,3 +1,5 @@
+import { RECIPE_ACTIONS } from './modules/recipe-actions.js';
+
 export const HANDPICKED_RECIPES = [
   {
     id: "handpicked-poha",
@@ -25,13 +27,8 @@ export const HANDPICKED_RECIPES = [
       { name: "Lemon juice", amount: 1, unit: "tbsp" },
       { name: "Fresh coriander", amount: 2, unit: "tbsp" }
     ],
-    steps: [
-      { stepType: "Prep", duration: 300, text: "Rinse the poha briefly in a colander, drain, and let it soften. Chop the onion, green chilli, and coriander." },
-      { duration: 240, text: "Heat oil in a pan over medium heat. Fry the peanuts until golden, then remove and set aside." },
-      { duration: 300, text: "Add mustard seeds to the pan and let them splutter. Add curry leaves, green chilli, and onion; sauté until the onion softens." },
-      { duration: 240, text: "Stir in turmeric and salt, then gently fold in the softened poha. Sprinkle with a little water if dry, cover, and steam over low heat until hot and fluffy." },
-      { duration: 120, text: "Fold in the peanuts, turn off the heat, and finish with lemon juice and coriander. Taste and adjust salt before serving." }
-    ]
+    stepSchemaVersion: 2,
+    steps: RECIPE_ACTIONS["handpicked-poha"]
   },
   {
     id: "handpicked-upma",
@@ -60,13 +57,8 @@ export const HANDPICKED_RECIPES = [
       { name: "Salt", amount: 0.5, unit: "tsp" },
       { name: "Lemon juice", amount: 1, unit: "tsp" }
     ],
-    steps: [
-      { stepType: "Prep", duration: 300, text: "Finely chop the onion, carrot, ginger, and green chilli. Measure the semolina and water." },
-      { duration: 300, text: "Dry-roast the semolina in a pan over medium-low heat, stirring until fragrant without browning. Transfer to a bowl." },
-      { duration: 300, text: "Heat oil in the pan. Add mustard seeds and let them splutter, then add curry leaves, ginger, chilli, and onion. Sauté until softened." },
-      { duration: 300, text: "Add carrot and peas and cook briefly. Pour in the water, add salt, and bring to a boil; simmer until the vegetables are tender." },
-      { duration: 300, text: "Lower the heat and slowly pour in roasted semolina while stirring constantly to prevent lumps. Cover and cook on low until the water is absorbed and the semolina is soft. Finish with lemon juice." }
-    ]
+    stepSchemaVersion: 2,
+    steps: RECIPE_ACTIONS["handpicked-upma"]
   },
   {
     id: "handpicked-pav-bhaji",
@@ -96,14 +88,8 @@ export const HANDPICKED_RECIPES = [
       { name: "Lemon", amount: 1, unit: "pc" },
       { name: "Fresh coriander", amount: 2, unit: "tbsp" }
     ],
-    steps: [
-      { stepType: "Prep", duration: 600, text: "Peel and dice the potatoes. Chop the cauliflower, onion, tomatoes, and bell pepper. Reserve a little raw onion for serving." },
-      { duration: 900, text: "Boil potatoes, cauliflower, and peas in enough water to cover until very tender. Drain, reserving the cooking water, and mash the vegetables." },
-      { duration: 300, text: "Melt 2 tablespoons of butter in a large pan. Sauté onion and bell pepper until soft, then stir in ginger-garlic paste and cook until fragrant." },
-      { duration: 300, text: "Add tomatoes, pav bhaji masala, and salt. Cook, stirring and mashing, until the tomatoes break down into a thick sauce." },
-      { duration: 180, text: "Fold in the mashed vegetables and enough reserved water for a thick curry. Mash together and simmer until hot, adding more water as needed." },
-      { duration: 120, text: "Split the pav and toast in the remaining butter until golden. Serve with hot bhaji, reserved onion, coriander, and lemon wedges." }
-    ]
+    stepSchemaVersion: 2,
+    steps: RECIPE_ACTIONS["handpicked-pav-bhaji"]
   }
 ];
 
@@ -131,13 +117,8 @@ export const APP_RECIPES = [
       { name: "Parmesan cheese", amount: 0.25, unit: "cup" },
       { name: "Olive oil", amount: 1, unit: "tbsp" }
     ],
-    steps: [
-      { duration: 180, text: "Heat olive oil and 1 tablespoon of butter in a large skillet over medium-high heat. Season salmon with salt and pepper, then sear for 4 minutes on each side until golden." },
-      { duration: 120, text: "Remove salmon from skillet. In the same skillet, add the remaining butter and garlic. Sauté for 1 minute until fragrant." },
-      { duration: 240, text: "Add sun-dried tomatoes and spinach. Cook for 2-3 minutes until spinach is fully wilted." },
-      { duration: 300, text: "Reduce heat to low, pour in the heavy cream and bring to a gentle simmer. Stir in the parmesan cheese until the sauce thickens slightly." },
-      { duration: 180, text: "Return the salmon to the skillet, spoon the sauce over the fillets, and simmer for an additional 2-3 minutes until the salmon is hot and cooked through." }
-    ]
+    stepSchemaVersion: 2,
+    steps: RECIPE_ACTIONS["r1"]
   },
   {
     id: "r2",
@@ -160,12 +141,8 @@ export const APP_RECIPES = [
       { name: "Balsamic glaze", amount: 1, unit: "tbsp" },
       { name: "Red pepper flakes", amount: 0.25, unit: "tsp" }
     ],
-    steps: [
-      { duration: 180, text: "Toast the sourdough bread slices until they are golden and crispy." },
-      { duration: 120, text: "Mash the avocado in a small bowl with the lemon juice, salt, pepper, and a pinch of red pepper flakes." },
-      { duration: 120, text: "Spread the mashed avocado evenly across both slices of toasted bread." },
-      { duration: 60, text: "Top with halved cherry tomatoes and crumbled feta cheese. Drizzle with balsamic glaze and serve immediately." }
-    ]
+    stepSchemaVersion: 2,
+    steps: RECIPE_ACTIONS["r2"]
   },
   {
     id: "r3",
@@ -188,12 +165,8 @@ export const APP_RECIPES = [
       { name: "Olive oil", amount: 0.33, unit: "cup" },
       { name: "Cherry tomatoes", amount: 0.5, unit: "cup" }
     ],
-    steps: [
-      { duration: 600, text: "Bring a large pot of salted water to a boil. Add the penne pasta and cook for 9-10 minutes until al dente. Reserve 1/2 cup of pasta water, then drain." },
-      { duration: 180, text: "While pasta cooks, toast the pine nuts in a dry pan over medium heat for 2-3 minutes until golden and fragrant." },
-      { duration: 180, text: "In a food processor, blend the basil, garlic, toasted pine nuts, and parmesan cheese while slowly drizzling in the olive oil until smooth." },
-      { duration: 120, text: "Toss the drained pasta with the pesto sauce, adding a splash of reserved pasta water to emulsify the sauce. Mix in halved cherry tomatoes and serve warm." }
-    ]
+    stepSchemaVersion: 2,
+    steps: RECIPE_ACTIONS["r3"]
   },
   {
     id: "r4",
@@ -218,13 +191,8 @@ export const APP_RECIPES = [
       { name: "Jasmine rice", amount: 1, unit: "cup" },
       { name: "Broccoli", amount: 1, unit: "head" }
     ],
-    steps: [
-      { duration: 600, text: "Press the tofu block to remove excess water. Cut into bite-sized cubes, then toss with cornstarch until evenly coated." },
-      { duration: 900, text: "Cook jasmine rice according to package instructions. Meanwhile, steam broccoli florets until tender-crisp (about 4 minutes)." },
-      { duration: 480, text: "Heat sesame oil in a skillet. Add the tofu and pan-fry for 8 minutes, flipping occasionally until golden and crispy on all sides." },
-      { duration: 180, text: "Whisk together soy sauce, minced ginger, minced garlic, and maple syrup. Pour the sauce into the skillet, stirring until it thickens and glazes the tofu (2 minutes)." },
-      { duration: 60, text: "Assemble bowls with jasmine rice, steamed broccoli, and crispy sesame tofu. Garnish with sesame seeds if desired." }
-    ]
+    stepSchemaVersion: 2,
+    steps: RECIPE_ACTIONS["r4"]
   },
   {
     id: "r5",
@@ -247,14 +215,16 @@ export const APP_RECIPES = [
       { name: "Milk", amount: 0.75, unit: "cup" },
       { name: "Dark chocolate chips", amount: 0.25, unit: "cup" }
     ],
-    steps: [
-      { duration: 180, text: "In a blender, combine oats, banana, protein powder, cocoa powder, baking powder, and milk. Blend on high until completely smooth." },
-      { duration: 60, text: "Stir the dark chocolate chips into the pancake batter by hand." },
-      { duration: 300, text: "Heat a non-stick skillet over medium-low heat. Pour batter to form small pancakes and cook for 2-3 minutes until small bubbles form on top." },
-      { duration: 180, text: "Flip and cook the other side for 1-2 minutes until cooked through. Repeat with the remaining batter and serve warm." }
-    ]
+    stepSchemaVersion: 2,
+    steps: RECIPE_ACTIONS["r5"]
   }
 ];
+
+for (const recipe of APP_RECIPES) {
+  recipe.cookCount = Math.max(...recipe.steps.map(step => Number(step.cook.split(' ')[1])));
+  recipe.prepTime = Math.ceil(recipe.steps.filter(step => step.stepType === 'Prep').reduce((sum, step) => sum + step.duration, 0) / 60);
+  recipe.cookTime = Math.ceil(recipe.steps.filter(step => step.stepType === 'Cook').reduce((sum, step) => sum + step.duration, 0) / 60);
+}
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = APP_RECIPES;

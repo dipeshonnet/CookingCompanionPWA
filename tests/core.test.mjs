@@ -13,10 +13,12 @@ import { AI_PROVIDERS } from '../modules/ai-providers.js';
 import { APP_CONFIG } from '../modules/app-config.js';
 import { parseRecipeDraftFromText } from '../modules/recipe-voice.js';
 
-const step = (cook, duration, stepType = 'Cook') => ({ item: 'Tomato', action: 'Stir in pan', cook, duration, stepType });
-const recipe = { id: 'demo', title: 'Demo', cookCount: 2, ingredients: [{ name: 'Tomato', amount: 100, unit: 'g' }], steps: [step('Cook 1', 4), step('Cook 2', 3), step('Cook 1', 2)] };
+let stepId = 0;
+const step = (cook, duration, stepType = 'Cook') => ({ id: `test-${++stepId}`, title: 'Stir tomato', attention: 'active', dependsOn: [], item: 'Tomato', action: 'Stir in pan', cook, duration, stepType });
+const recipe = { stepSchemaVersion: 2, id: 'demo', title: 'Demo', cookCount: 2, ingredients: [{ name: 'Tomato', amount: 100, unit: 'g' }], steps: [step('Cook 1', 4), step('Cook 2', 3), step('Cook 1', 2)] };
+recipe.steps[2].dependsOn = [recipe.steps[0].id];
 
-test('multiple processes survive storage and run independent sequential queues', () => {
+test('multiple logical processes survive storage without creating extra cooks', () => {
   const normalized = normalizeRecipeForStorage({ ...recipe, cookCount: 4, steps: [
     step('Primary process', 4), step('In parallel process 1', 3),
     step('In parallel process 2', 2), step('In parallel process 3', 5), step('Cook 3', 1)
@@ -26,14 +28,13 @@ test('multiple processes survive storage and run independent sequential queues',
   assert.equal(processLabel('Cook 1'), 'Primary process');
   assert.equal(processLabel('Cook 4'), 'In parallel process 3');
   const restored = normalizeRecipeForStorage(JSON.parse(JSON.stringify(normalized)));
-  const session = createPlaySession(restored);
-  assert.equal(advancePlaySession(session, 0).started.length, 4);
-  assert.equal(advancePlaySession(session, 2000).started.length, 1);
-  assert.equal(session.running['Cook 3'].duration, 1);
-  assert.equal(session.running['Cook 4'].timeLeft, 3);
-  assert.equal(advancePlaySession(session, 3000).done, false);
-  assert.equal(advancePlaySession(session, 5000).done, true);
-  assert.equal(session.completed.length, 5);
+  const single = createPlaySession(restored);
+  assert.equal(advancePlaySession(single, 0).started.length, 1);
+  assert.deepEqual(Object.keys(single.running), ['Cook 1']);
+  const two = createPlaySession(restored, 1, 2);
+  assert.equal(advancePlaySession(two, 0).started.length, 2);
+  assert.deepEqual(Object.keys(two.running), ['Cook 1', 'Cook 2']);
+  assert.equal(restored.steps[3].cook, 'Cook 4');
   assert.equal(normalizeRecipeForStorage({ ...recipe, cookCount: 1, steps: [step('Cook 12', 1)] }).cookCount, 12);
 });
 
@@ -66,7 +67,7 @@ test('profile experiences use constrained values and preserve likes', () => {
 });
 
 test('two cooks run independently without losing the first second', () => {
-  const session = createPlaySession(recipe);
+  const session = createPlaySession(recipe, 1, 2);
   const started = advancePlaySession(session, 1000);
   assert.equal(started.started.length, 2);
   assert.equal(session.running['Cook 1'].timeLeft, 4);
@@ -82,7 +83,7 @@ test('two cooks run independently without losing the first second', () => {
 });
 
 test('beginner/somewhat multipliers and deadlines survive delayed callbacks', () => {
-  const beginner = createPlaySession(recipe, 2);
+  const beginner = createPlaySession(recipe, 2, 2);
   advancePlaySession(beginner, 0);
   assert.equal(beginner.running['Cook 1'].duration, 8);
   advancePlaySession(beginner, 10000);
@@ -92,7 +93,7 @@ test('beginner/somewhat multipliers and deadlines survive delayed callbacks', ()
 });
 
 test('last three seconds beep once each, including simultaneous cook timers', () => {
-  const session = createPlaySession({ ...recipe, steps: [step('Cook 1', 5), step('Cook 2', 5)] });
+  const session = createPlaySession({ ...recipe, steps: [step('Cook 1', 5), step('Cook 2', 5)] }, 1, 2);
   advancePlaySession(session, 0);
   assert.equal(advancePlaySession(session, 1000).beep, false);
   for (const now of [2000, 3000, 4000]) {
@@ -206,7 +207,7 @@ test('unconfigured cloud backend does not load external scripts', async () => {
 
 
 const aiNutrition = { calories: 100, protein_g: 2, carbs_g: 20, fat_g: 1, fiber_g: 1 };
-const aiRecipe = { title: 'Demo', description: 'Demo recipe', category: 'Dinner', prepTime: 1, cookTime: 2, servings: 2, tags: ['Vegan'], ingredients: recipe.ingredients, steps: recipe.steps.map(s => ({ ...s, text: s.action })) };
+const aiRecipe = { stepSchemaVersion: 2, title: 'Demo', description: 'Demo recipe', category: 'Dinner', prepTime: 1, cookTime: 2, servings: 2, tags: ['Vegan'], ingredients: recipe.ingredients, steps: recipe.steps.map(s => ({ ...s, text: s.action })) };
 const completion = (provider, content, truncated = false) => provider === 'gemini'
   ? { candidates: [{ finishReason: truncated ? 'MAX_TOKENS' : 'STOP', content: { parts: [{ thought: true, text: 'ignore this' }, { text: content }] } }] }
   : { choices: [{ finish_reason: truncated ? 'length' : 'stop', message: { content } }] };
@@ -345,12 +346,67 @@ test('legacy Gemini guest key migrates only to the guest Gemini slot', () => {
   globalThis.document = { getElementById: () => null };
   loadStateFromStorage('guest');
   assert.equal(getApiKey('gemini'), 'old-raw-key');
+  assert.equal(values.has(STORAGE_KEYS.GEMINI_KEY), false);
   assert.equal(getApiKey('groq'), '');
   setApiKey('', 'gemini');
   loadStateFromStorage('guest');
   assert.equal(getApiKey('gemini'), '');
   loadStateFromStorage('account-a');
   assert.equal(getApiKey('gemini'), '');
+});
+
+test('already-migrated guest keys remove obsolete copies without resurrecting cleared keys', () => {
+  for (const scopedValue of [null, 'current-key']) {
+    const values = new Map([
+      [STORAGE_KEYS.GEMINI_KEY, 'obsolete-key'],
+      [scopedStorageKey('legacy-ai-migrated', 'guest'), 'true']
+    ]);
+    if (scopedValue) values.set(scopedStorageKey(STORAGE_KEYS.GEMINI_KEY, 'guest'), JSON.stringify(scopedValue));
+    globalThis.localStorage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
+    globalThis.document = { getElementById: () => null };
+    loadStateFromStorage('guest');
+    assert.equal(values.has(STORAGE_KEYS.GEMINI_KEY), false);
+    assert.equal(getApiKey('gemini'), scopedValue || '');
+    loadStateFromStorage('guest');
+    assert.equal(getApiKey('gemini'), scopedValue || '');
+  }
+});
+
+test('guest Gemini updates remove legacy aliases without changing other account or provider keys', () => {
+  const values = new Map([[STORAGE_KEYS.GEMINI_KEY, 'legacy-guest-key']]);
+  globalThis.localStorage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
+  globalThis.document = { getElementById: () => null };
+  loadStateFromStorage('account-a');
+  setApiKey('account-key', 'gemini');
+  setApiKey('', 'gemini');
+  assert.equal(values.get(STORAGE_KEYS.GEMINI_KEY), 'legacy-guest-key');
+  loadStateFromStorage('guest');
+  setApiKey('other-provider-key', 'groq');
+  for (const replacement of ['replacement-key', '']) {
+    values.set(STORAGE_KEYS.GEMINI_KEY, 'obsolete-key');
+    setApiKey(replacement, 'gemini');
+    assert.equal(values.has(STORAGE_KEYS.GEMINI_KEY), false);
+    assert.equal(getApiKey('gemini'), replacement);
+    assert.equal(getApiKey('groq'), 'other-provider-key');
+  }
+});
+
+test('failed Gemini migration preserves the original credential for retry', () => {
+  const values = new Map([[STORAGE_KEYS.GEMINI_KEY, 'legacy-guest-key']]);
+  const target = scopedStorageKey(STORAGE_KEYS.GEMINI_KEY, 'guest');
+  globalThis.localStorage = {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => { if (key === target) throw new Error('Storage full'); values.set(key, value); },
+    removeItem: key => values.delete(key)
+  };
+  globalThis.document = { getElementById: () => null };
+  assert.throws(() => loadStateFromStorage('guest'), /Storage full/);
+  assert.equal(values.get(STORAGE_KEYS.GEMINI_KEY), 'legacy-guest-key');
+  assert.equal(values.has(scopedStorageKey('legacy-ai-migrated', 'guest')), false);
+  localStorage.setItem = (key, value) => values.set(key, value);
+  loadStateFromStorage('guest');
+  assert.equal(getApiKey('gemini'), 'legacy-guest-key');
+  assert.equal(values.has(STORAGE_KEYS.GEMINI_KEY), false);
 });
 
 test('spoken recipe notes parse without an external AI service', () => {
