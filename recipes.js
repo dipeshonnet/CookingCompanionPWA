@@ -1,4 +1,114 @@
+export const HANDPICKED_RECIPES = [
+  {
+    id: "handpicked-poha",
+    title: "Poha",
+    description: "Light and fluffy flattened rice with onions, peanuts, curry leaves, and a fresh squeeze of lemon.",
+    category: "Breakfast",
+    difficulty: "Easy",
+    prepTime: 5,
+    cookTime: 15,
+    servings: 2,
+    rating: 4.8,
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Cooked_Poha.jpg?width=800",
+    imageCredit: "Cooked Poha by ampersandyslexia, CC BY-SA 2.0 (https://creativecommons.org/licenses/by-sa/2.0/). Source: https://commons.wikimedia.org/wiki/File:Cooked_Poha.jpg. Display cropped to fit.",
+    tags: ["Vegetarian", "Indian", "Quick"],
+    ingredients: [
+      { name: "Thick poha (flattened rice)", amount: 2, unit: "cups" },
+      { name: "Onion", amount: 1, unit: "pc" },
+      { name: "Peanuts", amount: 0.25, unit: "cup" },
+      { name: "Mustard seeds", amount: 0.5, unit: "tsp" },
+      { name: "Curry leaves", amount: 8, unit: "pcs" },
+      { name: "Green chilli", amount: 1, unit: "pc" },
+      { name: "Turmeric", amount: 0.25, unit: "tsp" },
+      { name: "Oil", amount: 1.5, unit: "tbsp" },
+      { name: "Salt", amount: 0.5, unit: "tsp" },
+      { name: "Lemon juice", amount: 1, unit: "tbsp" },
+      { name: "Fresh coriander", amount: 2, unit: "tbsp" }
+    ],
+    steps: [
+      { stepType: "Prep", duration: 300, text: "Rinse the poha briefly in a colander, drain, and let it soften. Chop the onion, green chilli, and coriander." },
+      { duration: 240, text: "Heat oil in a pan over medium heat. Fry the peanuts until golden, then remove and set aside." },
+      { duration: 300, text: "Add mustard seeds to the pan and let them splutter. Add curry leaves, green chilli, and onion; sauté until the onion softens." },
+      { duration: 240, text: "Stir in turmeric and salt, then gently fold in the softened poha. Sprinkle with a little water if dry, cover, and steam over low heat until hot and fluffy." },
+      { duration: 120, text: "Fold in the peanuts, turn off the heat, and finish with lemon juice and coriander. Taste and adjust salt before serving." }
+    ]
+  },
+  {
+    id: "handpicked-upma",
+    title: "Upma",
+    description: "Soft, savoury roasted semolina with vegetables, mustard seeds, and fragrant curry leaves.",
+    category: "Breakfast",
+    difficulty: "Easy",
+    prepTime: 5,
+    cookTime: 20,
+    servings: 2,
+    rating: 4.8,
+    image: "https://upload.wikimedia.org/wikipedia/commons/1/16/Upma.jpg",
+    imageCredit: "Upma by stu_spivack, CC BY-SA 2.0 (https://creativecommons.org/licenses/by-sa/2.0/). Source: https://commons.wikimedia.org/wiki/File:Upma.jpg. Display cropped to fit.",
+    tags: ["Vegetarian", "Indian", "Semolina"],
+    ingredients: [
+      { name: "Semolina (rava)", amount: 1, unit: "cup" },
+      { name: "Water", amount: 2.5, unit: "cups" },
+      { name: "Onion", amount: 1, unit: "pc" },
+      { name: "Carrot", amount: 1, unit: "pc" },
+      { name: "Green peas", amount: 0.25, unit: "cup" },
+      { name: "Mustard seeds", amount: 0.5, unit: "tsp" },
+      { name: "Curry leaves", amount: 8, unit: "pcs" },
+      { name: "Ginger", amount: 1, unit: "tsp" },
+      { name: "Green chilli", amount: 1, unit: "pc" },
+      { name: "Oil", amount: 1.5, unit: "tbsp" },
+      { name: "Salt", amount: 0.5, unit: "tsp" },
+      { name: "Lemon juice", amount: 1, unit: "tsp" }
+    ],
+    steps: [
+      { stepType: "Prep", duration: 300, text: "Finely chop the onion, carrot, ginger, and green chilli. Measure the semolina and water." },
+      { duration: 300, text: "Dry-roast the semolina in a pan over medium-low heat, stirring until fragrant without browning. Transfer to a bowl." },
+      { duration: 300, text: "Heat oil in the pan. Add mustard seeds and let them splutter, then add curry leaves, ginger, chilli, and onion. Sauté until softened." },
+      { duration: 300, text: "Add carrot and peas and cook briefly. Pour in the water, add salt, and bring to a boil; simmer until the vegetables are tender." },
+      { duration: 300, text: "Lower the heat and slowly pour in roasted semolina while stirring constantly to prevent lumps. Cover and cook on low until the water is absorbed and the semolina is soft. Finish with lemon juice." }
+    ]
+  },
+  {
+    id: "handpicked-pav-bhaji",
+    title: "Pav Bhaji",
+    description: "A buttery, spiced mash of vegetables served with toasted pav, chopped onion, and lemon wedges.",
+    category: "Dinner",
+    difficulty: "Medium",
+    prepTime: 10,
+    cookTime: 30,
+    servings: 2,
+    rating: 4.8,
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Bhaji_pav.jpg?width=800",
+    imageCredit: "Bhaji pav by BHAAGIi, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Source: https://commons.wikimedia.org/wiki/File:Bhaji_pav.jpg. Display cropped to fit.",
+    tags: ["Vegetarian", "Indian", "Street Food"],
+    ingredients: [
+      { name: "Potatoes", amount: 2, unit: "pcs" },
+      { name: "Cauliflower florets", amount: 1, unit: "cup" },
+      { name: "Green peas", amount: 0.5, unit: "cup" },
+      { name: "Onion", amount: 1, unit: "pc" },
+      { name: "Tomatoes", amount: 2, unit: "pcs" },
+      { name: "Green bell pepper", amount: 1, unit: "pc" },
+      { name: "Ginger-garlic paste", amount: 1, unit: "tbsp" },
+      { name: "Pav bhaji masala", amount: 1.5, unit: "tbsp" },
+      { name: "Butter", amount: 3, unit: "tbsp" },
+      { name: "Salt", amount: 0.5, unit: "tsp" },
+      { name: "Pav bread rolls", amount: 4, unit: "pcs" },
+      { name: "Lemon", amount: 1, unit: "pc" },
+      { name: "Fresh coriander", amount: 2, unit: "tbsp" }
+    ],
+    steps: [
+      { stepType: "Prep", duration: 600, text: "Peel and dice the potatoes. Chop the cauliflower, onion, tomatoes, and bell pepper. Reserve a little raw onion for serving." },
+      { duration: 900, text: "Boil potatoes, cauliflower, and peas in enough water to cover until very tender. Drain, reserving the cooking water, and mash the vegetables." },
+      { duration: 300, text: "Melt 2 tablespoons of butter in a large pan. Sauté onion and bell pepper until soft, then stir in ginger-garlic paste and cook until fragrant." },
+      { duration: 300, text: "Add tomatoes, pav bhaji masala, and salt. Cook, stirring and mashing, until the tomatoes break down into a thick sauce." },
+      { duration: 180, text: "Fold in the mashed vegetables and enough reserved water for a thick curry. Mash together and simmer until hot, adding more water as needed." },
+      { duration: 120, text: "Split the pav and toast in the remaining butter until golden. Serve with hot bhaji, reserved onion, coriander, and lemon wedges." }
+    ]
+  }
+];
+
 export const APP_RECIPES = [
+  ...HANDPICKED_RECIPES,
   {
     id: "r1",
     title: "Gourmet Garlic Butter Tuscan Salmon",

@@ -6,14 +6,13 @@ import { saveStateToStorage } from './storage.js';
 import { renderActiveTimers } from './timers.js';
 import { availableQuantity } from './units.js';
 import { formatQuantity, escapeHtml } from './utils.js';
+import { HANDPICKED_RECIPES } from '../recipes.js';
 
 export function renderDashboard() {
   document.getElementById("dashboard-welcome-heading").innerText = `Welcome, ${STATE.user.name}!`;
 
-  // 1. Render curated list recommendations (Top 3 highest rated recipes)
-  const recommendations = [...getVisibleRecipes()]
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 3);
+  // 1. Render the fixed handpicked selection in its curated order.
+  const recommendations = HANDPICKED_RECIPES;
   
   const recContainer = document.getElementById("dashboard-recommendations");
   recContainer.innerHTML = "";
@@ -102,7 +101,7 @@ export function createRecipeCard(recipe) {
 
   card.innerHTML = `
     <div class="recipe-image-wrapper">
-      <img class="recipe-image" src="${safeImage}" alt="${safeTitle}" loading="lazy" decoding="async">
+      <img class="recipe-image" src="${safeImage}" alt="${safeTitle}"${recipe.imageCredit ? ` title="${escapeHtml(recipe.imageCredit)}"` : ''} loading="lazy" decoding="async">
       <span class="recipe-badge">${safeCategory}</span>
       <button type="button" class="recipe-favorite ${STATE.user.likedRecipeIds?.includes(recipe.id) ? 'active' : ''}" data-id="${escapeHtml(recipe.id)}" aria-label="Like ${safeTitle}" aria-pressed="${STATE.user.likedRecipeIds?.includes(recipe.id) || false}">
         <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
