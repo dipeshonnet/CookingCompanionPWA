@@ -226,6 +226,11 @@ export function setupEventListeners() {
     });
   }
 
+  document.getElementById('recipe-add-parallel-process')?.addEventListener('click', () => {
+    const input = document.getElementById('recipe-cook-count-input');
+    input.stepUp();
+    updateStepCookControls();
+  });
   const cookCountInput = document.getElementById("recipe-cook-count-input");
   if (cookCountInput) {
     cookCountInput.addEventListener("change", updateStepCookControls);

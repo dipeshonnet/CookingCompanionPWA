@@ -1,6 +1,6 @@
 import { switchView, initLucide } from './navigation.js';
 import { renderAIIngredientSelector } from './recipe-ai.js';
-import { normalizeCookLabel, normalizeStepType, inferStepTypeFromAction, normalizeRecipeForStorage } from './recipe-domain.js';
+import { normalizeCookLabel, normalizeProcessCount, processKeys, processLabel, recipeProcessCount, normalizeStepType, inferStepTypeFromAction, normalizeRecipeForStorage } from './recipe-domain.js';
 import { renderExploreRecipes } from './recipe-views.js';
 import { STATE, RUNTIME, FALLBACK_RECIPE_IMAGE } from './state.js';
 import { saveStateToStorage } from './storage.js';
@@ -116,10 +116,9 @@ export function addRecipeStepRow(values = {}) {
       </select>
     </div>
     <div class="form-group recipe-step-cook-wrap">
-      <label>Cook</label>
+      <label>Process</label>
       <select class="form-control recipe-step-cook">
-        <option value="Cook 1" ${normalizeCookLabel(values.cook) === "Cook 1" ? "selected" : ""}>Cook 1</option>
-        <option value="Cook 2" ${normalizeCookLabel(values.cook) === "Cook 2" ? "selected" : ""}>Cook 2</option>
+        ${processKeys(document.getElementById("recipe-cook-count-input")?.value).map(key => `<option value="${key}" ${normalizeCookLabel(values.cook) === key ? "selected" : ""}>${processLabel(key)}</option>`).join("")}
       </select>
     </div>
     <button type="button" class="btn-secondary recipe-row-remove" data-remove-step-row aria-label="Remove step">
@@ -150,17 +149,13 @@ export function removeRecipeBuilderRow(button, rowClass) {
 
 export function updateStepCookControls() {
   const cookCountInput = document.getElementById("recipe-cook-count-input");
-  const cookCount = cookCountInput ? Number.parseInt(cookCountInput.value, 10) : 1;
-
-  document.querySelectorAll(".recipe-step-cook-wrap").forEach(wrapper => {
-    wrapper.classList.toggle("hidden", cookCount !== 2);
+  const cookCount = normalizeProcessCount(cookCountInput?.value);
+  if (cookCountInput) cookCountInput.value = String(cookCount);
+  document.querySelectorAll(".recipe-step-cook").forEach(select => {
+    const selected = normalizeCookLabel(select.value);
+    select.innerHTML = processKeys(cookCount).map(key => `<option value="${key}">${processLabel(key)}</option>`).join('');
+    select.value = processKeys(cookCount).includes(selected) ? selected : 'Cook 1';
   });
-
-  if (cookCount !== 2) {
-    document.querySelectorAll(".recipe-step-cook").forEach(select => {
-      select.value = "Cook 1";
-    });
-  }
 }
 
 export function recalculateRecipeTimeTotals() {
@@ -203,7 +198,7 @@ export function collectCustomRecipeFromForm() {
     return null;
   }
 
-  const cookCount = Number.parseInt(document.getElementById("recipe-cook-count-input")?.value, 10) === 2 ? 2 : 1;
+  const cookCount = normalizeProcessCount(document.getElementById("recipe-cook-count-input")?.value);
   const stepRows = Array.from(document.querySelectorAll(".recipe-step-row"));
   const steps = [];
 
@@ -212,7 +207,7 @@ export function collectCustomRecipeFromForm() {
     const action = cleanText(row.querySelector(".recipe-step-action")?.value);
     const minutes = toNonNegativeNumber(row.querySelector(".recipe-step-duration")?.value, 0);
     const stepType = normalizeStepType(row.querySelector(".recipe-step-type")?.value || "Cook");
-    const cook = cookCount === 2 ? row.querySelector(".recipe-step-cook")?.value : "Cook 1";
+    const cook = cookCount > 1 ? row.querySelector(".recipe-step-cook")?.value : "Cook 1";
 
     if (!item && !action && minutes <= 0) continue;
 
@@ -297,7 +292,7 @@ export function populateRecipeFormFromDraft(draft) {
   document.getElementById("recipe-prep-input").value = draft.prepTime ?? 0;
   document.getElementById("recipe-cook-time-input").value = draft.cookTime || 0;
   document.getElementById("recipe-servings-input").value = draft.servings || 2;
-  document.getElementById("recipe-cook-count-input").value = draft.cookCount === 2 ? "2" : "1";
+  document.getElementById("recipe-cook-count-input").value = String(recipeProcessCount(draft));
   document.getElementById("recipe-difficulty-input").value = draft.difficulty || "Medium";
   document.getElementById("recipe-tags-input").value = (draft.tags || []).join(", ");
   document.getElementById("recipe-image-input").value = draft.image || "";

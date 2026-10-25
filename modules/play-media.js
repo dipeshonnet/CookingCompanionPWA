@@ -1,3 +1,4 @@
+import { processLabel } from './recipe-domain.js';
 import { APP_CONFIG } from './app-config.js';
 import { getMedia, putMedia } from './media-store.js';
 import { renderPlayBoards } from './play-recipe.js';
@@ -84,7 +85,7 @@ export function stopPlayBackgroundMusic() {
 
 export function speakPlayStep(step) {
   if (isPlayAudioMuted() || !window.speechSynthesis) return;
-  const utterance = new SpeechSynthesisUtterance(`${step.cook}, ${step.item}. ${step.action}`);
+  const utterance = new SpeechSynthesisUtterance(`${processLabel(step.cook)}, ${step.item}. ${step.action}`);
   window.speechSynthesis.speak(utterance);
 }
 

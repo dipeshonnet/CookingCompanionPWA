@@ -19,7 +19,7 @@ export const RUNTIME = {
   playMusicTrack: { name: '', url: '' }, authUnsubscribe: null, currentAuthUid: '',
   suppressCloudSave: false, cloudSaveTimer: null, storageScope: 'guest',
   localMode: false, currentView: 'dashboard', authGeneration: 0,
-  playSession: { recipeId: '', upcoming: [], running: { 'Cook 1': null, 'Cook 2': null }, completed: [], intervalId: null }
+  playSession: { recipeId: '', upcoming: [], running: { 'Cook 1': null }, completed: [], intervalId: null }
 };
 
 export const CLOUD_SYNC_DEBOUNCE_MS = 900;

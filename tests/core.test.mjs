@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { STATE, RUNTIME, STORAGE_KEYS } from '../modules/state.js';
-import { normalizeRecipeForStorage, deriveRecipeTimes, recipeMatchesDietPreference, safeImageSource } from '../modules/recipe-domain.js';
+import { normalizeRecipeForStorage, deriveRecipeTimes, recipeMatchesDietPreference, safeImageSource, processLabel } from '../modules/recipe-domain.js';
 import { createPlaySession, advancePlaySession } from '../modules/play-engine.js';
 import { toCloudRecords, diffCloudRecords, mergePendingState } from '../modules/cloud-records.js';
 import { createBackend } from '../modules/backend-auth-db.js';
@@ -15,6 +15,27 @@ import { parseRecipeDraftFromText } from '../modules/recipe-voice.js';
 
 const step = (cook, duration, stepType = 'Cook') => ({ item: 'Tomato', action: 'Stir in pan', cook, duration, stepType });
 const recipe = { id: 'demo', title: 'Demo', cookCount: 2, ingredients: [{ name: 'Tomato', amount: 100, unit: 'g' }], steps: [step('Cook 1', 4), step('Cook 2', 3), step('Cook 1', 2)] };
+
+test('multiple processes survive storage and run independent sequential queues', () => {
+  const normalized = normalizeRecipeForStorage({ ...recipe, cookCount: 4, steps: [
+    step('Primary process', 4), step('In parallel process 1', 3),
+    step('In parallel process 2', 2), step('In parallel process 3', 5), step('Cook 3', 1)
+  ] });
+  assert.equal(normalized.cookCount, 4);
+  assert.deepEqual(normalized.steps.map(s => s.cook), ['Cook 1', 'Cook 2', 'Cook 3', 'Cook 4', 'Cook 3']);
+  assert.equal(processLabel('Cook 1'), 'Primary process');
+  assert.equal(processLabel('Cook 4'), 'In parallel process 3');
+  const restored = normalizeRecipeForStorage(JSON.parse(JSON.stringify(normalized)));
+  const session = createPlaySession(restored);
+  assert.equal(advancePlaySession(session, 0).started.length, 4);
+  assert.equal(advancePlaySession(session, 2000).started.length, 1);
+  assert.equal(session.running['Cook 3'].duration, 1);
+  assert.equal(session.running['Cook 4'].timeLeft, 3);
+  assert.equal(advancePlaySession(session, 3000).done, false);
+  assert.equal(advancePlaySession(session, 5000).done, true);
+  assert.equal(session.completed.length, 5);
+  assert.equal(normalizeRecipeForStorage({ ...recipe, cookCount: 1, steps: [step('Cook 12', 1)] }).cookCount, 12);
+});
 
 test('recipe timings separate prep/cook, round up, and retain zero cook time', () => {
   assert.deepEqual(deriveRecipeTimes([step('Cook 1', 61, 'Prep'), step('Cook 2', 90)]), { prepTime: 2, cookTime: 2 });
@@ -241,7 +262,7 @@ for (const [provider, config] of Object.entries(AI_PROVIDERS)) {
         verifySchema(schema);
       }
       const payload = JSON.parse(requests[1][1].body);
-      assert.match(provider === 'gemini' ? payload.contents[0].parts[0].text : payload.messages[1].content, /2 cooks/);
+      assert.match(provider === 'gemini' ? payload.contents[0].parts[0].text : payload.messages[1].content, /Primary process.*In parallel process 1/);
     } finally { globalThis.fetch = original; }
   });
 

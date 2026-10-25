@@ -1,12 +1,11 @@
-import { normalizeStep } from './recipe-domain.js';
-
-export const COOKS = ['Cook 1', 'Cook 2'];
+import { normalizeStep, recipeProcessCount, processKeys } from './recipe-domain.js';
 
 export function createPlaySession(recipe, multiplier = 1) {
+  const count = recipeProcessCount(recipe);
   return {
-    recipeId: recipe.id, intervalId: null, completed: [], running: { 'Cook 1': null, 'Cook 2': null },
+    recipeId: recipe.id, intervalId: null, completed: [], running: Object.fromEntries(processKeys(count).map(key => [key, null])),
     upcoming: recipe.steps.map((raw, order) => {
-      const step = normalizeStep(raw, order, recipe.cookCount);
+      const step = normalizeStep(raw, order, count);
       const duration = Math.max(1, Math.round(step.duration * multiplier));
       return { ...step, order, duration, timeLeft: duration, deadline: null, lastBeep: null, videoUrl: '', videoLoading: false };
     })
@@ -15,7 +14,7 @@ export function createPlaySession(recipe, multiplier = 1) {
 
 export function advancePlaySession(session, now) {
   const events = { started: [], completed: [], beep: false, done: false };
-  for (const cook of COOKS) {
+  for (const cook of Object.keys(session.running)) {
     const active = session.running[cook];
     if (active) {
       active.timeLeft = Math.max(0, Math.ceil((active.deadline - now) / 1000));
@@ -40,6 +39,6 @@ export function advancePlaySession(session, now) {
       step.lastBeep = step.timeLeft;
     }
   }
-  events.done = session.upcoming.length === 0 && COOKS.every(cook => !session.running[cook]);
+  events.done = session.upcoming.length === 0 && Object.values(session.running).every(step => !step);
   return events;
 }

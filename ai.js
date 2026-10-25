@@ -1,3 +1,4 @@
+import { normalizeProcessCount, processKeys, processLabel } from './modules/recipe-domain.js';
 import { APP_CONFIG } from './modules/app-config.js';
 import { getProviderConfig } from './modules/ai-providers.js';
 
@@ -20,11 +21,11 @@ You are a world-class Michelin-star chef. Construct a unique, premium gourmet re
 Follow these exact constraints:
 - Dietary Preference: ${params.dietary}
 - Cooking Style & Complexity: ${params.complexity}
-- Cooking Crew: ${params.cookCount === 2 ? "2 cooks, with useful parallel assignments for Cook 1 and Cook 2" : "1 cook"}
+- Processes: ${processKeys(params.cookCount).map(key => `${processLabel(key)} (use "${key}" in the cook field)`).join(", ")}
 
 Make sure that:
 1. The ingredients list is precise, specifying exact decimal amounts and units (e.g. g, pcs, cup, tbsp).
-2. The steps are broken down clearly. For every step, include "item", "action", "duration" in SECONDS, "cook", and a combined "text" summary. If two cooks are requested, assign each timed task to Cook 1 or Cook 2 so independent timers can run in parallel. If a step doesn't require a countdown (like assembling/plating), set duration to 60.
+2. The steps are broken down clearly. For every step, include "item", "action", "duration" in SECONDS, "cook", and a combined "text" summary. Assign each task to one of the requested processes using its cook field key (Cook 1 through Cook ${normalizeProcessCount(params.cookCount)}). Keep sequential tasks within the same process and put independent tasks in parallel processes. If a step doesn't require a countdown (like assembling/plating), set duration to 60.
 3. The tags are relevant, creative dietary labels.
 4. Output a highly professional, cohesive gourmet creation.
   `;
@@ -67,7 +68,7 @@ Make sure that:
             item: { type: "string", description: "The ingredient, component, pan, pot, or dish part being worked on" },
             action: { type: "string", description: "What to do to that item during this step" },
             duration: { type: "integer", description: "Active countdown timer duration in seconds for this cooking step" },
-            cook: { type: "string", description: "Cook 1 or Cook 2. Use Cook 1 when only one cook is requested" },
+            cook: { type: "string", description: "Process key: Cook 1 for Primary process, Cook 2 for In parallel process 1, Cook 3 for In parallel process 2, and so on" },
             stepType: { type: "string", enum: ["Prep", "Cook"], description: "Whether this is a preparation or cooking step" },
             text: { type: "string", description: "Detailed, chef-like cooking instructions for the step" }
           },

@@ -93,7 +93,9 @@ try {
   check('explore remains hidden initially', !(await page.locator('#recipe-explore-panel').isVisible()));
   await page.locator('#recipe-title-input').fill('Browser Test Soup');
   await page.locator('#recipe-tags-input').fill('Vegan');
-  await page.locator('#recipe-cook-count-input').selectOption('2');
+  await page.locator('#recipe-add-parallel-process').click();
+  await page.locator('#recipe-add-parallel-process').click();
+  check('add multiple parallel processes', await page.locator('#recipe-cook-count-input').inputValue() === '3');
   await page.locator('.recipe-ingredient-name').first().fill('Tomato');
   await page.locator('.recipe-ingredient-amount').first().fill('100');
   await page.locator('.recipe-ingredient-unit').first().selectOption('g');
@@ -106,7 +108,13 @@ try {
   await page.locator('.recipe-step-action').nth(1).fill('Simmer in pot');
   await page.locator('.recipe-step-duration').nth(1).fill('1');
   await page.locator('.recipe-step-cook').nth(1).selectOption('Cook 2');
+  check('process assignments use new names', await page.locator('.recipe-step-cook').first().innerText() === 'Primary process\nIn parallel process 1\nIn parallel process 2');
   check('automatic prep/cook totals', await page.locator('#recipe-prep-input').inputValue() === '1' && await page.locator('#recipe-cook-time-input').inputValue() === '1');
+  await page.locator('#recipe-add-step-row').click();
+  await page.locator('.recipe-step-item').nth(2).fill('Herbs');
+  await page.locator('.recipe-step-action').nth(2).fill('Chop herbs');
+  await page.locator('.recipe-step-duration').nth(2).fill('1');
+  await page.locator('.recipe-step-cook').nth(2).selectOption('Cook 3');
   await page.locator('#custom-recipe-form button[type="submit"]').click();
   await page.locator('#recipe-explore-toggle-btn').click();
   await page.locator('#recipe-search').fill('Browser Test Soup');
@@ -170,7 +178,9 @@ try {
   await page.locator('[data-view="play"]').click();
   await page.locator('#play-recipe-select').selectOption({ label: '[Dinner] Browser Test Soup' });
   await page.locator('#play-recipe-start-btn').click();
-  check('parallel Cook 1/Cook 2 boards', await page.locator('#play-col-cook1 .play-step-card').count() === 1 && await page.locator('#play-col-cook2 .play-step-card').count() === 1);
+  check('primary and parallel boards', await page.locator('#play-col-cook1 .play-step-card').count() === 1 && await page.locator('#play-col-cook2 .play-step-card').count() === 1);
+  check('additional parallel board runs after saving and reloading', await page.locator('#play-col-cook3 .play-step-card').count() === 1);
+  check('boards display process names', (await page.locator('#play-process-columns').innerText()).includes('In parallel process 2'));
   check('experience multiplier applied to Play Recipe', await page.evaluate(async () => (await import('/modules/state.js')).RUNTIME.playSession.running['Cook 2'].duration) === 120);
   await page.evaluate(async () => {
     const { RUNTIME } = await import('/modules/state.js');
@@ -185,7 +195,7 @@ try {
     for (const step of Object.values(RUNTIME.playSession.running)) if (step) step.deadline = Date.now() - 1;
     (await import('/modules/play-recipe.js')).runPlayRecipeTick();
   });
-  check('finished steps reach Completed', await page.locator('#play-col-completed .play-step-card').count() === 2);
+  check('finished steps reach Completed', await page.locator('#play-col-completed .play-step-card').count() === 3);
   await page.locator('#play-recipe-reset-btn').click();
   check('reset clears boards', await page.locator('#play-col-completed .play-step-card').count() === 0);
   await page.locator('[data-view="planner"]').click();
@@ -266,7 +276,7 @@ try {
     STATE.user.mutePlayAudio = true;
     speakPlayStep({ cook: 'Cook 1', item: 'Soup', action: 'Stir' });
     window.speechSynthesis.speak = old;
-    return spoken.length === 2 && spoken[0].includes('Cook 1') && spoken[1].includes('Cook 2');
+    return spoken.length === 2 && spoken[0].includes('Primary process') && spoken[1].includes('In parallel process 1');
   }));
   await page.locator('#btn-profile').click();
   const wav = Buffer.alloc(8044);

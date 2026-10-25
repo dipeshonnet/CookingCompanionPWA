@@ -1,7 +1,7 @@
 import { renderPantryView } from './ingredients.js';
 import { initLucide } from './navigation.js';
 import { renderPlannerView } from './planner.js';
-import { normalizeRecipeForStorage, formatDurationLabel } from './recipe-domain.js';
+import { normalizeRecipeForStorage, formatDurationLabel, processLabel } from './recipe-domain.js';
 import { renderDashboard } from './recipe-views.js';
 import { STATE, RUNTIME } from './state.js';
 import { saveStateToStorage } from './storage.js';
@@ -37,7 +37,7 @@ export function showRecipeDetailsModal(recipe) {
       <div class="step-card-header">
         <span class="step-card-num">Step ${idx + 1}</span>
         <span style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          ${displayRecipe.cookCount === 2 ? `<span class="cook-pill">${escapeHtml(step.cook)}</span>` : ""}
+          ${displayRecipe.cookCount > 1 ? `<span class="cook-pill">${escapeHtml(processLabel(step.cook))}</span>` : ""}
           <span class="step-duration-pill">${formatDurationLabel(step.duration)}</span>
           ${step.duration > 0 ? `
             <button class="step-card-btn-timer" type="button">
@@ -62,7 +62,7 @@ export function showRecipeDetailsModal(recipe) {
   const parallelBtn = document.getElementById("modal-btn-start-parallel-timers");
   if (parallelBtn) {
     const hasTimedSteps = displayRecipe.steps.some(step => step.duration > 0);
-    parallelBtn.style.display = displayRecipe.cookCount === 2 && hasTimedSteps ? "inline-flex" : "none";
+    parallelBtn.style.display = displayRecipe.cookCount > 1 && hasTimedSteps ? "inline-flex" : "none";
   }
 
   document.getElementById("recipe-modal").style.display = "flex";

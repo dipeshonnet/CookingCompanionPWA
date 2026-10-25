@@ -1,5 +1,5 @@
 import { STATE, RUNTIME } from './state.js';
-import { getAllRecipes } from './recipe-domain.js';
+import { getAllRecipes, processLabel } from './recipe-domain.js';
 import { escapeHtml, formatTimerClock } from './utils.js';
 
 export function getActiveTimerEntries(session, individualTimers, recipes) {
@@ -34,9 +34,9 @@ export function renderFloatingTimers(entries = getActiveTimerEntries(RUNTIME.pla
   const signature = JSON.stringify(entries.map(timer => [timer.id, timer.title, timer.cookName, timer.stepIndex, timer.stepLabel, timer.action]));
   if (rows.dataset.signature !== signature) {
     rows.innerHTML = entries.map(timer => `<span class="floating-timer-row" data-cook="${escapeHtml(timer.cookName)}" title="${escapeHtml(`Step ${timer.stepIndex + 1}: ${timer.stepLabel || timer.title}${timer.action ? ` - ${timer.action}` : ''}`)}">
-      <span class="floating-timer-label"><strong>${escapeHtml(timer.cookName)}</strong><span>${escapeHtml(timer.stepLabel || `Step ${timer.stepIndex + 1}`)}</span></span>
+      <span class="floating-timer-label"><strong>${escapeHtml(processLabel(timer.cookName))}</strong><span>${escapeHtml(timer.stepLabel || `Step ${timer.stepIndex + 1}`)}</span></span>
       <span class="floating-timer-clock" data-timer-clock aria-live="off"></span>
-      <progress max="1" aria-label="${escapeHtml(timer.cookName)} time remaining"></progress>
+      <progress max="1" aria-label="${escapeHtml(processLabel(timer.cookName))} time remaining"></progress>
     </span>`).join('');
     rows.dataset.signature = signature;
   }

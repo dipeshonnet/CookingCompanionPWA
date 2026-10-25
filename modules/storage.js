@@ -166,7 +166,7 @@ export function resetSignedOutRuntimeState() {
   RUNTIME.recipeSpeechRecognition?.stop();
   RUNTIME.recipeSpeechRecognition = null;
   RUNTIME.recipeSpeechIsListening = false;
-  RUNTIME.playSession = { recipeId: '', upcoming: [], running: { 'Cook 1': null, 'Cook 2': null }, completed: [], intervalId: null };
+  RUNTIME.playSession = { recipeId: '', upcoming: [], running: { 'Cook 1': null }, completed: [], intervalId: null };
   RUNTIME.currentView = 'dashboard';
   RUNTIME.activeModalRecipe = null;
   RUNTIME.lastGeneratedRecipeObj = null;

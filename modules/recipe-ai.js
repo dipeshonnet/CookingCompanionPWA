@@ -1,5 +1,5 @@
 import { switchView, initLucide } from './navigation.js';
-import { normalizeRecipeForStorage, formatDurationLabel } from './recipe-domain.js';
+import { normalizeRecipeForStorage, formatDurationLabel, processLabel, normalizeProcessCount } from './recipe-domain.js';
 import { STATE, RUNTIME, FALLBACK_RECIPE_IMAGE } from './state.js';
 import { getAiProvider, getApiKey, saveStateToStorage } from './storage.js';
 import { escapeHtml } from './utils.js';
@@ -50,7 +50,7 @@ export async function handleAIGeneration() {
   const dietPref = document.getElementById("ai-diet-preference").value;
   const requestedDiet = STATE.user.dietPreference !== 'None' ? STATE.user.dietPreference : dietPref;
   const difficulty = document.getElementById("ai-difficulty").value;
-  const cookCount = Number.parseInt(document.getElementById("ai-cook-count")?.value, 10) === 2 ? 2 : 1;
+  const cookCount = normalizeProcessCount(document.getElementById("ai-cook-count")?.value);
 
   const loader = document.getElementById("ai-loader");
   const resultPanel = document.getElementById("ai-result-panel");
@@ -97,7 +97,7 @@ export async function handleAIGeneration() {
             <p style="font-size: 13px; color: var(--text-muted);">Preparation: <strong>${escapeHtml(normalizedGenerated.prepTime)} minutes</strong></p>
             <p style="font-size: 13px; color: var(--text-muted);">Cooking: <strong>${escapeHtml(normalizedGenerated.cookTime)} minutes</strong></p>
             <p style="font-size: 13px; color: var(--text-muted);">Servings yield: <strong>${escapeHtml(normalizedGenerated.servings)} people</strong></p>
-            <p style="font-size: 13px; color: var(--text-muted);">Cooking crew: <strong>${escapeHtml(normalizedGenerated.cookCount)} cook${normalizedGenerated.cookCount === 2 ? "s" : ""}</strong></p>
+            <p style="font-size: 13px; color: var(--text-muted);">Processes: <strong>${escapeHtml(normalizedGenerated.cookCount)} (including primary)</strong></p>
           </div>
         </div>
 
@@ -108,7 +108,7 @@ export async function handleAIGeneration() {
               <div class="step-card-header">
                 <span class="step-card-num">Step ${idx + 1}</span>
                 <span style="display: flex; gap: 8px; align-items: center;">
-                  ${normalizedGenerated.cookCount === 2 ? `<span class="cook-pill">${escapeHtml(s.cook)}</span>` : ""}
+                  ${normalizedGenerated.cookCount > 1 ? `<span class="cook-pill">${escapeHtml(processLabel(s.cook))}</span>` : ""}
                   <span class="step-duration-pill">${formatDurationLabel(s.duration)}</span>
                 </span>
               </div>

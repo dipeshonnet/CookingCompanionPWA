@@ -1,7 +1,7 @@
 import { createPlaySession, advancePlaySession } from './play-engine.js';
 import { getAudioContext, playShortBeep, startPlayBackgroundMusic, stopPlayBackgroundMusic, speakPlayStep, ensurePlayStepVideo } from './play-media.js';
 import { getExperienceTimerMultiplier } from './profile.js';
-import { getVisibleRecipes, formatDurationLabel } from './recipe-domain.js';
+import { getVisibleRecipes, formatDurationLabel, processLabel } from './recipe-domain.js';
 import { STATE, RUNTIME } from './state.js';
 import { escapeHtml, formatTimerClock } from './utils.js';
 import { renderActiveTimers } from './timers.js';
@@ -30,7 +30,7 @@ export function stepCardHtml(step, withTimer = false) {
   return `<div class="play-step-card">
     <div class="play-step-title">Step ${step.order + 1} - ${escapeHtml(step.item)}</div>
     <div class="play-step-text">${escapeHtml(step.action)}</div>${video}
-    <div class="play-step-meta"><span>${escapeHtml(step.cook)} &middot; ${escapeHtml(step.stepType)}</span>
+    <div class="play-step-meta"><span>${escapeHtml(processLabel(step.cook))} &middot; ${escapeHtml(step.stepType)}</span>
     <span ${withTimer ? 'data-play-countdown' : ''}>${withTimer ? formatTimerClock(step.timeLeft) : formatDurationLabel(step.duration)}</span></div>
   </div>`;
 }
@@ -54,8 +54,17 @@ function reconcileColumn(id, steps, timed, emptyText) {
 export function renderPlayBoards() {
   const session = RUNTIME.playSession;
   reconcileColumn('play-col-upcoming', session.upcoming, false, 'No upcoming steps.');
-  reconcileColumn('play-col-cook1', session.running['Cook 1'] ? [session.running['Cook 1']] : [], true, 'Cook 1 is idle.');
-  reconcileColumn('play-col-cook2', session.running['Cook 2'] ? [session.running['Cook 2']] : [], true, 'Cook 2 is idle.');
+  const container = document.getElementById('play-process-columns');
+  const keys = Object.keys(session.running);
+  const signature = JSON.stringify(keys);
+  if (container.dataset.signature !== signature) {
+    container.innerHTML = keys.map((key, index) => `<div class="glass-card play-column">
+      <div class="card-title-bar"><h2>${processLabel(key)}</h2></div>
+      <div id="play-col-cook${index + 1}" class="play-column-list"></div>
+    </div>`).join('');
+    container.dataset.signature = signature;
+  }
+  keys.forEach((key, index) => reconcileColumn(`play-col-cook${index + 1}`, session.running[key] ? [session.running[key]] : [], true, `${processLabel(key)} is idle.`));
   reconcileColumn('play-col-completed', session.completed, false, 'No completed items yet.');
   renderActiveTimers();
 }
@@ -64,7 +73,7 @@ export function resetPlayRecipeSession() {
   clearInterval(RUNTIME.playSession.intervalId);
   stopPlayBackgroundMusic();
   window.speechSynthesis?.cancel();
-  RUNTIME.playSession = { recipeId: '', upcoming: [], running: { 'Cook 1': null, 'Cook 2': null }, completed: [], intervalId: null };
+  RUNTIME.playSession = { recipeId: '', upcoming: [], running: { 'Cook 1': null }, completed: [], intervalId: null };
   const select = document.getElementById('play-recipe-select');
   if (select) select.value = '';
   renderPlayBoards();

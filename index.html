@@ -335,11 +335,10 @@
                 </div>
 
                 <div class="form-group">
-                  <label for="recipe-cook-count-input">Cooking Crew</label>
-                  <select id="recipe-cook-count-input" class="form-control">
-                    <option value="1" selected>1 cook</option>
-                    <option value="2">2 cooks</option>
-                  </select>
+                  <label for="recipe-cook-count-input">Number of processes</label>
+                  <input id="recipe-cook-count-input" class="form-control" type="number" min="1" max="500" step="1" value="1">
+                  <button id="recipe-add-parallel-process" class="btn-secondary" type="button" style="margin-top:8px">+ Add in parallel process</button>
+                  <small>One primary process, plus any processes that run in parallel.</small>
                 </div>
 
                 <div class="form-group">
@@ -474,11 +473,9 @@
                   </div>
 
                   <div class="form-group">
-                    <label for="ai-cook-count">Cooking Crew</label>
-                    <select id="ai-cook-count" class="form-control">
-                      <option value="1" selected>1 cook</option>
-                      <option value="2">2 cooks</option>
-                    </select>
+                    <label for="ai-cook-count">Number of processes</label>
+                    <input id="ai-cook-count" class="form-control" type="number" min="1" max="500" step="1" value="1">
+                    <small>Include the primary process and each parallel process.</small>
                   </div>
                 </div>
 
@@ -537,14 +534,7 @@
             <div class="card-title-bar"><h2><i data-lucide="list-todo"></i> Upcoming</h2></div>
             <div id="play-col-upcoming" class="play-column-list"></div>
           </div>
-          <div class="glass-card play-column">
-            <div class="card-title-bar"><h2><i data-lucide="chef-hat"></i> Cook 1</h2></div>
-            <div id="play-col-cook1" class="play-column-list"></div>
-          </div>
-          <div class="glass-card play-column">
-            <div class="card-title-bar"><h2><i data-lucide="chef-hat"></i> Cook 2</h2></div>
-            <div id="play-col-cook2" class="play-column-list"></div>
-          </div>
+          <div id="play-process-columns" style="display:contents"></div>
           <div class="glass-card play-column">
             <div class="card-title-bar"><h2><i data-lucide="check-check"></i> Completed Items</h2></div>
             <div id="play-col-completed" class="play-column-list"></div>

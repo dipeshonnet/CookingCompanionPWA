@@ -24,7 +24,29 @@ export function getVisibleRecipes() {
 
 export function normalizeCookLabel(value) {
   const raw = cleanText(value).toLowerCase();
-  return raw.includes("2") || raw.includes("two") || raw.includes("second") ? "Cook 2" : "Cook 1";
+  const number = Number.parseInt(raw.match(/\d+/)?.[0], 10);
+  if (raw.includes('parallel')) return `Cook ${normalizeProcessCount((number || 1) + 1)}`;
+  if (number) return `Cook ${normalizeProcessCount(number)}`;
+  return raw.includes('two') || raw.includes('second') ? 'Cook 2' : 'Cook 1';
+}
+
+export function normalizeProcessCount(value) {
+  return Math.min(500, Math.max(1, Number.parseInt(value, 10) || 1));
+}
+
+export function processLabel(value) {
+  const number = Number.parseInt(normalizeCookLabel(value).split(' ')[1], 10);
+  return number === 1 ? 'Primary process' : `In parallel process ${number - 1}`;
+}
+
+export function recipeProcessCount(recipe) {
+  const steps = Array.isArray(recipe.steps) ? recipe.steps.slice(0, 500) : [];
+  return Math.max(normalizeProcessCount(recipe.cookCount), ...steps.map(step =>
+    Number.parseInt(normalizeCookLabel(step?.cook || step?.assignee || step?.person).split(' ')[1], 10)));
+}
+
+export function processKeys(count) {
+  return Array.from({ length: normalizeProcessCount(count) }, (_, index) => `Cook ${index + 1}`);
 }
 
 export function normalizeStepType(value) {
@@ -51,13 +73,14 @@ export function normalizeStep(step, index, cookCount = 1) {
   const action = cleanText(step.action || step.whatToDo || step.text) || "Prepare";
   const text = cleanText(step.text) || `${item}: ${action}`;
   const duration = Math.max(0, Math.round(toNonNegativeNumber(step.duration, 0)));
+  const cook = normalizeCookLabel(step.cook || step.assignee || step.person);
 
   return {
     item,
     action,
     duration,
     stepType: normalizeStepType(step.stepType || step.type || inferStepTypeFromAction(action)),
-    cook: cookCount === 2 ? normalizeCookLabel(step.cook || step.assignee || step.person) : "Cook 1",
+    cook: Number.parseInt(cook.split(' ')[1], 10) <= normalizeProcessCount(cookCount) ? cook : 'Cook 1',
     text
   };
 }
@@ -80,7 +103,7 @@ export function safeImageSource(value) {
 
 export function normalizeRecipeForStorage(recipe) {
   if (!recipe || typeof recipe !== 'object') throw new Error('Invalid recipe');
-  const cookCount = Number.parseInt(recipe.cookCount, 10) === 2 ? 2 : 1;
+  const cookCount = recipeProcessCount(recipe);
   const steps = Array.isArray(recipe.steps)
     ? recipe.steps.slice(0, 500).map((step, index) => normalizeStep(step, index, cookCount))
     : [];
