@@ -5,6 +5,7 @@ import { getAiProvider, getApiKey, saveStateToStorage } from './storage.js';
 import { formatQuantity, escapeHtml } from './utils.js';
 import { fetchIngredientNutrition } from '../ai.js';
 import { ingredientLabel } from './ingredient-images.js';
+import { ingredientCategory } from './ingredient-catalogue.js';
 
 export function renderPantryView() {
   const container = document.getElementById("pantry-manager-tags");
@@ -62,7 +63,7 @@ export function addPantryIngredient(name) {
   
   const quantity = qtyInput ? parseFloat(qtyInput.value) : 1;
   if (!Number.isFinite(quantity) || quantity <= 0) { alert('Enter a positive quantity.'); return; }
-  const category = categoryInput ? categoryInput.value : "Other";
+  const category = ingredientCategory(val, categoryInput ? categoryInput.value : "Other");
   const unit = unitInput ? unitInput.value : "pcs";
 
   const existing = STATE.pantry.find(p => p.name.toLowerCase() === val.toLowerCase());

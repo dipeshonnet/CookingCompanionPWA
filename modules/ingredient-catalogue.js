@@ -11,6 +11,16 @@ export const COMMON_INGREDIENTS = {
   Other: ['Oil', 'Sunflower oil', 'Mustard oil', 'Coconut oil', 'Olive oil', 'Water', 'Sugar', 'Jaggery', 'Honey', 'Egg', 'Peanuts', 'Cashews', 'Almonds', 'Sesame seeds', 'Vinegar', 'Soy sauce', 'Tamarind', 'Baking powder', 'Baking soda', 'Yeast', 'Tofu']
 };
 
+// Match whole names so custom ingredients (for example, coconut milk) are
+// not assigned the category of an unrelated name that happens to prefix them.
+export function ingredientCategory(name, fallback = 'Other') {
+  const normalized = name.trim().toLowerCase().replace(/\s+/g, ' ');
+  return Object.keys(COMMON_INGREDIENTS).find(category => COMMON_INGREDIENTS[category].some(item => {
+    const base = item.toLowerCase();
+    return normalized === base || normalized === `${base}s` || normalized === `${base}es`;
+  })) || fallback;
+}
+
 function knownCategory(name) {
   const normalized = name.toLowerCase();
   return Object.keys(COMMON_INGREDIENTS).find(category => COMMON_INGREDIENTS[category].some(item => {
