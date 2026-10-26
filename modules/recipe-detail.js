@@ -2,8 +2,9 @@ import { renderPantryView } from './ingredients.js';
 import { ingredientLabel, ingredientThumbnail } from './ingredient-images.js';
 import { initLucide } from './navigation.js';
 import { renderPlannerView } from './planner.js';
-import { normalizeRecipeForStorage, formatDurationLabel, processLabel } from './recipe-domain.js';
-import { renderDashboard } from './recipe-views.js';
+import { normalizeRecipeForStorage, formatDurationLabel, processLabel, getRecipeById, isPersonalRecipe } from './recipe-domain.js';
+import { revertPersonalRecipe } from './recipe-personalization.js';
+import { renderDashboard, renderExploreRecipes } from './recipe-views.js';
 import { STATE, RUNTIME } from './state.js';
 import { saveStateToStorage } from './storage.js';
 import { startCookingTimer, playSynthesizedChime } from './timers.js';
@@ -13,7 +14,7 @@ import { renderRecipeTimeline } from './recipe-timeline.js';
 import { getExperienceTimerMultiplier } from './profile.js';
 
 export function showRecipeDetailsModal(recipe) {
-  const displayRecipe = normalizeRecipeForStorage(recipe);
+  const displayRecipe = normalizeRecipeForStorage(getRecipeById(recipe.id) || recipe);
   RUNTIME.activeModalRecipe = displayRecipe;
   RUNTIME.activeModalServingsCount = displayRecipe.servings;
   RUNTIME.activeModalServingsMultiplier = 1.0;
@@ -25,7 +26,10 @@ export function showRecipeDetailsModal(recipe) {
   document.getElementById("modal-prep").innerText = `Prep: ${displayRecipe.prepTime}m`;
   document.getElementById("modal-cook").innerText = `Cook: ${displayRecipe.cookTime}m`;
   document.getElementById("modal-servings").innerText = RUNTIME.activeModalServingsCount;
-  document.getElementById("modal-rating").innerText = displayRecipe.rating;
+  document.getElementById("modal-rating").innerText = displayRecipe.rating || 'Not rated';
+  document.getElementById('modal-personal-version').hidden = !isPersonalRecipe(displayRecipe);
+  document.getElementById('modal-btn-revert-recipe').hidden = !isPersonalRecipe(displayRecipe);
+  document.getElementById('modal-image-credit').textContent = displayRecipe.imageCredit || '';
 
   updateRecipeModalIngredientsAndButtons();
 
@@ -77,6 +81,16 @@ export function showRecipeDetailsModal(recipe) {
 
   document.getElementById("recipe-modal").style.display = "flex";
   initLucide();
+}
+
+export function handleRevertRecipe() {
+  const recipe = RUNTIME.activeModalRecipe;
+  if (!isPersonalRecipe(recipe) || !confirm('Revert to default? Your saved changes to this recipe will be removed from your account. Likes and meal assignments will be kept.')) return;
+  if (!revertPersonalRecipe(recipe.id)) return;
+  renderDashboard();
+  renderExploreRecipes();
+  renderPlannerView();
+  showRecipeDetailsModal(getRecipeById(recipe.id));
 }
 
 export function updateRecipeModalIngredientsAndButtons() {

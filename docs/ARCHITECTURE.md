@@ -11,6 +11,8 @@
 | `auth.js`, `backend-auth-db.js` | Auth lifecycle and Firebase adapter |
 | `storage.js`, `cloud-records.js` | Device namespaces, migration, save queue, record diff/merge |
 | `recipe-domain.js` | Recipe normalization, prep/cook totals and diet filtering |
+| `vegetarian-recipes.js` | 100 original egg-free vegetarian defaults with timed actions |
+| `recipe-personalization.js` | Private recipe upserts, revert and portable import conversion |
 | `recipe-builder.js`, `recipe-voice.js` | Manual form and speech-note drafts |
 | `recipe-ai.js`, `ai.js` | Optional AI workflow and provider requests |
 | `recipe-transfer.js` | Share, selection-based JSON export and validated import |
@@ -31,7 +33,7 @@ The UI modules may call one another's render functions; those imports contain no
 Firestore users/{uid}/
   app/profile        { schemaVersion: 2, user: preferences and likedRecipeIds }
   pantry/{id}        ingredient quantity, unit, category, nutrition estimate
-  recipes/{id}       a single custom recipe, ingredients and steps
+  recipes/{id}       a custom recipe or private default override, ingredients and steps
   meals/{day-slot}   { recipeId }
 
 localStorage cook_comp_v2:{guest-or-uid}:{key}
@@ -65,6 +67,16 @@ Nutrition values are AI estimates for an entered quantity, not medical advice or
 Diet filtering uses explicit recipe tags; Low-Carb is not treated as Keto. Custom recipes should have accurate dietary tags. Planner slots retain saved choices when a preference changes; newly selectable recipes and shopping requirements respect the current preference. Review previous assignments after changing diet.
 
 The Share action shares the app URL, not private database records. Recipe JSON export/import is the portable recipe-sharing path. Liked recipe IDs persist in the profile; the Recipe Like button shows the liked subset.
+
+## Default recipes and personal versions
+
+The 108 bundled defaults include 100 new egg-free vegetarian recipes: 80 Indian and 20 international, with dairy permitted. The existing eight IDs and recipes are retained. Selection and representative culinary references are in `RECIPE-COLLECTION.md`; timers are estimates, including preparation waits. New defaults use the existing logo fallback and a zero rating rendered as “Not rated”.
+
+An override is a full recipe in the existing `customRecipes` array and `users/{uid}/recipes/{id}` document, with the same `id` as its bundled default and `baseRecipeId` equal to that ID. Normalization preserves this field only when it matches a known default. `getAllRecipes()` substitutes valid overrides in default order and appends standalone custom recipes. All consumers, including dashboard recommendations, resolve the effective recipe; defaults are never edited. Stable IDs keep likes and meal slots attached across saving and reverting.
+
+Saving replaces the single record. Reverting removes it through the normal local save/cloud diff path; existing merge behavior preserves unrelated records and propagates deletions. No new collection, security rule or database migration is needed. Local writes report success so failed saves retain the editor draft and restore the previous in-memory recipes. Offline saves remain queued, not reported as already synced. Editing context is transient, account-scoped, and cleared on auth transitions. The cook session owns normalized action snapshots, so edits and reverts affect future sessions only.
+
+The editor reuses the existing fields, retains unfamiliar ingredient units, and preserves image credits when the image is unchanged. Export includes the effective recipe and its attribution. Import strips default linkage and assigns a fresh independent ID to exported personal versions; importing ordinary existing IDs continues to skip duplicates. Standalone custom recipes edit in place and have no default to revert to.
 
 Automatic AI video generation is disabled. Previously cached step videos can still play from IndexedDB. Browser media storage is not an OS folder and is not a backup.
 

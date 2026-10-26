@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'cooking-companion-shell-';
-const CACHE_NAME = CACHE_PREFIX + 'development-ai-providers-1';
+const CACHE_NAME = CACHE_PREFIX + 'development-action-gifs-1';
 const VENDOR_CACHE = 'cooking-companion-vendor-10.14.1';
 const AUTH_SCRIPTS = ['app', 'auth', 'firestore'].map(name => `https://www.gstatic.com/firebasejs/10.14.1/firebase-${name}-compat.js`);
 

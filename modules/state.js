@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
 };
 
 export const RUNTIME = {
+  recipeEditContext: null,
   activeModalRecipe: null, activeModalServingsCount: 2, activeModalServingsMultiplier: 1,
   recipeSpeechRecognition: null, recipeSpeechIsListening: false, recipeExploreVisible: false,
   lastGeneratedRecipeObj: null, playVideoCache: {}, playMusicAudio: null,

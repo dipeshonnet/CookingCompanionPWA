@@ -1,9 +1,10 @@
 import { initLucide } from './navigation.js';
 import { renderAddRecipeView } from './recipe-builder.js';
-import { getAllRecipes, getVisibleRecipes, normalizeRecipeForStorage, hasCombinedCommands } from './recipe-domain.js';
+import { getAllRecipes, getVisibleRecipes, hasCombinedCommands } from './recipe-domain.js';
 import { STATE } from './state.js';
 import { saveStateToStorage } from './storage.js';
 import { escapeHtml, cleanText } from './utils.js';
+import { recipeForImport } from './recipe-personalization.js';
 
 export async function handleRecipeShare() {
   const shareText = `Check out my Cooking Companion recipes: ${window.location.href}`;
@@ -85,7 +86,7 @@ export async function handleRecipeImport(event) {
     }
     if (incoming.some(recipe => !recipe || typeof recipe !== 'object' || !recipe.title || !Array.isArray(recipe.ingredients) || !Array.isArray(recipe.steps))) throw new Error('Invalid recipe structure');
     if (incoming.some(recipe => recipe.stepSchemaVersion === 2 && recipe.steps.some(step => hasCombinedCommands(step?.action || '')))) throw new Error('Split combined commands into single actions before importing.');
-    const normalized = incoming.map(recipe => normalizeRecipeForStorage({
+    const normalized = incoming.map(recipe => recipeForImport({
       ...recipe,
       id: cleanText(recipe.id) || `import-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     }));

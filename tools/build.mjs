@@ -20,7 +20,7 @@ for (const file of files) {
 }
 const version = hash.digest('hex').slice(0, 16);
 const worker = await readFile(resolve(output, 'sw.js'), 'utf8');
-await writeFile(resolve(output, 'sw.js'), worker.replace('development-ai-providers-1', version));
+await writeFile(resolve(output, 'sw.js'), worker.replace('development-action-gifs-1', version));
 await writeFile(resolve(output, 'asset-manifest.json'), JSON.stringify({ version, assets: files.filter(file => file !== 'sw.js').map(file => `/${file}`) }));
 await copyFile('_headers', resolve(output, '_headers'));
 console.log(`Built ${files.length} static files in dist; offline version ${version}.`);

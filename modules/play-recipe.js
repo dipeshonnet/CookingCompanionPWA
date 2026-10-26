@@ -2,7 +2,7 @@ import { actionVideoHtml, inferActionType } from './action-types.js';
 import { createPlaySession, advancePlaySession, setAvailableCooks, normalizeAvailableCooks } from './play-engine.js';
 import { getAudioContext, playShortBeep, startPlayBackgroundMusic, stopPlayBackgroundMusic, speakPlayStep, ensurePlayStepVideo } from './play-media.js';
 import { getExperienceTimerMultiplier } from './profile.js';
-import { getVisibleRecipes, formatDurationLabel, processLabel } from './recipe-domain.js';
+import { getAllRecipes, getVisibleRecipes, formatDurationLabel, processLabel } from './recipe-domain.js';
 import { STATE, RUNTIME } from './state.js';
 import { escapeHtml, formatTimerClock } from './utils.js';
 import { renderActiveTimers } from './timers.js';
@@ -22,7 +22,11 @@ export function renderPlayRecipeView() {
     option.textContent = `[${recipe.category}] ${recipe.title}`;
     select.appendChild(option);
   }
-  select.value = selected;
+  if (RUNTIME.playSession.recipeId && ![...select.options].some(option => option.value === selected)) {
+    const recipe = getAllRecipes().find(recipe => recipe.id === selected);
+    select.appendChild(new Option(recipe ? `[${recipe.category}] ${recipe.title}` : 'Current cooking session', selected));
+  }
+  select.value = [...select.options].some(option => option.value === selected) ? selected : '';
   renderPlayBoards();
 }
 
@@ -55,7 +59,8 @@ function reconcileColumn(id, steps, timed, emptyText) {
 
 export function renderPlayBoards() {
   const session = RUNTIME.playSession;
-  const recipe = getVisibleRecipes().find(recipe => recipe.id === (session.recipeId || document.getElementById('play-recipe-select')?.value));
+  const recipes = session.recipeId ? getAllRecipes() : getVisibleRecipes();
+  const recipe = recipes.find(recipe => recipe.id === (session.recipeId || document.getElementById('play-recipe-select')?.value));
   const byId = new Map([...(recipe?.steps || []), ...session.upcoming, ...session.completed].map(step => [step.id, step]));
   const completed = new Set(session.completed.map(step => step.id));
   const upcoming = session.upcoming.map(step => {
@@ -96,8 +101,10 @@ export function resetPlayRecipeSession() {
 
 export function changePlayRecipe() {
   const id = document.getElementById('play-recipe-select').value;
+  const cooks = document.getElementById('play-cook-count').value;
   resetPlayRecipeSession();
   document.getElementById('play-recipe-select').value = id;
+  document.getElementById('play-cook-count').value = cooks;
   renderPlayBoards();
 }
 

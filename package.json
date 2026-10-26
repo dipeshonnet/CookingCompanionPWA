@@ -8,8 +8,10 @@
     "build": "node tools/build.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node tests/browser.mjs",
+    "test:dropdowns": "node tests/dropdowns-browser.mjs",
     "test:ingredients": "node tests/ingredient-images-browser.mjs",
     "test:recipes": "node tests/recipe-browser.mjs",
+    "test:personal-recipes": "node tests/recipe-personalization-browser.mjs",
     "test:timers": "node tests/timer-browser.mjs"
   },
   "engines": { "node": ">=22" }

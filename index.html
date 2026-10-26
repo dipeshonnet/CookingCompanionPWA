@@ -266,7 +266,7 @@
         <div class="app-header">
           <div class="header-title">
             <h1>Recipe</h1>
-            <p>Explore, create, and manage recipes from one place.</p>
+            <p>Explore 100 new egg-free vegetarian recipes, create your own, and save personal versions.</p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button id="recipe-explore-toggle-btn" class="btn-secondary" type="button"><i data-lucide="compass"></i> Explore</button>
@@ -300,9 +300,10 @@
           <div class="main-column">
             <form id="custom-recipe-form" class="glass-card recipe-builder-card">
               <div class="card-title-bar">
-                <h2><i data-lucide="clipboard-list"></i> Custom Recipe</h2>
+                <h2 id="recipe-builder-title">Custom Recipe</h2>
               </div>
 
+              <p id="recipe-editor-note" class="recipe-editor-note" role="status"></p>
               <div class="recipe-builder-grid">
                 <div class="form-group">
                   <label for="recipe-title-input">Recipe Name</label>
@@ -361,7 +362,7 @@
 
                 <div class="form-group recipe-builder-wide">
                   <label for="recipe-image-input">Image URL</label>
-                  <input type="url" id="recipe-image-input" class="form-control" placeholder="Optional">
+                  <input type="text" inputmode="url" id="recipe-image-input" class="form-control" placeholder="Optional image URL or bundled asset path">
                 </div>
               </div>
 
@@ -387,7 +388,8 @@
 
               <div class="recipe-builder-actions">
                 <button type="button" id="recipe-reset-form" class="btn-secondary"><i data-lucide="rotate-ccw"></i> Reset</button>
-                <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Recipe</button>
+                <button type="button" id="recipe-cancel-edit" class="btn-secondary" hidden>Cancel editing</button>
+                <button type="submit" id="recipe-save-btn" class="btn-primary">Save Recipe</button>
               </div>
             </form>
           </div>
@@ -623,7 +625,11 @@
           </details>
           <details class="ai-optional-card">
             <summary><span><i data-lucide="user-cog"></i> Profile Settings</span><i data-lucide="chevron-down"></i></summary>
-            <div class="ai-optional-content">Set your name, gender, dietary preference, experience and optional OpenAI, Gemini, or Groq key. Email is read-only from cloud login. Choose a local music file, video playback preference and performer. Silence Play Audio mutes announcements, countdown sounds, chimes and background music.</div>
+            <div class="ai-optional-content">Set your name, dietary preference, experience and optional OpenAI, Gemini, or Groq key. Email is read-only from cloud login. Choose a local music file, video playback preference. Silence Play Audio mutes announcements, countdown sounds, chimes and background music.</div>
+          </details>
+          <details class="ai-optional-card">
+            <summary><span><i data-lucide="book-open"></i> Recipe collection and personal versions</span><i data-lucide="chevron-down"></i></summary>
+            <div class="ai-optional-content">The collection adds 100 egg-free vegetarian recipes: 80 Indian and 20 international dishes. Dairy is allowed. The eight earlier defaults remain available, including the salmon recipe; choose Vegetarian in Profile to filter recipes. Open any recipe and choose Edit recipe. Save my version keeps your changes privately without changing the default. Your version is used for meal planning, shopping lists and future cooking. Revert to default removes your saved changes while keeping likes and meal assignments. Existing cooking sessions keep their starting instructions. Device-only versions stay on this device; signed-in versions sync to your account when connected. Imported personal versions become separate recipes. Standalone custom recipes have no default to restore. Soaking, fermentation and resting are included in recipe times; check doneness before continuing.</div>
           </details>
           <details class="ai-optional-card">
             <summary><span><i data-lucide="calendar"></i> Meal Planner & Shopping</span><i data-lucide="chevron-down"></i></summary>
@@ -681,6 +687,12 @@
 
       <div class="modal-body">
         <h1 id="modal-title" style="font-size: 28px; margin-bottom: 12px;">Recipe Title</h1>
+        <p id="modal-personal-version" class="personal-recipe-badge" hidden>Your version</p>
+        <p id="modal-image-credit" class="recipe-image-credit"></p>
+        <div class="recipe-personal-actions">
+          <button id="modal-btn-edit-recipe" type="button" class="btn-secondary">Edit recipe</button>
+          <button id="modal-btn-revert-recipe" type="button" class="btn-secondary" hidden>Revert to default</button>
+        </div>
         <p id="modal-description" style="color: var(--text-muted); font-size: 15px; margin-bottom: 24px;">Recipe description goes here.</p>
 
         <div class="modal-meta-row">
@@ -797,15 +809,6 @@
           <input type="text" id="profile-name-input" class="form-control" placeholder="Your name">
         </div>
         <div class="form-group">
-          <label for="profile-gender-input">Gender</label>
-          <select id="profile-gender-input" class="form-control">
-            <option value="Prefer not to say" selected>Prefer not to say</option>
-            <option value="Female">Female</option>
-            <option value="Male">Male</option>
-            <option value="Non-binary">Non-binary</option>
-          </select>
-        </div>
-        <div class="form-group">
           <label for="profile-diet-input">Diet Preference</label>
           <select id="profile-diet-input" class="form-control">
             <option value="None" selected>No Restrictions</option>
@@ -814,27 +817,6 @@
             <option value="Gluten-Free">Gluten-Free</option>
             <option value="Low-Carb">Low-Carb</option>
             <option value="Keto">Keto</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="profile-performer-type-input">Play Performer</label>
-          <select id="profile-performer-type-input" class="form-control">
-            <option value="Human" selected>Human</option>
-            <option value="Cat">Cat</option>
-            <option value="Dog">Dog</option>
-            <option value="Fox">Fox</option>
-            <option value="Rabbit">Rabbit</option>
-            <option value="Parrot">Parrot</option>
-            <option value="Owl">Owl</option>
-            <option value="Eagle">Eagle</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="profile-performer-gender-input">Performer Gender</label>
-          <select id="profile-performer-gender-input" class="form-control">
-            <option value="Female" selected>Female</option>
-            <option value="Male">Male</option>
-            <option value="Non-binary">Non-binary</option>
           </select>
         </div>
         <div class="form-group profile-modal-wide">

@@ -1,12 +1,12 @@
 import { normalizeActionType, inferActionType, actionTypeOptions, actionVideoHtml } from './action-types.js';
 import { switchView, initLucide } from './navigation.js';
 import { renderAIIngredientSelector } from './recipe-ai.js';
-import { normalizeCookLabel, normalizeProcessCount, processKeys, processLabel, recipeProcessCount, normalizeStepType, inferStepTypeFromAction, normalizeRecipeForStorage, hasCombinedCommands } from './recipe-domain.js';
+import { normalizeCookLabel, normalizeProcessCount, processKeys, processLabel, recipeProcessCount, normalizeStepType, inferStepTypeFromAction, normalizeRecipeForStorage, hasCombinedCommands, getDefaultRecipe, getRecipeById } from './recipe-domain.js';
 import { renderExploreRecipes } from './recipe-views.js';
 import { STATE, RUNTIME, FALLBACK_RECIPE_IMAGE } from './state.js';
-import { saveStateToStorage } from './storage.js';
 import { escapeHtml, cleanText, toNonNegativeNumber } from './utils.js';
 import { ingredientThumbnail } from './ingredient-images.js';
+import { savePersonalRecipe } from './recipe-personalization.js';
 
 let builderFieldId = 0;
 function connectBuilderLabels(row) {
@@ -71,7 +71,8 @@ export function ensureRecipeBuilderDefaults() {
 
 export function unitOptions(selectedUnit = "pcs") {
   const units = ["pcs", "g", "ml", "cup", "tbsp", "tsp", "cloves", "slices", "pinch"];
-  return units.map(unit => `<option value="${unit}" ${unit === selectedUnit ? "selected" : ""}>${unit}</option>`).join("");
+  if (!units.includes(selectedUnit)) units.push(selectedUnit);
+  return units.map(unit => `<option value="${escapeHtml(unit)}" ${unit === selectedUnit ? "selected" : ""}>${escapeHtml(unit)}</option>`).join("");
 }
 
 export function addRecipeIngredientRow(values = {}) {
@@ -160,7 +161,7 @@ export function addRecipeStepRow(values = {}) {
         ${processKeys(document.getElementById("recipe-cook-count-input")?.value).map(key => `<option value="${key}" ${normalizeCookLabel(values.cook) === key ? "selected" : ""}>${processLabel(key)}</option>`).join("")}
       </select>
     </div>
-    <div class="form-group"><label>Attention needed</label><select class="form-control recipe-step-attention"><option value="active">Hands-on — uses one cook</option><option value="passive" ${values.attention === 'passive' ? 'selected' : ''}>Unattended — cook is free</option></select></div>
+    <div class="form-group recipe-step-attention-field"><label>Attention needed</label><select class="form-control recipe-step-attention"><option value="active">Hands-on — uses one cook</option><option value="passive" ${values.attention === 'passive' ? 'selected' : ''}>Unattended — cook is free</option></select></div>
     <div class="form-group recipe-step-dependency-field"><label>Prerequisites</label><select multiple class="form-control recipe-step-dependencies" aria-label="Action prerequisites"></select><small>Select actions that must finish first. Clear all for an independent action. Use Ctrl or Command to select multiple.</small></div>
   `;
   list.appendChild(row);
@@ -317,7 +318,9 @@ export function collectCustomRecipeFromForm() {
 
   const recipe = normalizeRecipeForStorage({
     stepSchemaVersion: 2,
-    id: "custom-" + Date.now(),
+    id: RUNTIME.recipeEditContext?.id || `custom-${crypto.randomUUID()}`,
+    ...(RUNTIME.recipeEditContext?.baseRecipeId ? { baseRecipeId: RUNTIME.recipeEditContext.baseRecipeId } : {}),
+    ...(RUNTIME.recipeEditContext?.imageCredit && document.getElementById('recipe-image-input').value === RUNTIME.recipeEditContext.image ? { imageCredit: RUNTIME.recipeEditContext.imageCredit } : {}),
     title,
     description: cleanText(document.getElementById("recipe-description-input")?.value) || "A custom recipe from your kitchen.",
     category: document.getElementById("recipe-category-input")?.value || "Dinner",
@@ -326,9 +329,9 @@ export function collectCustomRecipeFromForm() {
     cookTime: Math.round(toNonNegativeNumber(document.getElementById("recipe-cook-time-input")?.value, 0)),
     servings: Math.max(1, Math.round(toNonNegativeNumber(document.getElementById("recipe-servings-input")?.value, 2))),
     cookCount,
-    rating: 4.7,
+    rating: RUNTIME.recipeEditContext?.rating ?? 0,
     image: cleanText(document.getElementById("recipe-image-input")?.value) || FALLBACK_RECIPE_IMAGE,
-    tags: ["Custom", ...tags.filter(tag => tag.toLowerCase() !== "custom")],
+    tags: RUNTIME.recipeEditContext?.baseRecipeId ? tags : ["Custom", ...tags.filter(tag => tag.toLowerCase() !== "custom")],
     ingredients,
     steps
   });
@@ -338,20 +341,24 @@ export function collectCustomRecipeFromForm() {
 
 export function handleCustomRecipeSave(e) {
   e.preventDefault();
+  if (RUNTIME.recipeEditContext && RUNTIME.recipeEditContext.scope !== RUNTIME.storageScope) return;
 
   let recipe;
   try { recipe = collectCustomRecipeFromForm(); }
   catch (error) { alert(error.message); return; }
   if (!recipe) return;
 
-  STATE.customRecipes.unshift(recipe);
-  saveStateToStorage();
+  const editing = Boolean(RUNTIME.recipeEditContext);
+  if (!savePersonalRecipe(recipe)) return;
   resetAddRecipeForm();
-  alert(`"${recipe.title}" has been added to Recipe.`);
+  if (editing) setRecipeExploreVisibility(true);
+  alert(`"${recipe.title}" ${editing ? 'changes saved' : 'has been added to Recipe'}.${RUNTIME.currentAuthUid ? ' Saved on this device and queued for account sync.' : ' Saved on this device.'}`);
   switchView("ai-generator");
 }
 
 export function resetAddRecipeForm() {
+  RUNTIME.recipeEditContext = null;
+  updateRecipeEditorMode();
   const form = document.getElementById("custom-recipe-form");
   if (form) form.reset();
 
@@ -368,6 +375,8 @@ export function resetAddRecipeForm() {
 }
 
 export function populateRecipeFormFromDraft(draft) {
+  RUNTIME.recipeEditContext = null;
+  updateRecipeEditorMode();
   document.getElementById("recipe-title-input").value = draft.title || "";
   document.getElementById("recipe-description-input").value = draft.description || "";
   document.getElementById("recipe-category-input").value = draft.category || "Dinner";
@@ -394,4 +403,38 @@ export function populateRecipeFormFromDraft(draft) {
 
   updateStepCookControls();
   recalculateRecipeTimeTotals();
+}
+
+function updateRecipeEditorMode() {
+  const editing = RUNTIME.recipeEditContext;
+  const title = document.getElementById('recipe-builder-title');
+  if (title) title.textContent = editing ? 'Edit Recipe' : 'Custom Recipe';
+  const save = document.getElementById('recipe-save-btn');
+  if (save) save.textContent = editing?.baseRecipeId ? 'Save my version' : editing ? 'Save changes' : 'Save Recipe';
+  const cancel = document.getElementById('recipe-cancel-edit');
+  if (cancel) cancel.hidden = !editing;
+  const note = document.getElementById('recipe-editor-note');
+  if (note) note.textContent = editing?.baseRecipeId ? 'Changes are private to you. The default recipe stays available through Revert to default.' : '';
+}
+
+export function editRecipe(id) {
+  const recipe = getRecipeById(id);
+  if (!recipe) return;
+  if (RUNTIME.recipeEditContext && !confirm('Discard the current recipe draft?')) return;
+  document.getElementById('recipe-modal').style.display = 'none';
+  switchView('ai-generator');
+  populateRecipeFormFromDraft(normalizeRecipeForStorage(structuredClone(recipe)));
+  RUNTIME.recipeEditContext = { id, scope: RUNTIME.storageScope, image: recipe.image, imageCredit: recipe.imageCredit, rating: recipe.rating,
+    ...(getDefaultRecipe(id) ? { baseRecipeId: id } : {}) };
+  updateRecipeEditorMode();
+  document.getElementById('custom-recipe-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('recipe-title-input').focus({ preventScroll: true });
+}
+
+export function cancelRecipeEdit() {
+  const id = RUNTIME.recipeEditContext?.id;
+  resetAddRecipeForm();
+  setRecipeExploreVisibility(true);
+  renderExploreRecipes();
+  if (id) document.getElementById('recipe-explore-panel').scrollIntoView({ behavior: 'smooth' });
 }

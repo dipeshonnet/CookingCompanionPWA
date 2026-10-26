@@ -1,4 +1,5 @@
 import { RECIPE_ACTIONS } from './modules/recipe-actions.js';
+import { VEGETARIAN_RECIPES } from './modules/vegetarian-recipes.js';
 
 export const HANDPICKED_RECIPES = [
   {
@@ -219,6 +220,8 @@ export const APP_RECIPES = [
     steps: RECIPE_ACTIONS["r5"]
   }
 ];
+
+APP_RECIPES.push(...VEGETARIAN_RECIPES);
 
 for (const recipe of APP_RECIPES) {
   recipe.cookCount = Math.max(...recipe.steps.map(step => Number(step.cook.split(' ')[1])));

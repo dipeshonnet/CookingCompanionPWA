@@ -15,12 +15,12 @@ export function inferActionType(text = '') {
   return ACTION_TYPES.find(type => new RegExp(`\\b(?:${aliases[type] || type.toLowerCase()})\\b`, 'i').test(text)) || 'Other';
 }
 export function actionVideoSource(type) {
-  return ACTION_TYPES.includes(type) ? `assets/actions/${type.toLowerCase().replace('é', 'e').replaceAll(' / ', '-').replaceAll(' ', '-')}.webm` : '';
+  return ACTION_TYPES.includes(type) ? `assets/actions/${type.toLowerCase().replace('é', 'e').replaceAll(' / ', '-').replaceAll(' ', '-')}.gif` : '';
 }
 export function actionTypeOptions(selected = 'Other') {
-  return `<option value="Other" ${selected === 'Other' ? 'selected' : ''}>Other (no video)</option>` + ACTION_GROUPS.map(([group, actions]) => `<optgroup label="${group}">${actions.map(type => `<option value="${type}" ${selected === type ? 'selected' : ''}>${type}</option>`).join('')}</optgroup>`).join('');
+  return `<option value="Other" ${selected === 'Other' ? 'selected' : ''}>Other (no animation)</option>` + ACTION_GROUPS.map(([group, actions]) => `<optgroup label="${group}">${actions.map(type => `<option value="${type}" ${selected === type ? 'selected' : ''}>${type}</option>`).join('')}</optgroup>`).join('');
 }
 export function actionVideoHtml(type) {
   const src = actionVideoSource(type);
-  return src ? `<figure class="action-video-preview"><video src="${src}" autoplay loop muted playsinline controls preload="metadata" aria-label="${escapeHtml(type)} illustrated demonstration"></video><figcaption>${escapeHtml(type)} · Illustrated demonstration</figcaption></figure>` : '';
+  return src ? `<figure class="action-video-preview"><img src="${src}" width="320" height="200" loading="lazy" decoding="async" alt="${escapeHtml(type)} illustrated demonstration"><figcaption>${escapeHtml(type)} · Looping illustration</figcaption></figure>` : '';
 }

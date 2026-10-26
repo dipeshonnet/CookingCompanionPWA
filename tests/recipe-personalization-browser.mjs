@@ -1,0 +1,187 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { mkdir, readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE_PATH ? pathToFileURL(process.env.PLAYWRIGHT_MODULE_PATH).href : 'playwright');
+const server = spawn(process.execPath, ['tools/dev-server.mjs'], { env: { ...process.env, PORT: '0' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+let browser, count = 0;
+const check = (label, value) => { assert.ok(value, label); count++; console.log(`PASS ${label}`); };
+try {
+  const url = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Test server did not start')), 10000);
+    server.stdout.on('data', data => { const match = String(data).match(/http:\/\/localhost:\d+\//); if (match) { clearTimeout(timer); resolve(match[0]); } });
+    server.on('error', reject);
+  });
+  browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
+  const page = await context.newPage(), errors = [], dialogs = [];
+  let dismissConfirm = false;
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('dialog', async dialog => {
+    dialogs.push(dialog.message());
+    if (dialog.type() === 'confirm' && dismissConfirm) { dismissConfirm = false; await dialog.dismiss(); }
+    else await dialog.accept();
+  });
+  const openRecipe = id => page.evaluate(async id => {
+    const { getRecipeById } = await import('/modules/recipe-domain.js');
+    (await import('/modules/recipe-detail.js')).showRecipeDetailsModal(getRecipeById(id));
+  }, id);
+  const effectiveTitle = id => page.evaluate(async id => (await import('/modules/recipe-domain.js')).getRecipeById(id).title, id);
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await page.locator('#btn-login-local').click();
+  await page.evaluate(async () => { const { STATE } = await import('/modules/state.js'); STATE.user.mutePlayAudio = true; STATE.user.playStepVideo = false; STATE.user.experience = 'Expert'; });
+  await page.locator('[data-view="ai-generator"]').click();
+  await page.locator('#recipe-explore-toggle-btn').click();
+  check('all 108 defaults render in Explore', await page.locator('#explore-recipes-grid .recipe-card').count() === 108);
+  await page.locator('#recipe-search').fill('Idli');
+  await page.locator('#explore-recipes-grid .recipe-card').click();
+  check('new recipe details include fermentation and the offline fallback', (await page.locator('#modal-steps').innerText()).includes('Ferment batter') && (await page.locator('#modal-image').getAttribute('src')) === 'assets/logo.png');
+  await page.locator('#modal-btn-edit-recipe').click();
+  check('editing a new default populates the complete builder', await page.locator('#recipe-save-btn').innerText() === 'Save my version' && await page.locator('.recipe-step-row').count() > 10);
+  await page.locator('#recipe-title-input').fill('My Soft Idli');
+  await page.locator('#recipe-save-btn').click();
+  check('local image paths do not block browser form validation', await effectiveTitle('veg-idli') === 'My Soft Idli');
+  await page.evaluate(async () => {
+    const { STATE } = await import('/modules/state.js');
+    STATE.scheduledMeals = { 'Monday-Lunch': 'handpicked-poha' };
+    STATE.user.likedRecipeIds = ['handpicked-poha'];
+    (await import('/modules/storage.js')).saveStateToStorage();
+  });
+  await openRecipe('handpicked-poha');
+  check('unedited defaults hide personal badge and revert', !(await page.locator('#modal-btn-revert-recipe').isVisible()) && !(await page.locator('#modal-personal-version').isVisible()));
+  await page.locator('#modal-btn-edit-recipe').click();
+  check('editor preserves existing plural ingredient units', await page.locator('.recipe-ingredient-unit').first().inputValue() === 'cups');
+  await page.locator('#recipe-title-input').fill('My Poha');
+  await page.locator('.recipe-ingredient-amount').first().fill('3');
+  await page.locator('#recipe-save-btn').click();
+  check('saving creates one private version without mutating the default', await page.evaluate(async () => {
+    const d = await import('/modules/recipe-domain.js');
+    return d.getRecipeById('handpicked-poha').title === 'My Poha' && d.getDefaultRecipe('handpicked-poha').title === 'Poha' && d.getAllRecipes().length === 108;
+  }));
+  await page.locator('#recipe-search').fill('My Poha');
+  check('search displays one personalized card with badge', await page.locator('#explore-recipes-grid .recipe-card').count() === 1 && (await page.locator('#explore-recipes-grid .recipe-card').innerText()).includes('Your version'));
+  await page.locator('[data-view="dashboard"]').click();
+  check('dashboard recommendations use the personal title', (await page.locator('#dashboard-recommendations').innerText()).includes('My Poha'));
+  await page.locator('[data-view="planner"]').click();
+  check('planner and shopping list use personal version', (await page.locator('#meal-planner-week-grid').innerText()).includes('My Poha') && (await page.locator('#planner-shopping-list').innerText()).includes('3 cups'));
+  await openRecipe('handpicked-poha');
+  check('personal details preserve attribution', (await page.locator('#modal-image-credit').innerText()).includes('CC BY-SA'));
+  await page.locator('#modal-btn-start-parallel-timers').click();
+  await page.evaluate(async () => {
+    const { RUNTIME } = await import('/modules/state.js');
+    clearInterval(RUNTIME.playSession.intervalId);
+    RUNTIME.playSession.intervalId = null;
+    window.personalTestAction = structuredClone(RUNTIME.playSession.running['Cook 1']);
+  });
+  await openRecipe('handpicked-poha');
+  await page.locator('#modal-btn-edit-recipe').click();
+  await page.locator('#recipe-title-input').fill('My Poha Updated');
+  await page.locator('.recipe-step-action').first().fill('Rinse poha gently with cold water.');
+  await page.locator('.recipe-step-duration').first().fill('1');
+  await page.locator('#recipe-save-btn').click();
+  check('repeated save updates one version and leaves live cooking untouched', await page.evaluate(async () => {
+    const { STATE, RUNTIME } = await import('/modules/state.js');
+    const personal = (await import('/modules/recipe-domain.js')).getRecipeById('handpicked-poha');
+    return STATE.customRecipes.filter(r => r.id === personal.id).length === 1 && personal.steps[0].duration === 60 && JSON.stringify(RUNTIME.playSession.running['Cook 1']) === JSON.stringify(window.personalTestAction);
+  }));
+  await page.evaluate(async () => (await import('/modules/play-recipe.js')).resetPlayRecipeSession());
+  await openRecipe('handpicked-poha');
+  await page.locator('#modal-btn-edit-recipe').click();
+  await page.locator('#recipe-title-input').fill('Cancelled title');
+  await page.locator('#recipe-cancel-edit').click();
+  check('cancel leaves saved data unchanged and exits edit mode', await effectiveTitle('handpicked-poha') === 'My Poha Updated' && !(await page.locator('#recipe-cancel-edit').isVisible()));
+  await openRecipe('handpicked-poha');
+  await page.locator('#modal-btn-edit-recipe').click();
+  await page.locator('#recipe-title-input').fill('Unsaved full storage title');
+  await page.evaluate(() => { window.personalOriginalSetItem = Storage.prototype.setItem; Storage.prototype.setItem = () => { throw new Error('Test quota failure'); }; });
+  await page.locator('#recipe-save-btn').click();
+  check('storage failure retains the draft and previous saved recipe', await page.locator('#recipe-title-input').inputValue() === 'Unsaved full storage title' && await effectiveTitle('handpicked-poha') === 'My Poha Updated' && await page.locator('#recipe-save-btn').innerText() === 'Save my version' && dialogs.at(-1).includes('storage'));
+  await page.evaluate(() => { Storage.prototype.setItem = window.personalOriginalSetItem; });
+  await page.locator('#recipe-cancel-edit').click();
+  await page.locator('#recipe-export-btn').click();
+  await page.locator('.recipe-export-check[value="handpicked-poha"]').check();
+  const [download] = await Promise.all([page.waitForEvent('download'), page.locator('#recipe-export-confirm-btn').click()]);
+  const exported = JSON.parse(await readFile(await download.path(), 'utf8'));
+  check('export contains the effective personal recipe and original attribution', exported.recipes[0].title === 'My Poha Updated' && exported.recipes[0].baseRecipeId === 'handpicked-poha' && exported.recipes[0].imageCredit.includes('CC BY-SA'));
+  await page.locator('#recipe-import-file').setInputFiles({ name: 'personal.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(exported)) });
+  check('import creates an independent recipe without overwriting the personal version', await page.evaluate(async () => {
+    const { STATE } = await import('/modules/state.js');
+    return STATE.customRecipes.some(r => r.id.startsWith('import-') && !r.baseRecipeId && r.title === 'My Poha Updated') && STATE.customRecipes.filter(r => r.id === 'handpicked-poha').length === 1;
+  }));
+  const importedId = await page.evaluate(async () => (await import('/modules/state.js')).STATE.customRecipes.find(r => r.id.startsWith('import-')).id);
+  await openRecipe(importedId);
+  check('standalone custom recipe has no revert action', !(await page.locator('#modal-btn-revert-recipe').isVisible()));
+  await page.locator('#modal-btn-edit-recipe').click();
+  check('custom editor saves changes in place', await page.locator('#recipe-save-btn').innerText() === 'Save changes');
+  await page.locator('#recipe-title-input').fill('My Imported Poha');
+  await page.locator('#recipe-save-btn').click();
+  check('standalone edit keeps the imported ID', await effectiveTitle(importedId) === 'My Imported Poha');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.locator('#app-view').waitFor({ state: 'visible' });
+  check('reload retains personal versions and attribution', await effectiveTitle('handpicked-poha') === 'My Poha Updated' && await effectiveTitle('veg-idli') === 'My Soft Idli');
+  // Exercise the real auth transition lifecycle with a controlled cloud boundary.
+  await page.evaluate(async () => {
+    const { BackendAuthDB } = await import('/modules/backend-auth-db.js');
+    window.personalOriginalLoad = BackendAuthDB.loadUserState;
+    BackendAuthDB.loadUserState = async () => null;
+    await (await import('/modules/auth.js')).applyAuthUser({ uid: 'personal-account-a', email: 'a@example.test' });
+  });
+  check('account A does not inherit device-only versions', await effectiveTitle('handpicked-poha') === 'Poha');
+  await openRecipe('handpicked-poha');
+  await page.locator('#modal-btn-edit-recipe').click();
+  await page.locator('#recipe-title-input').fill('Account A Poha');
+  await page.locator('#recipe-save-btn').click();
+  await openRecipe('handpicked-poha');
+  await page.locator('#modal-btn-edit-recipe').click();
+  await page.locator('#recipe-title-input').fill('Account A unsaved draft');
+  await page.evaluate(async () => (await import('/modules/auth.js')).applyAuthUser({ uid: 'personal-account-b', email: 'b@example.test' }));
+  check('switching accounts clears editing context and private versions', await page.evaluate(async () => {
+    const { RUNTIME, STATE } = await import('/modules/state.js');
+    return !RUNTIME.recipeEditContext && STATE.customRecipes.length === 0 && !document.getElementById('recipe-title-input').value && document.getElementById('recipe-cancel-edit').hidden;
+  }));
+  await page.evaluate(async () => (await import('/modules/auth.js')).applyAuthUser({ uid: 'personal-account-a', email: 'a@example.test' }));
+  check('returning to account A restores its version', await effectiveTitle('handpicked-poha') === 'Account A Poha');
+  await page.evaluate(async () => {
+    await (await import('/modules/auth.js')).applyAuthUser(null);
+    (await import('/modules/backend-auth-db.js')).BackendAuthDB.loadUserState = window.personalOriginalLoad;
+  });
+  check('device-only versions stay separate from account versions', await effectiveTitle('handpicked-poha') === 'My Poha Updated');
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+  await context.setOffline(true);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.locator('#app-view').waitFor({ state: 'visible' });
+  check('all defaults and personal data load offline', await page.evaluate(async () => (await import('/modules/recipe-domain.js')).getAllRecipes().length === 109) && await effectiveTitle('handpicked-poha') === 'My Poha Updated');
+  await openRecipe('handpicked-poha');
+  dismissConfirm = true;
+  await page.locator('#modal-btn-revert-recipe').click();
+  check('cancelled revert keeps the personal version', await effectiveTitle('handpicked-poha') === 'My Poha Updated');
+  await page.locator('#modal-btn-revert-recipe').click();
+  check('offline revert restores the default without losing likes or meal links', await page.evaluate(async () => {
+    const { STATE } = await import('/modules/state.js');
+    return (await import('/modules/recipe-domain.js')).getRecipeById('handpicked-poha').title === 'Poha' && STATE.user.likedRecipeIds.includes('handpicked-poha') && STATE.scheduledMeals['Monday-Lunch'] === 'handpicked-poha';
+  }));
+  await context.setOffline(false);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('#modal-btn-edit-recipe').click();
+  check('mobile editor exposes personal save and cancel', await page.locator('#recipe-save-btn').isVisible() && await page.locator('#recipe-cancel-edit').isVisible());
+  await page.locator('#recipe-title-input').fill('Mobile Poha');
+  await mkdir('output/playwright', { recursive: true });
+  await page.screenshot({ path: 'output/playwright/personal-recipe-mobile-editor.png', animations: 'disabled' });
+  check('mobile editor does not overflow the page', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await page.locator('#recipe-save-btn').click();
+  check('mobile saving uses the same private version flow', await effectiveTitle('handpicked-poha') === 'Mobile Poha');
+  await openRecipe('handpicked-poha');
+  check('mobile details show personal badge and revert', await page.locator('#modal-personal-version').isVisible() && await page.locator('#modal-btn-revert-recipe').isVisible());
+  await page.screenshot({ path: 'output/playwright/personal-recipe-mobile-details.png', animations: 'disabled' });
+  await page.locator('#modal-btn-revert-recipe').click();
+  check('mobile revert restores default', await effectiveTitle('handpicked-poha') === 'Poha');
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await openRecipe('veg-idli');
+  await page.screenshot({ path: 'output/playwright/personal-recipe-desktop-details.png', animations: 'disabled' });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  check('revert survives reload', await effectiveTitle('handpicked-poha') === 'Poha');
+  check('no uncaught browser errors', errors.length === 0);
+  console.log(`${count} personal recipe browser checks passed.`);
+} finally { await browser?.close(); server.kill(); }

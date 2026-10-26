@@ -116,13 +116,17 @@ export function saveStateToStorage({ sync = true } = {}) {
     const data = getPersistentState();
     const records = [[STORAGE_KEYS.USER, data.user], [STORAGE_KEYS.PANTRY, data.pantry],
       [STORAGE_KEYS.SCHEDULE, data.scheduledMeals], [STORAGE_KEYS.CUSTOM_RECIPES, data.customRecipes]];
+    // Mark pending work before writing recipes: a full storage quota must not
+    // persist a new recipe and then report its save as failed at the dirty flag.
+    if (sync && RUNTIME.currentAuthUid) localStorage.setItem(scopedStorageKey('dirty'), 'true');
     for (const [key, value] of records) localStorage.setItem(scopedStorageKey(key), JSON.stringify(value));
     revision++;
-    if (sync && RUNTIME.currentAuthUid) localStorage.setItem(scopedStorageKey('dirty'), 'true');
     if (sync) scheduleStateSyncToCloud();
+    return true;
   } catch (error) {
     console.error('Local save failed:', error);
     alert('Device storage is full or unavailable. Export your recipes before closing this page.');
+    return false;
   }
 }
 
@@ -158,6 +162,15 @@ export async function syncStateToCloud() {
 }
 
 export function resetSignedOutRuntimeState() {
+  RUNTIME.recipeEditContext = null;
+  const builderTitle = document.getElementById('recipe-builder-title');
+  if (builderTitle) builderTitle.textContent = 'Custom Recipe';
+  const builderSave = document.getElementById('recipe-save-btn');
+  if (builderSave) builderSave.textContent = 'Save Recipe';
+  const builderCancel = document.getElementById('recipe-cancel-edit');
+  if (builderCancel) builderCancel.hidden = true;
+  const builderNote = document.getElementById('recipe-editor-note');
+  if (builderNote) builderNote.textContent = '';
   clearTimeout(RUNTIME.cloudSaveTimer);
   if (RUNTIME.playSession.intervalId) clearInterval(RUNTIME.playSession.intervalId);
   STATE.activeTimers.forEach(timer => clearInterval(timer.intervalId));

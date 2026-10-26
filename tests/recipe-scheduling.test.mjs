@@ -11,8 +11,8 @@ const recipe = steps => ({ id: 'graph', title: 'Graph', stepSchemaVersion: 2, st
 const get = (schedule, id) => schedule.steps.find(step => step.id === id);
 const overlap = (a, b) => a.start < b.end && b.start < a.end;
 
-test('all eight curated recipes are valid single-action graphs with no unused branches', () => {
-  assert.equal(APP_RECIPES.length, 8);
+test('all 108 curated recipes are valid single-action graphs with no unused branches', () => {
+  assert.equal(APP_RECIPES.length, 108);
   for (const raw of APP_RECIPES) {
     const normalized = normalizeRecipeForStorage(raw);
     assert.equal(normalized.stepSchemaVersion, 2);

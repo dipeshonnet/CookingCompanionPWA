@@ -32,6 +32,10 @@ Run `npm run test:recipes` for recipe dependency checks in the browser: action t
 
 Built-in recipes use individually timed actions. In Play Recipe, choose one or two cooks; unattended waits run alongside hands-on work. Dependencies appear in recipe details and the live cooking timeline. Older saved recipes remain playable in conservative sequential order.
 
+The catalog includes 108 defaults: the original eight plus 100 egg-free vegetarian recipes (80 Indian, 20 international; dairy is allowed). The new recipes use the bundled fallback image and do not invent user ratings. See [Collection notes and references](docs/RECIPE-COLLECTION.md).
+
+Open recipe details and choose **Edit recipe**. **Save my version** creates one private override for a default; **Revert to default** removes that override without losing likes or meal assignments. Custom recipes are edited in place. Account versions sync through the existing recipe collection; device-only versions stay local. Already running cooking sessions retain their instructions. Run `node tests/recipe-personalization-browser.mjs` for the focused desktop/mobile workflow checks.
+
 ## Documentation
 
 - [Free Hosting and Domain Setup](docs/DEPLOYMENT.md)

@@ -1,6 +1,6 @@
 import { initLucide } from './navigation.js';
 import { showRecipeDetailsModal } from './recipe-detail.js';
-import { getVisibleRecipes, safeImageSource } from './recipe-domain.js';
+import { getVisibleRecipes, getRecipeById, isPersonalRecipe, safeImageSource } from './recipe-domain.js';
 import { STATE } from './state.js';
 import { saveStateToStorage } from './storage.js';
 import { renderActiveTimers } from './timers.js';
@@ -13,7 +13,7 @@ export function renderDashboard() {
   document.getElementById("dashboard-welcome-heading").innerText = `Welcome, ${STATE.user.name}!`;
 
   // 1. Render the fixed handpicked selection in its curated order.
-  const recommendations = HANDPICKED_RECIPES;
+  const recommendations = HANDPICKED_RECIPES.map(recipe => getRecipeById(recipe.id));
   
   const recContainer = document.getElementById("dashboard-recommendations");
   recContainer.innerHTML = "";
@@ -110,12 +110,13 @@ export function createRecipeCard(recipe) {
     </div>
     <div class="recipe-content">
       <div class="recipe-tags">
+        ${isPersonalRecipe(recipe) ? '<span class="recipe-tag personal-recipe-badge">Your version</span>' : ''}
         ${safeTags}
       </div>
       <h3 class="recipe-title">${safeTitle}</h3>
       <p class="recipe-desc">${safeDescription}</p>
       <div class="recipe-meta">
-        <span><i data-lucide="star" style="width: 12px; height: 12px; fill: var(--accent); stroke: var(--accent);"></i> ${escapeHtml(recipe.rating)}</span>
+        <span><i data-lucide="star" style="width: 12px; height: 12px; fill: var(--accent); stroke: var(--accent);"></i> ${recipe.rating ? escapeHtml(recipe.rating) : 'Not rated'}</span>
         <span><i data-lucide="clock" style="width: 12px; height: 12px;"></i> ${matchPill}</span>
       </div>
     </div>

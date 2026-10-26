@@ -70,7 +70,17 @@ export function openScheduleDropdown(day, slot) {
 
   // Prefill current if any
   const current = STATE.scheduledMeals[STATE.currentSelectedSlot];
-  if (current) dropdown.value = current;
+  if (current) {
+    // Preserve an existing assignment even when a new diet filter hides it.
+    if (![...dropdown.options].some(option => option.value === current)) {
+      const recipe = getAllRecipes().find(recipe => recipe.id === current);
+      const option = new Option(recipe
+        ? `[${recipe.category}] ${recipe.title} (outside diet preference)`
+        : 'Unavailable recipe (currently scheduled)', current);
+      dropdown.appendChild(option);
+    }
+    dropdown.value = current;
+  }
 
   document.getElementById("select-meal-modal").style.display = "flex";
 }

@@ -46,8 +46,28 @@ try {
   };
   await startRecipe();
   check('parallel cooks appear in floating timers', await widget.isVisible() && await widget.locator('.floating-timer-row').count() === 2);
+  check('floating previews follow the animation setting', await widget.locator('.floating-timer-preview').count() === 0);
+  const refreshFloating = () => page.evaluate(async () => (await import('/modules/active-timer-summary.js')).renderFloatingTimers());
+  await page.evaluate(async () => { (await import('/modules/state.js')).STATE.user.playStepVideo = true; });
+  await refreshFloating();
+  check('each running action gets the matching compact GIF', await widget.locator('.floating-timer-preview').count() === 2 &&
+    (await widget.locator('.floating-timer-preview').nth(0).getAttribute('src')).endsWith('/simmer.gif') &&
+    (await widget.locator('.floating-timer-preview').nth(1).getAttribute('src')).endsWith('/boil.gif'));
+  await page.waitForFunction(() => [...document.querySelectorAll('.floating-timer-preview')].every(img => img.naturalWidth === 320));
+  await page.evaluate(() => { window.otherCookPreview = document.querySelectorAll('.floating-timer-preview')[1]; });
+  await page.evaluate(async () => { (await import('/modules/state.js')).RUNTIME.playSession.running['Cook 1'].actionType = 'Other'; });
+  await refreshFloating();
+  check('Other has no preview and leaves the other cook animation intact', await widget.locator('.floating-timer-preview').count() === 1 &&
+    await page.evaluate(() => window.otherCookPreview === document.querySelector('.floating-timer-preview')));
+  await page.evaluate(async () => { (await import('/modules/state.js')).RUNTIME.playSession.running['Cook 1'].actionType = 'Simmer'; });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await refreshFloating();
+  check('reduced motion keeps countdowns without animations', await widget.locator('.floating-timer-preview').count() === 0 && await widget.locator('[data-timer-clock]').count() === 2);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await refreshFloating();
   await page.evaluate(async () => {
     window.originalFloatingClock = document.querySelector('#floating-active-timers [data-timer-clock]');
+    window.originalFloatingPreview = document.querySelector('.floating-timer-preview');
     window.originalInterval = (await import('/modules/state.js')).RUNTIME.playSession.intervalId;
   });
   for (const view of ['dashboard', 'pantry', 'ai-generator', 'planner', 'faq', 'play']) {
@@ -68,6 +88,7 @@ try {
   });
   check('both live countdowns update', await widget.locator('[data-timer-clock]').nth(0).innerText() === '00:05' && await widget.locator('[data-timer-clock]').nth(1).innerText() === '00:09');
   check('countdown updates preserve timer elements', await page.evaluate(() => window.originalFloatingClock === document.querySelector('#floating-active-timers [data-timer-clock]')));
+  check('timer ticks and navigation do not restart GIFs', await page.evaluate(() => window.originalFloatingPreview === document.querySelector('.floating-timer-preview')));
   await page.evaluate(async () => {
     const { RUNTIME } = await import('/modules/state.js');
     for (const step of Object.values(RUNTIME.playSession.running)) step.deadline = Date.now() + 60000;
@@ -97,12 +118,14 @@ try {
     (await import('/modules/play-recipe.js')).runPlayRecipeTick();
   });
   check('next step replaces completed cook countdown', await widget.locator('.floating-timer-row').count() === 1 && (await widget.innerText()).includes('Stir basil'));
+  check('preview follows the next action', (await widget.locator('.floating-timer-preview').getAttribute('src')).endsWith('/stir.gif'));
   await page.evaluate(async () => {
     const { RUNTIME } = await import('/modules/state.js');
     RUNTIME.playSession.running['Cook 1'].deadline = Date.now() - 1;
     (await import('/modules/play-recipe.js')).runPlayRecipeTick();
   });
   check('finished recipe hides floating timers', await widget.isHidden());
+  check('finished recipe releases floating preview elements', await widget.locator('.floating-timer-preview').count() === 0);
   await startRecipe();
   await page.locator('#play-recipe-reset-btn').click();
   check('reset hides floating timers', await widget.isHidden());

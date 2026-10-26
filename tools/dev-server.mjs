@@ -5,7 +5,7 @@ import { clientFiles } from './client-files.mjs';
 
 const root = resolve(process.env.SERVE_DIST === '1' ? 'dist' : '.');
 const port = Number(process.env.PORT || 5175);
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp', '.webm': 'video/webm', '.ico': 'image/x-icon', '.LICENSE': 'text/plain' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif', '.ico': 'image/x-icon', '.LICENSE': 'text/plain' };
 const allowed = new Set(await clientFiles());
 allowed.add('asset-manifest.json');
 const securityHeaders = {};
@@ -24,7 +24,7 @@ const server = createServer(async (request, response) => {
     const target = resolve(root, file);
     if (relative(root, target).startsWith('..') || !allowed.has(file)) { response.writeHead(404).end(); return; }
     const data = file === 'asset-manifest.json' && process.env.SERVE_DIST !== '1'
-      ? JSON.stringify({ version: 'development-ai-providers-1', assets: [...allowed].filter(file => !['sw.js', 'asset-manifest.json'].includes(file)).map(file => `/${file}`) })
+      ? JSON.stringify({ version: 'development-action-gifs-1', assets: [...allowed].filter(file => !['sw.js', 'asset-manifest.json'].includes(file)).map(file => `/${file}`) })
       : await readFile(target);
     response.writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache', ...securityHeaders });
     response.end(data);

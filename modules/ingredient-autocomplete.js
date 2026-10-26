@@ -1,5 +1,5 @@
 import { ingredientSuggestions } from './ingredient-catalogue.js';
-import { HANDPICKED_RECIPES } from '../recipes.js';
+import { getAllRecipes } from './recipe-domain.js';
 import { STATE } from './state.js';
 
 export function setupIngredientAutocomplete(input, category) {
@@ -16,7 +16,7 @@ export function setupIngredientAutocomplete(input, category) {
   const update = () => {
     clear();
     if (dismissed || document.activeElement !== input || input.selectionStart !== input.value.length || input.selectionEnd !== input.value.length) return;
-    const suggestion = ingredientSuggestions(category.value, input.value, STATE.pantry, [...HANDPICKED_RECIPES, ...STATE.customRecipes])[0];
+    const suggestion = ingredientSuggestions(category.value, input.value, STATE.pantry, getAllRecipes())[0];
     if (!suggestion) return;
     completion = input.value + suggestion.slice(input.value.length);
     const typed = document.createElement('span');

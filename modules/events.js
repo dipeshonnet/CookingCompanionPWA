@@ -7,8 +7,8 @@ import { setPlayBackgroundMusicFile } from './play-media.js';
 import { resetPlayRecipeSession, startPlayRecipeSession, changePlayRecipe, updatePlayCookCount, startGuidedRecipe } from './play-recipe.js';
 import { openProfileModal, closeProfileModal, saveProfileSettings } from './profile.js';
 import { handleAIGeneration, saveGeneratedRecipeToExplore } from './recipe-ai.js';
-import { setRecipeExploreVisibility, toggleRecipeExplorePanel, addRecipeIngredientRow, addRecipeStepRow, removeRecipeBuilderRow, updateStepCookControls, updateStepDependencyControls, recalculateRecipeTimeTotals, handleCustomRecipeSave, resetAddRecipeForm } from './recipe-builder.js';
-import { updateRecipeModalIngredientsAndButtons, handleCookMeal, closeCookMealDialog, confirmCookMeal } from './recipe-detail.js';
+import { setRecipeExploreVisibility, toggleRecipeExplorePanel, addRecipeIngredientRow, addRecipeStepRow, removeRecipeBuilderRow, updateStepCookControls, updateStepDependencyControls, recalculateRecipeTimeTotals, handleCustomRecipeSave, resetAddRecipeForm, editRecipe, cancelRecipeEdit } from './recipe-builder.js';
+import { updateRecipeModalIngredientsAndButtons, handleCookMeal, closeCookMealDialog, confirmCookMeal, handleRevertRecipe } from './recipe-detail.js';
 import { handleRecipeShare, handleRecipeExport, closeRecipeExportModal, confirmRecipeExportSelected, handleRecipeImport } from './recipe-transfer.js';
 import { renderDashboard, renderExploreRecipes } from './recipe-views.js';
 import { buildRecipeDraftFromTalk, updateVoiceStatus, startRecipeVoiceInput, stopRecipeVoiceInput } from './recipe-voice.js';
@@ -17,6 +17,9 @@ import { getAiProvider, setAiProvider, getApiKey, setApiKey, saveStateToStorage 
 import { getProviderConfig, updateAiSettingsFields } from './ai-providers.js';
 
 export function setupEventListeners() {
+  document.getElementById('modal-btn-edit-recipe')?.addEventListener('click', () => editRecipe(RUNTIME.activeModalRecipe?.id));
+  document.getElementById('modal-btn-revert-recipe')?.addEventListener('click', handleRevertRecipe);
+  document.getElementById('recipe-cancel-edit')?.addEventListener('click', cancelRecipeEdit);
   document.querySelectorAll('[data-navigate]').forEach(button => button.addEventListener('click', () => switchView(button.dataset.navigate)));
   document.getElementById('btn-login-local')?.addEventListener('click', signInLocalOnly);
   const googleBtn = document.getElementById("btn-login-google");

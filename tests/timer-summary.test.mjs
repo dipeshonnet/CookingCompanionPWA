@@ -25,6 +25,15 @@ test('idle, reset and completed sessions have no active timer entries', () => {
   assert.deepEqual(getActiveTimerEntries({ ...idleSession(), recipeId: 'soup', completed: [step] }, [], []), []);
 });
 
+test('floating summaries retain explicit action types for active and unattended steps', () => {
+  const session = { recipeId: 'soup', running: { 'Cook 1': { ...step, actionType: 'Other' } },
+    passiveRunning: [{ ...step, id: 'simmer', actionType: 'Simmer', attention: 'passive' }] };
+  const entries = getActiveTimerEntries(session, [], []);
+  assert.equal(entries[0].actionType, 'Other');
+  assert.equal(entries[1].actionType, 'Simmer');
+  assert.equal(entries[1].attention, 'passive');
+});
+
 test('single cook summaries do not add idle cooks or lose deleted recipe sessions', () => {
   const entries = getActiveTimerEntries({ recipeId: 'deleted', running: { 'Cook 1': step, 'Cook 2': null } }, [], []);
   assert.equal(entries.length, 1);

@@ -91,7 +91,7 @@ export function speakPlayStep(step) {
 }
 
 export function getStepVideoCacheKey(recipeId, step) {
-  return JSON.stringify([recipeId, step.order, STATE.user.performerType, STATE.user.performerGender, step.item, step.action]);
+  return JSON.stringify([recipeId, step.order, step.item, step.action]);
 }
 
 export async function ensurePlayStepVideo(step) {

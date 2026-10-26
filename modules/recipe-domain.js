@@ -14,10 +14,24 @@ export function recipeMatchesDietPreference(recipe, preference = STATE.user.diet
   return tags.includes(pref);
 }
 
-// Get all recipe lists combined (curated + custom recipes)
-export function getAllRecipes() {
-  return [...APP_RECIPES, ...STATE.customRecipes];
+export function getDefaultRecipe(id) {
+  return APP_RECIPES.find(recipe => recipe.id === id);
 }
+
+export function isPersonalRecipe(recipe) {
+  return Boolean(recipe?.baseRecipeId === recipe?.id && getDefaultRecipe(recipe?.id));
+}
+
+// Keep stable default IDs so likes and meal assignments resolve personal versions.
+export function getAllRecipes() {
+  const overrides = new Map(STATE.customRecipes.filter(isPersonalRecipe).map(recipe => [recipe.id, recipe]));
+  return [
+    ...APP_RECIPES.map(recipe => overrides.get(recipe.id) || recipe),
+    ...STATE.customRecipes.filter(recipe => !getDefaultRecipe(recipe.id))
+  ];
+}
+
+export function getRecipeById(id) { return getAllRecipes().find(recipe => recipe.id === id); }
 
 export function getVisibleRecipes() {
   return getAllRecipes().filter(recipe => recipeMatchesDietPreference(recipe));
@@ -125,6 +139,8 @@ export function normalizeRecipeForStorage(recipe) {
 
   return {
     stepSchemaVersion: recipe.stepSchemaVersion === 2 ? 2 : 1,
+    ...(isPersonalRecipe(recipe) ? { baseRecipeId: recipe.id } : {}),
+    ...(recipe.imageCredit ? { imageCredit: cleanText(recipe.imageCredit).slice(0, 2000) } : {}),
     id: cleanText(recipe.id).slice(0, 200) || crypto.randomUUID(),
     title: cleanText(recipe.title).slice(0, 200) || 'Untitled Recipe',
     description: cleanText(recipe.description).slice(0, 10000),

@@ -747,11 +747,120 @@ select.form-control {
   color-scheme: dark;
   cursor: pointer;
   padding-right: 12px;
+  min-height: 46px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 select.form-control option {
   background: #1b2232;
   color: var(--text-main);
+}
+
+select.form-control:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Keep native keyboard/touch behavior, with themed pickers where supported. */
+@supports (appearance: base-select) {
+  select.form-control:not([multiple]):not([size]),
+  select.form-control:not([multiple]):not([size])::picker(select) {
+    appearance: base-select;
+  }
+
+  select.form-control:not([multiple]):not([size]) {
+    align-items: center;
+    gap: 12px;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  select.form-control::picker-icon {
+    flex-shrink: 0;
+    margin-inline-start: auto;
+    color: var(--text-muted);
+  }
+
+  select.form-control:open {
+    border-color: var(--accent);
+    background: #1b2232;
+  }
+
+  select.form-control:open::picker-icon {
+    color: var(--accent-light);
+    rotate: 180deg;
+  }
+
+  select.form-control::picker(select) {
+    box-sizing: border-box;
+    inline-size: anchor-size(self-inline);
+    max-inline-size: calc(100vw - 24px);
+    max-block-size: min(320px, 50dvh);
+    margin-block: 6px;
+    padding: 6px;
+    border: 1px solid var(--border-glass-active);
+    border-radius: var(--radius-md);
+    background: #151c2c;
+    color: var(--text-main);
+    font: 14px / 1.5 var(--font-body);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    overflow: auto;
+  }
+
+  select.form-control:not([multiple]):not([size]) option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-block-size: 44px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 400;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+
+  select.form-control optgroup {
+    padding-block: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  select.form-control:not([multiple]):not([size]) option:checked {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--accent-light);
+    font-weight: 600;
+  }
+
+  select.form-control:not([multiple]):not([size]) option:hover,
+  select.form-control:not([multiple]):not([size]) option:focus-visible {
+    background: rgba(245, 158, 11, 0.2);
+    outline: 1px solid var(--border-glass-active);
+    outline-offset: -1px;
+  }
+
+  select.form-control option::checkmark {
+    order: 1;
+    margin-inline-start: auto;
+    flex-shrink: 0;
+    color: var(--accent-light);
+  }
+}
+
+select.form-control[multiple] option {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+select.form-control[multiple] option:checked {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--accent-light);
 }
 
 .form-control:focus {
@@ -1149,6 +1258,7 @@ button:focus-visible, summary:focus-visible {
 
 .form-group {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 8px;
 }
@@ -1851,6 +1961,10 @@ button:focus-visible, summary:focus-visible {
 .floating-timer-title { font-size: 14px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .floating-timer-rows { display: grid; gap: 10px; max-height: 164px; overflow-y: auto; }
 .floating-timer-row { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 4px 12px; align-items: center; }
+.floating-timer-row.has-action-preview { grid-template-columns: 56px minmax(0, 1fr) max-content; column-gap: 8px; }
+.floating-timer-preview { display: block; width: 56px; height: 35px; border-radius: 6px; object-fit: contain; background: #fcf7ee; pointer-events: none; }
+.has-action-preview .floating-timer-label { flex-direction: column; align-items: flex-start; gap: 2px; }
+.has-action-preview .floating-timer-label > span { max-width: 100%; }
 .floating-timer-label { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; }
 .floating-timer-label strong { flex-shrink: 0; }
 .floating-timer-label > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-muted); }
@@ -2176,6 +2290,7 @@ body.has-floating-timers .main-content { padding-bottom: 280px; }
 .timeline-selection { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
 .timeline-selection:empty { display: none; }
 .recipe-step-dependency-field { grid-column: 1 / -1; }
+.recipe-step-attention-field { grid-column: 1 / -1; }
 .recipe-step-dependencies { min-height: 100px; }
 #modal-cook-count { max-width: 180px; }
 #play-cook-status { color: var(--text-muted); font-size: 13px; }
@@ -2188,5 +2303,13 @@ body.has-floating-timers .main-content { padding-bottom: 280px; }
 /* Compact, locally bundled cooking demonstrations. */
 .recipe-step-action-type-field { grid-column: 1 / -1; }
 .action-video-preview { margin: 10px 0 0; max-width: 240px; }
-.action-video-preview video { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: 12px; background: #fff7eb; }
+.action-video-preview img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; border-radius: 12px; background: #fcf7ee; }
 .action-video-preview figcaption { font-size: 0.75rem; color: var(--text-muted, #69645d); margin-top: 5px; }
+/* Personal recipe controls remain usable on narrow screens. */
+.recipe-personal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+.recipe-personal-actions [hidden], #recipe-cancel-edit[hidden], #modal-personal-version[hidden] { display: none !important; }
+.recipe-editor-note { color: var(--text-muted); margin: 0 0 16px; }
+.recipe-editor-note:empty, .recipe-image-credit:empty { display: none; }
+.recipe-image-credit { color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; margin-bottom: 12px; }
+.personal-recipe-badge { color: var(--success); font-size: 12px; font-weight: 600; }
+.recipe-builder-actions { flex-wrap: wrap; }
