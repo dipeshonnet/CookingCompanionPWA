@@ -1,3 +1,4 @@
+import { scaleRecipeForPortions, normalizePortions, formatIngredientAmount } from './recipe-portions.js';
 import { actionVideoHtml, inferActionType } from './action-types.js';
 import { createPlaySession, advancePlaySession, setAvailableCooks, normalizeAvailableCooks } from './play-engine.js';
 import { getAudioContext, playShortBeep, startPlayBackgroundMusic, stopPlayBackgroundMusic, speakPlayStep, ensurePlayStepVideo } from './play-media.js';
@@ -9,6 +10,7 @@ import { renderActiveTimers } from './timers.js';
 import { ingredientLabel } from './ingredient-images.js';
 import { renderRecipeTimeline } from './recipe-timeline.js';
 import { switchView } from './navigation.js';
+import { saveStateToStorage } from './storage.js';
 
 export { formatTimerClock } from './utils.js';
 
@@ -27,6 +29,10 @@ export function renderPlayRecipeView() {
     select.appendChild(new Option(recipe ? `[${recipe.category}] ${recipe.title}` : 'Current cooking session', selected));
   }
   select.value = [...select.options].some(option => option.value === selected) ? selected : '';
+  if (RUNTIME.playSession.recipeId) {
+    document.getElementById('play-cook-count').value = String(RUNTIME.playSession.availableCooks);
+    document.getElementById('play-portions').value = String(RUNTIME.playSession.portions || 1);
+  }
   renderPlayBoards();
 }
 
@@ -60,7 +66,16 @@ function reconcileColumn(id, steps, timed, emptyText) {
 export function renderPlayBoards() {
   const session = RUNTIME.playSession;
   const recipes = session.recipeId ? getAllRecipes() : getVisibleRecipes();
-  const recipe = recipes.find(recipe => recipe.id === (session.recipeId || document.getElementById('play-recipe-select')?.value));
+  const source = recipes.find(recipe => recipe.id === (session.recipeId || document.getElementById('play-recipe-select')?.value));
+  const portions = session.recipeId ? (session.portions || 1) : normalizePortions(document.getElementById('play-portions')?.value);
+  const recipe = source ? scaleRecipeForPortions(source, portions) : null;
+  const portionInput = document.getElementById('play-portions');
+  portionInput.value = String(portions);
+  portionInput.disabled = Boolean(session.recipeId);
+  document.querySelectorAll('[data-portion-target="play-portions"]').forEach(button => { button.disabled = Boolean(session.recipeId) || (button.dataset.portionDelta === '-1' && portions === 1); });
+  const ingredients = session.ingredients || recipe?.ingredients || [];
+  document.getElementById('play-portion-ingredients').innerHTML = ingredients.map(ing => `<li>${escapeHtml(formatIngredientAmount(ing))} ${escapeHtml(ing.name)}</li>`).join('');
+  document.getElementById('play-portion-note').textContent = session.recipeId ? `Cooking for ${portions} ${portions === 1 ? 'person' : 'people'}. Reset cooking to change portions.` : recipe?.timingIsOriginal ? 'Actions without portion-specific timing rules keep their original estimates.' : '1 portion serves 1 person.';
   const byId = new Map([...(recipe?.steps || []), ...session.upcoming, ...session.completed].map(step => [step.id, step]));
   const completed = new Set(session.completed.map(step => step.id));
   const upcoming = session.upcoming.map(step => {
@@ -92,10 +107,12 @@ export function resetPlayRecipeSession() {
   stopPlayBackgroundMusic();
   window.speechSynthesis?.cancel();
   RUNTIME.playSession = { recipeId: '', availableCooks: 1, startedAt: null, upcoming: [], running: { 'Cook 1': null }, passiveRunning: [], completed: [], intervalId: null };
+  saveStateToStorage();
   const select = document.getElementById('play-recipe-select');
   if (select) { select.value = ''; select.disabled = false; }
   const cooks = document.getElementById('play-cook-count');
   if (cooks) cooks.value = '1';
+  document.getElementById('play-portions').value = '1';
   renderPlayBoards();
 }
 
@@ -112,16 +129,18 @@ export function updatePlayCookCount() {
   const count = document.getElementById('play-cook-count').value;
   if (RUNTIME.playSession.recipeId) {
     setAvailableCooks(RUNTIME.playSession, count);
+    saveStateToStorage();
     runPlayRecipeTick();
   } else renderPlayBoards();
 }
 
-export function startGuidedRecipe(recipe, availableCooks = 1) {
+export function startGuidedRecipe(recipe, availableCooks = 1, portions = 1) {
   document.getElementById('recipe-modal').style.display = 'none';
   resetPlayRecipeSession();
   switchView('play');
   document.getElementById('play-recipe-select').value = recipe.id;
   document.getElementById('play-cook-count').value = String(normalizeAvailableCooks(availableCooks));
+  document.getElementById('play-portions').value = String(normalizePortions(portions));
   startPlayRecipeSession();
 }
 
@@ -131,21 +150,36 @@ export function startPlayRecipeSession() {
   if (!recipe?.steps?.length) { alert('Choose a recipe with playable actions.'); return; }
   const availableCooks = normalizeAvailableCooks(document.getElementById('play-cook-count')?.value);
   let session;
-  try { session = createPlaySession(recipe, getExperienceTimerMultiplier(), availableCooks); }
+  const portions = normalizePortions(document.getElementById('play-portions').value);
+  try { session = createPlaySession(scaleRecipeForPortions(recipe, portions), getExperienceTimerMultiplier(), availableCooks); }
   catch (error) { alert(error.message); return; }
   resetPlayRecipeSession();
   document.getElementById('play-recipe-select').value = id;
   document.getElementById('play-cook-count').value = String(availableCooks);
   getAudioContext();
+  document.getElementById('play-portions').value = String(portions);
   RUNTIME.playSession = session;
   startPlayBackgroundMusic();
   runPlayRecipeTick();
   if (session.upcoming.length || Object.values(session.running).some(Boolean) || session.passiveRunning.length) session.intervalId = setInterval(runPlayRecipeTick, 250);
 }
 
+export function resumePlayRecipeSession() {
+  const session = RUNTIME.playSession;
+  clearInterval(session.intervalId);
+  session.intervalId = null;
+  if (!session.recipeId) return;
+  // Expired actions finish now; subsequent hands-on actions start on return.
+  runPlayRecipeTick();
+  if (session.upcoming.length || Object.values(session.running).some(Boolean) || session.passiveRunning.length) {
+    session.intervalId = setInterval(runPlayRecipeTick, 250);
+  }
+}
+
 export function runPlayRecipeTick() {
   try {
     const events = advancePlaySession(RUNTIME.playSession, Date.now());
+    if (events.started.length || events.completed.length) saveStateToStorage();
     for (const step of events.started) { speakPlayStep(step); ensurePlayStepVideo(step); }
     if (events.beep) playShortBeep();
     if (events.done) {

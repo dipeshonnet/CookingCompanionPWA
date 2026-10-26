@@ -5,6 +5,8 @@
     { "collectionGroup": "recipes", "fieldPath": "ingredients", "indexes": [] },
     { "collectionGroup": "recipes", "fieldPath": "description", "indexes": [] },
     { "collectionGroup": "pantry", "fieldPath": "nutrition", "indexes": [] },
-    { "collectionGroup": "app", "fieldPath": "user", "indexes": [] }
+    { "collectionGroup": "app", "fieldPath": "user", "indexes": [] },
+    { "collectionGroup": "app", "fieldPath": "activeTimers", "indexes": [] },
+    { "collectionGroup": "app", "fieldPath": "playSession", "indexes": [] }
   ]
 }

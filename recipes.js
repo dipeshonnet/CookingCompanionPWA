@@ -1,4 +1,5 @@
 import { RECIPE_ACTIONS } from './modules/recipe-actions.js';
+import { RECIPE_PORTION_DATA } from './modules/recipe-portion-data.js';
 import { VEGETARIAN_RECIPES } from './modules/vegetarian-recipes.js';
 
 export const HANDPICKED_RECIPES = [
@@ -224,6 +225,13 @@ export const APP_RECIPES = [
 APP_RECIPES.push(...VEGETARIAN_RECIPES);
 
 for (const recipe of APP_RECIPES) {
+  for (const step of recipe.steps) step.scaling = RECIPE_PORTION_DATA[recipe.id][step.id];
+  for (const ingredient of recipe.ingredients) {
+    if (ingredient.unit === 'g' && /^(potatoes|baby potatoes)$/i.test(ingredient.name)) {
+      ingredient.gramsPerPiece = ingredient.name === 'Baby potatoes' ? 40 : 150;
+      ingredient.pieceLabel = ingredient.name === 'Baby potatoes' ? 'baby potatoes' : 'medium potatoes';
+    }
+  }
   recipe.cookCount = Math.max(...recipe.steps.map(step => Number(step.cook.split(' ')[1])));
   recipe.prepTime = Math.ceil(recipe.steps.filter(step => step.stepType === 'Prep').reduce((sum, step) => sum + step.duration, 0) / 60);
   recipe.cookTime = Math.ceil(recipe.steps.filter(step => step.stepType === 'Cook').reduce((sum, step) => sum + step.duration, 0) / 60);

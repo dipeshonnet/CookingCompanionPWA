@@ -1,3 +1,4 @@
+import { normalizeMealSelection, normalizePortions, scaleRecipeForPortions, formatIngredientAmount } from './recipe-portions.js';
 import { initLucide } from './navigation.js';
 import { getAllRecipes, getVisibleRecipes } from './recipe-domain.js';
 import { renderDashboard } from './recipe-views.js';
@@ -24,13 +25,14 @@ export function renderPlannerView() {
       slotDiv.className = "planner-slot";
       
       const key = `${day}-${slot}`;
-      const scheduledRecipeId = STATE.scheduledMeals[key];
+      const selection = normalizeMealSelection(STATE.scheduledMeals[key]);
+      const scheduledRecipeId = selection?.recipeId;
       
       let slotBody = "";
       if (scheduledRecipeId) {
         const recipe = getAllRecipes().find(r => r.id === scheduledRecipeId);
         const name = recipe ? recipe.title : "Unknown Recipe";
-        slotBody = `<button type="button" class="planner-meal">${escapeHtml(name)}</button>`;
+        slotBody = `<button type="button" class="planner-meal">${escapeHtml(name)} <small>· ${selection.portions} ${selection.portions === 1 ? 'person' : 'people'}</small></button>`;
       } else {
         slotBody = `<button type="button" class="planner-meal-empty">+ Add</button>`;
       }
@@ -61,25 +63,27 @@ export function openScheduleDropdown(day, slot) {
   defaultOpt.innerText = "-- Select Recipe --";
   dropdown.appendChild(defaultOpt);
 
-  getVisibleRecipes().forEach(recipe => {
+  getVisibleRecipes().filter(recipe => recipe.category === slot).forEach(recipe => {
     const opt = document.createElement("option");
     opt.value = recipe.id;
-    opt.innerText = `[${recipe.category}] ${recipe.title}`;
+    opt.innerText = recipe.title;
     dropdown.appendChild(opt);
   });
 
   // Prefill current if any
-  const current = STATE.scheduledMeals[STATE.currentSelectedSlot];
+  const selection = normalizeMealSelection(STATE.scheduledMeals[STATE.currentSelectedSlot]);
+  const current = selection?.recipeId;
+  document.getElementById("schedule-portions").value = String(selection?.portions || 1);
+  document.querySelector('[data-portion-target="schedule-portions"][data-portion-delta="-1"]').disabled = !selection || selection.portions === 1;
   if (current) {
-    // Preserve an existing assignment even when a new diet filter hides it.
+    // Preserve a matching assignment even when a new diet filter hides it.
     if (![...dropdown.options].some(option => option.value === current)) {
       const recipe = getAllRecipes().find(recipe => recipe.id === current);
-      const option = new Option(recipe
-        ? `[${recipe.category}] ${recipe.title} (outside diet preference)`
-        : 'Unavailable recipe (currently scheduled)', current);
-      dropdown.appendChild(option);
+      if (recipe?.category === slot) {
+        dropdown.appendChild(new Option(`${recipe.title} (outside diet preference)`, current));
+      }
     }
-    dropdown.value = current;
+    dropdown.value = [...dropdown.options].some(option => option.value === current) ? current : '';
   }
 
   document.getElementById("select-meal-modal").style.display = "flex";
@@ -91,7 +95,12 @@ export function saveScheduledMealSelection() {
   const rId = document.getElementById("select-meal-recipe-dropdown").value;
   
   if (rId) {
-    STATE.scheduledMeals[STATE.currentSelectedSlot] = rId;
+    const selection = { recipeId: rId, portions: normalizePortions(document.getElementById("schedule-portions").value) };
+    const recipe = getAllRecipes().find(recipe => recipe.id === rId);
+    if (!recipe) return;
+    try { scaleRecipeForPortions(recipe, selection.portions); }
+    catch (error) { alert(error.message); return; }
+    STATE.scheduledMeals[STATE.currentSelectedSlot] = selection;
   } else {
     delete STATE.scheduledMeals[STATE.currentSelectedSlot];
   }
@@ -113,7 +122,10 @@ export function renderPlannerShoppingList() {
     return;
   }
 
-  const recipes = activeIds.map(id => getVisibleRecipes().find(recipe => recipe.id === id)).filter(Boolean);
+  const recipes = activeIds.map(normalizeMealSelection).filter(Boolean).map(selection => {
+    const recipe = getAllRecipes().find(recipe => recipe.id === selection.recipeId);
+    return recipe ? scaleRecipeForPortions(recipe, selection.portions) : null;
+  }).filter(Boolean);
   const requiredList = buildShoppingList(recipes, STATE.pantry);
 
   if (requiredList.length === 0) {
@@ -132,7 +144,7 @@ export function renderPlannerShoppingList() {
         <input type="checkbox" style="accent-color: var(--accent);">
         ${ingredientLabel(ing.name)}
       </div>
-      <span style="color: var(--text-muted);">${Math.round(ing.amount * 100) / 100} ${escapeHtml(ing.unit)}</span>
+      <span style="color: var(--text-muted);">${escapeHtml(formatIngredientAmount(ing))}</span>
     `;
 
     // Toggle cross-off state on selection

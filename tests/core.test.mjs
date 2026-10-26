@@ -12,6 +12,7 @@ import { fetchIngredientNutrition, fetchCustomRecipe } from '../ai.js';
 import { AI_PROVIDERS } from '../modules/ai-providers.js';
 import { APP_CONFIG } from '../modules/app-config.js';
 import { parseRecipeDraftFromText } from '../modules/recipe-voice.js';
+import { recipeSearchCompletion, recipeSearchSources } from './ai-fixtures.mjs';
 
 let stepId = 0;
 const step = (cook, duration, stepType = 'Cook') => ({ id: `test-${++stepId}`, title: 'Stir tomato', attention: 'active', dependsOn: [], item: 'Tomato', action: 'Stir in pan', cook, duration, stepType });
@@ -134,7 +135,7 @@ test('offline merge preserves unrelated records created on another device', () =
   local.scheduledMeals['Friday-Dinner'] = recipe.id;
   const merged = mergePendingState(remote, base, local);
   assert.equal(merged.customRecipes.length, 2);
-  assert.equal(merged.scheduledMeals['Friday-Dinner'], 'demo');
+  assert.deepEqual(merged.scheduledMeals['Friday-Dinner'], { recipeId: 'demo', portions: 1 });
 });
 
 test('malformed legacy storage is isolated and account API keys never leak', () => {
@@ -189,6 +190,11 @@ test('database adapter skips identical saves, replaces meals and enforces accoun
   const loaded = await backend.loadUserState('a');
   assert.equal(loaded.customRecipes[0].id, 'demo');
   assert.equal(backend.needsMigration('a'), false);
+  const cooking = { activeTimers: [{ id: 'tea', deadline: 90000, totalDuration: 60 }], playSession: null };
+  await backend.saveUserState('a', { ...payload, cooking });
+  assert.deepEqual((await backend.loadUserState('a')).cooking, cooking);
+  await backend.saveUserState('a', payload);
+  assert.equal(mock.records.has('users/a/app/cooking'), false);
 });
 
 test('backend batches large collections and commits migration marker last', async () => {
@@ -207,7 +213,7 @@ test('unconfigured cloud backend does not load external scripts', async () => {
 
 
 const aiNutrition = { calories: 100, protein_g: 2, carbs_g: 20, fat_g: 1, fiber_g: 1 };
-const aiRecipe = { stepSchemaVersion: 2, title: 'Demo', description: 'Demo recipe', category: 'Dinner', prepTime: 1, cookTime: 2, servings: 2, tags: ['Vegan'], ingredients: recipe.ingredients, steps: recipe.steps.map(s => ({ ...s, text: s.action })) };
+const aiRecipe = { stepSchemaVersion: 2, title: 'Demo', description: 'Demo recipe', category: 'Dinner', difficulty: 'Easy', prepTime: 1, cookTime: 2, servings: 2, tags: ['Vegan'], ingredients: recipe.ingredients, steps: recipe.steps.map(s => ({ ...s, actionType: 'Stir', text: s.action })) };
 const completion = (provider, content, truncated = false) => provider === 'gemini'
   ? { candidates: [{ finishReason: truncated ? 'MAX_TOKENS' : 'STOP', content: { parts: [{ thought: true, text: 'ignore this' }, { text: content }] } }] }
   : { choices: [{ finish_reason: truncated ? 'length' : 'stop', message: { content } }] };
@@ -219,21 +225,23 @@ for (const [provider, config] of Object.entries(AI_PROVIDERS)) {
     globalThis.fetch = async (url, options) => {
       requests.push([url, options]);
       const payload = JSON.parse(options.body);
+      if (payload.tools) return { ok: true, json: async () => recipeSearchCompletion(provider) };
       const schema = provider === 'gemini' ? payload.generationConfig.responseJsonSchema : payload.response_format.json_schema.schema;
       return { ok: true, json: async () => completion(provider, JSON.stringify(schema.properties.calories ? aiNutrition : aiRecipe)) };
     };
     try {
       assert.deepEqual(await fetchIngredientNutrition('secret', { name: 'Rice', quantity: 1, unit: 'cup' }, provider), aiNutrition);
-      assert.deepEqual(await fetchCustomRecipe('secret', { ingredients: ['Rice'], cookCount: 2 }, provider), aiRecipe);
-      assert.equal(requests.length, 2);
+      assert.deepEqual(await fetchCustomRecipe('secret', { description: 'A simple rice dinner', cookCount: 2 }, provider), { ...aiRecipe, sources: recipeSearchSources, ...(provider === 'gemini' ? { searchAttribution: '<div>Search suggestions</div>' } : {}) });
+      assert.equal(requests.length, 3);
       for (const [url, options] of requests) {
-        assert.equal(url, config.endpoint);
+        const payload = JSON.parse(options.body);
+        assert.equal(url, provider === 'openai' && payload.tools ? 'https://api.openai.com/v1/responses' : config.endpoint);
         assert.equal(url.includes('secret'), false);
         assert.equal(options.method, 'POST');
         assert.equal(options.headers['Content-Type'], 'application/json');
         assert.ok(options.signal instanceof AbortSignal);
         assert.equal(options.body.includes('secret'), false);
-        const payload = JSON.parse(options.body);
+        if (payload.tools) continue;
         let schema;
         if (provider === 'gemini') {
           assert.equal(options.headers['x-goog-api-key'], 'secret');
@@ -262,7 +270,7 @@ for (const [provider, config] of Object.entries(AI_PROVIDERS)) {
         };
         verifySchema(schema);
       }
-      const payload = JSON.parse(requests[1][1].body);
+      const payload = JSON.parse(requests.at(-1)[1].body);
       assert.match(provider === 'gemini' ? payload.contents[0].parts[0].text : payload.messages[1].content, /Primary process.*In parallel process 1/);
     } finally { globalThis.fetch = original; }
   });
@@ -271,14 +279,14 @@ for (const [provider, config] of Object.entries(AI_PROVIDERS)) {
     const original = globalThis.fetch;
     const calls = [
       () => fetchIngredientNutrition('secret', { name: 'Rice', quantity: 1, unit: 'cup' }, provider),
-      () => fetchCustomRecipe('secret', { ingredients: ['Rice'] }, provider)
+      () => fetchCustomRecipe('secret', { description: 'A rice dinner', cookCount: 2 }, provider)
     ];
     try {
       globalThis.fetch = async () => { throw new Error('Must not fetch'); };
       await assert.rejects(() => fetchIngredientNutrition(' ', {}, provider), /API key/);
       for (const [status, pattern] of [[401, /rejected the API key/], [403, /rejected the API key/], [429, /rate limit or quota/], [500, /failed \(500\)/]]) {
         let count = 0;
-        globalThis.fetch = async url => { count++; assert.equal(url, config.endpoint); return { ok: false, status }; };
+        globalThis.fetch = async url => { count++; assert.ok([config.endpoint, 'https://api.openai.com/v1/responses'].includes(url)); return { ok: false, status }; };
         for (const call of calls) await assert.rejects(call, pattern);
         assert.equal(count, 2);
       }
@@ -290,10 +298,10 @@ for (const [provider, config] of Object.entries(AI_PROVIDERS)) {
         ['null', false, /invalid .* format/],
         [JSON.stringify({ ...aiNutrition, calories: '100' }), false, /invalid .* format/]
       ]) {
-        globalThis.fetch = async () => ({ ok: true, json: async () => completion(provider, content, truncated) });
+        globalThis.fetch = async (_url, options) => ({ ok: true, json: async () => JSON.parse(options.body).tools ? recipeSearchCompletion(provider) : completion(provider, content, truncated) });
         for (const call of calls) await assert.rejects(call, pattern);
       }
-      globalThis.fetch = async () => ({ ok: true, json: async () => provider === 'gemini' ? { promptFeedback: { blockReason: 'SAFETY' } } : { choices: [{ message: { refusal: 'Declined' } }] } });
+      globalThis.fetch = async (_url, options) => ({ ok: true, json: async () => JSON.parse(options.body).tools ? recipeSearchCompletion(provider) : provider === 'gemini' ? { promptFeedback: { blockReason: 'SAFETY' } } : { choices: [{ message: { refusal: 'Declined' } }] } });
       for (const call of calls) await assert.rejects(call, /could not complete/);
     } finally { globalThis.fetch = original; }
   });

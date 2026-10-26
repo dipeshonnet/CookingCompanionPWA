@@ -1,3 +1,4 @@
+import { normalizeMealSelection } from './recipe-portions.js';
 import { toCloudRecords, diffCloudRecords } from './cloud-records.js';
 import { FIREBASE_CONFIG } from './firebase-config.js';
 
@@ -37,11 +38,15 @@ export function createBackend(config, sdk = () => globalThis.firebase) {
     const root = db.collection('users').doc(uid);
     const profile = await root.collection('app').doc('profile').get();
     if (profile.exists && profile.data().schemaVersion === 2) {
-      const [pantry, recipes, meals] = await Promise.all(['pantry', 'recipes', 'meals'].map(name => root.collection(name).get()));
+      const [pantry, recipes, meals, cooking] = await Promise.all([
+        ...['pantry', 'recipes', 'meals'].map(name => root.collection(name).get()),
+        root.collection('app').doc('cooking').get()
+      ]);
       const payload = {
         user: profile.data().user || {}, pantry: pantry.docs.map(doc => doc.data()),
         customRecipes: recipes.docs.map(doc => doc.data()),
-        scheduledMeals: Object.fromEntries(meals.docs.map(doc => [decodeURIComponent(doc.id), doc.data().recipeId]))
+        scheduledMeals: Object.fromEntries(meals.docs.map(doc => [decodeURIComponent(doc.id), normalizeMealSelection(doc.data())])),
+        ...(cooking.exists ? { cooking: cooking.data() } : {})
       };
       baselines.set(uid, toCloudRecords(payload));
       return payload;

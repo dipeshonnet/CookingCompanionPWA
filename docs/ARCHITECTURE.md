@@ -10,6 +10,7 @@
 | `user-profile.js`, `profile.js` | Profile normalization and settings UI |
 | `auth.js`, `backend-auth-db.js` | Auth lifecycle and Firebase adapter |
 | `storage.js`, `cloud-records.js` | Device namespaces, migration, save queue, record diff/merge |
+| `recipe-portions.js`, `recipe-portion-data.js`, `portion-controls.js` | Pure portion scaling, explicit included-recipe rules and portion controls |
 | `recipe-domain.js` | Recipe normalization, prep/cook totals and diet filtering |
 | `vegetarian-recipes.js` | 100 original egg-free vegetarian defaults with timed actions |
 | `recipe-personalization.js` | Private recipe upserts, revert and portable import conversion |
@@ -34,7 +35,7 @@ Firestore users/{uid}/
   app/profile        { schemaVersion: 2, user: preferences and likedRecipeIds }
   pantry/{id}        ingredient quantity, unit, category, nutrition estimate
   recipes/{id}       a custom recipe or private default override, ingredients and steps
-  meals/{day-slot}   { recipeId }
+  meals/{day-slot}   { recipeId, portions }
 
 localStorage cook_comp_v2:{guest-or-uid}:{key}
   user / pantry / schedule / custom_recipes / API key
@@ -58,13 +59,13 @@ Firestore rules deny other-user and anonymous access. The database adapter uses 
 - Finishing an action moves it to Completed and unlocks ready dependent work. Returning after a suspended tab starts new actions at the current time; it does not mark unperformed future actions as done.
 - Countdown-only updates retain DOM video nodes. Speech is queued for both cooks, rather than cancelling the first cook's announcement.
 - Muting suppresses voice, beeps, chimes and background music. It does not change timer progression.
-- Sessions and standalone timers are deliberately not restored after reload. They are runtime-only and are not inferred to be running on another device.
+- Cooking snapshots preserve selected portions, ingredient quantities, timed action instructions, and deadlines across reloads. Portion selection is locked during a session; reset before changing it.
 
 ## Boundaries
 
 Nutrition values are AI estimates for an entered quantity, not medical advice or verified laboratory data. Quantity adjustments scale the estimate without extra AI calls. Volume conversions use 240 ml/cup, 15 ml/tbsp, 5 ml/tsp; mass and volume are never cross-converted without ingredient density. Ingredient names must match exactly, ignoring case and surrounding whitespace, to avoid confusing different foods.
 
-Diet filtering uses explicit recipe tags; Low-Carb is not treated as Keto. Custom recipes should have accurate dietary tags. Planner slots retain saved choices when a preference changes; newly selectable recipes and shopping requirements respect the current preference. Review previous assignments after changing diet.
+Diet filtering uses explicit recipe tags; Low-Carb is not treated as Keto. Custom recipes should have accurate dietary tags. Planner slots retain saved choices when a preference changes. Newly selectable recipes respect that preference; shopping includes every assigned meal with its saved portions. Legacy recipe-ID assignments resolve to one person.
 
 The Share action shares the app URL, not private database records. Recipe JSON export/import is the portable recipe-sharing path. Liked recipe IDs persist in the profile; the Recipe Like button shows the liked subset.
 
@@ -83,3 +84,9 @@ Automatic AI video generation is disabled. Previously cached step videos can sti
 ## Verification
 
 `npm test` exercises domain behavior and the database adapter with controlled mock responses. `npm run test:browser` exercises rendered desktop/mobile workflows, reloads, IndexedDB music, selective exports and the offline shell. Live OAuth, Firestore rules enforcement, provider quota behavior, microphone capture, audible output and cross-device synchronization still require configured services and target-device checks. Mocked integration tests do not establish that external services are deployed.
+
+## Portion scaling
+
+The source recipe's `servings` defines its baseline. `scaleRecipeForPortions(recipe, portions)` creates a separate view with scaled ingredients and resolved action text. Scaling an existing view reuses its source. Optional action `scaling` metadata survives normalization, personal editing, and JSON transfer: `quantity` scales repeated preparation, `fixed` preserves cooking/wait times, and `batch` declares baseline yield, capacity, and seconds per batch. Explicit ingredient references and quantity templates keep written amounts consistent without rewriting temperatures or dimensions. Multi-phase batch groups expand as complete dependency-linked cycles. Recipe authors must update `recipe-portion-data.js` when changing included ingredient order or action IDs.
+
+The scheduler applies experience only after portion scaling; unattended actions retain their durations. Unannotated custom actions retain their original text/timing and are identified in the UI. Planner records store `{ recipeId, portions }`, with legacy strings read as one portion; local hydration and cloud record diff/merge understand both. Shopping scales each occurrence before aggregating compatible units and subtracting pantry stock.

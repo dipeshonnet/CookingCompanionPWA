@@ -2,6 +2,8 @@ import { normalizeActionType, inferActionType } from './action-types.js';
 import { STATE, FALLBACK_RECIPE_IMAGE } from './state.js';
 import { cleanText, toNonNegativeNumber } from './utils.js';
 import { APP_RECIPES } from '../recipes.js';
+import { normalizeRecipeSources } from './recipe-sources.js';
+import { retainPortionSource } from './recipe-portions.js';
 
 export function recipeMatchesDietPreference(recipe, preference = STATE.user.dietPreference || "None") {
   if (!preference || preference === "None") return true;
@@ -92,6 +94,7 @@ export function normalizeStep(step, index, cookCount = 1) {
 
   return {
     id: cleanText(step.id) || `action-${index + 1}`,
+    ...(normalizeStepScaling(step.scaling) ? { scaling: normalizeStepScaling(step.scaling) } : {}),
     title: cleanText(step.title) || action.split(/[.!?]/)[0].split(/\s+/).slice(0, 8).join(' '),
     dependsOn: Array.isArray(step.dependsOn) ? step.dependsOn.map(cleanText) : [],
     attention: step.attention === 'passive' ? 'passive' : 'active',
@@ -137,10 +140,12 @@ export function normalizeRecipeForStorage(recipe) {
     })
     : [];
 
-  return {
+  return retainPortionSource({
     stepSchemaVersion: recipe.stepSchemaVersion === 2 ? 2 : 1,
     ...(isPersonalRecipe(recipe) ? { baseRecipeId: recipe.id } : {}),
     ...(recipe.imageCredit ? { imageCredit: cleanText(recipe.imageCredit).slice(0, 2000) } : {}),
+    ...(recipe.sources ? { sources: normalizeRecipeSources(recipe.sources) } : {}),
+    ...(typeof recipe.searchAttribution === 'string' && recipe.searchAttribution ? { searchAttribution: recipe.searchAttribution.slice(0, 50000) } : {}),
     id: cleanText(recipe.id).slice(0, 200) || crypto.randomUUID(),
     title: cleanText(recipe.title).slice(0, 200) || 'Untitled Recipe',
     description: cleanText(recipe.description).slice(0, 10000),
@@ -151,12 +156,37 @@ export function normalizeRecipeForStorage(recipe) {
     image: safeImageSource(recipe.image),
     rating: toNonNegativeNumber(recipe.rating, 4.7),
     ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients.filter(i => i && i.name).slice(0, 500).map(i => ({
-      name: cleanText(i.name).slice(0, 200), amount: toNonNegativeNumber(i.amount), unit: cleanText(i.unit || 'pcs')
+      name: cleanText(i.name).slice(0, 200), amount: toNonNegativeNumber(i.amount), unit: cleanText(i.unit || 'pcs'),
+      ...(Number.isFinite(i.gramsPerPiece) && i.gramsPerPiece > 0 ? { gramsPerPiece: i.gramsPerPiece, pieceLabel: cleanText(i.pieceLabel).slice(0, 100) } : {})
     })) : [],
     tags: Array.isArray(recipe.tags) && recipe.tags.length ? recipe.tags.map(tag => cleanText(tag)).slice(0, 30) : ["Custom"],
     steps,
     ...deriveRecipeTimes(steps)
-  };
+  }, recipe);
+}
+
+export function normalizeStepScaling(value) {
+  if (!value || !['fixed', 'quantity', 'batch'].includes(value.mode)) return null;
+  const result = { mode: value.mode };
+  if (value.mode === 'batch' && typeof value.group === 'string') result.group = value.group.slice(0, 100);
+  if (typeof value.aliasOf === 'string') result.aliasOf = value.aliasOf.slice(0, 200);
+  if (value.mode === 'batch') {
+    if (![value.yield, value.capacity, value.secondsPerBatch].every(n => Number.isFinite(n) && n > 0)) return null;
+    Object.assign(result, { yield: value.yield, capacity: value.capacity, secondsPerBatch: value.secondsPerBatch, yieldLabel: cleanText(value.yieldLabel).slice(0, 100) });
+  }
+  if (Array.isArray(value.ingredients)) result.ingredients = value.ingredients.filter(i => Number.isInteger(i) && i >= 0 && i < 500).slice(0, 500);
+  if (typeof value.template === 'string' && Array.isArray(value.quantities)) {
+    const references = value.quantities.slice(0, 100).map(ref => ({
+      ...(Number.isInteger(ref?.ingredient) && ref.ingredient >= 0 && ref.ingredient < 500 ? { ingredient: ref.ingredient } : { amount: toNonNegativeNumber(ref?.amount) }),
+      ...(Number.isFinite(ref?.fraction) && ref.fraction >= 0 ? { fraction: ref.fraction } : {}),
+      ...(typeof ref?.unit === 'string' ? { unit: cleanText(ref.unit).slice(0, 30) } : {})
+    }));
+    if ([...value.template.matchAll(/\{(\d+)\}/g)].every(match => Number(match[1]) < references.length)) {
+      result.template = value.template.slice(0, 10000);
+      result.quantities = references;
+    }
+  }
+  return result;
 }
 
 export function validateRecipeSteps(steps) {

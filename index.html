@@ -447,12 +447,10 @@
               </div>
 
               <div class="ai-controls">
-                <!-- Ingredient Selection -->
                 <div class="form-group">
-                  <label>Select Ingredients to Use</label>
-                  <div class="pantry-selection-grid" id="ai-selectable-ingredients">
-                    <!-- Interactive chips toggled here -->
-                  </div>
+                  <label for="ai-recipe-description">What would you like to cook?</label>
+                  <textarea id="ai-recipe-description" class="form-control" rows="3" maxlength="2000" required aria-describedby="ai-recipe-description-help" placeholder="e.g., A comforting South Indian dinner for two, with a mild curry and rice"></textarea>
+                  <small id="ai-recipe-description-help">Describe a dish, cuisine, occasion, or meal idea. AI will search recipe websites for ingredients and methods, then build your cooking plan.</small>
                 </div>
 
                 <!-- Recipe style preferences -->
@@ -483,10 +481,15 @@
                     <input id="ai-cook-count" class="form-control" type="number" min="1" max="500" step="1" value="1">
                     <small>Include the primary process and each parallel process.</small>
                   </div>
+                  <div class="form-group">
+                    <label for="ai-available-cooks">Number of cooks</label>
+                    <select id="ai-available-cooks" class="form-control"><option value="1">1 cook</option><option value="2">2 cooks</option></select>
+                    <small>Independent actions can overlap with two cooks. Unattended waits free either cook for other work.</small>
+                  </div>
                 </div>
 
                 <button id="ai-generate-btn" class="btn-primary" style="margin-top: 10px; padding: 16px;" type="button">
-                  <i data-lucide="wand-2"></i> Generate AI Recipe
+                  <i data-lucide="wand-2"></i> Find &amp; Draft Recipe
                 </button>
               </div>
             </div>
@@ -494,8 +497,8 @@
             <!-- Dynamic loader -->
             <div class="ai-loading-box" id="ai-loader">
               <div class="ai-pulse-sphere"></div>
-              <h2 style="font-family: var(--font-title); font-size: 20px;">AI is drafting your recipe...</h2>
-              <p style="color: var(--text-muted); font-size: 14px; max-width: 400px; margin: 0 auto;">Structuring ingredients, step details, cook assignments, and timers.</p>
+              <h2 id="ai-loader-title" role="status" style="font-family: var(--font-title); font-size: 20px;">Searching recipe websites...</h2>
+              <p style="color: var(--text-muted); font-size: 14px; max-width: 400px; margin: 0 auto;">Finding ingredients and methods, then splitting actions with tags, prerequisites, cook assignments, and timers.</p>
             </div>
 
             <!-- Rendered AI Recipe Output -->
@@ -530,6 +533,7 @@
               <label for="play-recipe-select">Choose Recipe</label>
               <select id="play-recipe-select" class="form-control"></select>
             </div>
+            <div class="form-group portion-field"><label for="play-portions">Portions</label><div class="portion-control"><button type="button" class="btn-secondary" data-portion-target="play-portions" data-portion-delta="-1" aria-label="Decrease portions" disabled>−</button><input id="play-portions" class="form-control" type="number" min="1" step="1" value="1" aria-describedby="play-portions-hint"><button type="button" class="btn-secondary" data-portion-target="play-portions" data-portion-delta="1" aria-label="Increase portions">+</button></div><small id="play-portions-hint">1 portion serves 1 person.</small></div>
             <div class="form-group" style="margin-bottom:0"><label for="play-cook-count">Number of cooks</label><select id="play-cook-count" class="form-control"><option value="1">1 cook</option><option value="2">2 cooks</option></select></div>
             <button id="play-recipe-start-btn" class="btn-primary" type="button"><i data-lucide="play"></i> Play</button>
             <button id="play-recipe-reset-btn" class="btn-secondary" type="button"><i data-lucide="rotate-ccw"></i> Reset</button>
@@ -537,6 +541,8 @@
         </div>
 
         <p id="play-cook-status" role="status"></p>
+        <p id="play-portion-note" role="status"></p>
+        <details class="glass-card play-ingredients"><summary>Ingredients for selected portions</summary><ul id="play-portion-ingredients"></ul></details>
         <div id="play-recipe-timeline" class="glass-card recipe-timeline"></div>
         <div class="play-board-grid">
           <div class="glass-card play-column">
@@ -694,20 +700,23 @@
           <button id="modal-btn-revert-recipe" type="button" class="btn-secondary" hidden>Revert to default</button>
         </div>
         <p id="modal-description" style="color: var(--text-muted); font-size: 15px; margin-bottom: 24px;">Recipe description goes here.</p>
+        <div id="modal-recipe-sources"></div>
 
         <div class="modal-meta-row">
           <div class="modal-meta-tag"><i data-lucide="clock" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px;"></i> <span id="modal-prep">Prep: 10m</span></div>
           <div class="modal-meta-tag"><i data-lucide="chef-hat" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px;"></i> <span id="modal-cook">Cook: 15m</span></div>
           <div class="modal-meta-tag" style="display: flex; align-items: center; gap: 8px;">
             <i data-lucide="users" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px;"></i>
-            <span>Servings:</span>
-            <button id="modal-servings-dec" class="btn-icon" style="width: 20px; height: 20px; border-radius: 4px; padding: 0; font-size: 11px; line-height: 1;" aria-label="Decrease servings">-</button>
-            <span id="modal-servings" style="font-weight: 700;">2</span>
-            <button id="modal-servings-inc" class="btn-icon" style="width: 20px; height: 20px; border-radius: 4px; padding: 0; font-size: 11px; line-height: 1;" aria-label="Increase servings">+</button>
+            <label for="modal-servings">Portions:</label>
+            <button id="modal-servings-dec" class="btn-icon" style="width: 20px; height: 20px; border-radius: 4px; padding: 0; font-size: 11px; line-height: 1;" type="button" aria-label="Decrease portions">-</button>
+            <input id="modal-servings" class="form-control portion-input" type="number" min="1" step="1" value="1" aria-describedby="modal-portions-hint">
+            <button id="modal-servings-inc" class="btn-icon" style="width: 20px; height: 20px; border-radius: 4px; padding: 0; font-size: 11px; line-height: 1;" type="button" aria-label="Increase portions">+</button>
           </div>
           <div class="modal-meta-tag"><i data-lucide="star" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px; color: var(--accent);"></i> <span id="modal-rating">4.9</span></div>
         </div>
 
+        <p id="modal-portions-hint">1 portion serves 1 person.</p>
+        <p id="modal-portion-timing-note" class="portion-timing-note" role="status"></p>
         <div class="modal-grid">
           <!-- Column 1: Ingredients -->
           <div>
@@ -787,6 +796,8 @@
           <!-- Options rendered dynamically -->
         </select>
       </div>
+
+      <div class="form-group portion-field"><label for="schedule-portions">Portions</label><div class="portion-control"><button type="button" class="btn-secondary" data-portion-target="schedule-portions" data-portion-delta="-1" aria-label="Decrease portions" disabled>−</button><input id="schedule-portions" class="form-control" type="number" min="1" step="1" value="1" aria-describedby="schedule-portions-hint"><button type="button" class="btn-secondary" data-portion-target="schedule-portions" data-portion-delta="1" aria-label="Increase portions">+</button></div><small id="schedule-portions-hint">1 portion serves 1 person.</small></div>
 
       <div style="display: flex; gap: 12px; justify-content: flex-end;">
         <button id="btn-select-meal-cancel" class="btn-secondary" style="padding: 8px 16px;">Cancel</button>

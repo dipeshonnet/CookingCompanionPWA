@@ -8,13 +8,14 @@ export const STATE = {
 export const STORAGE_KEYS = {
   USER: 'cook_comp_user', PANTRY: 'cook_comp_pantry', SCHEDULE: 'cook_comp_schedule',
   CUSTOM_RECIPES: 'cook_comp_custom_recipes', AI_PROVIDER: 'cook_comp_ai_provider',
+  COOKING: 'cook_comp_cooking',
   GROQ_KEY: 'cook_comp_groq_key', GEMINI_KEY: 'cook_comp_gemini_key', OPENAI_KEY: 'cook_comp_openai_key',
   PLAY_VIDEO_CACHE: 'cook_comp_play_video_cache'
 };
 
 export const RUNTIME = {
   recipeEditContext: null,
-  activeModalRecipe: null, activeModalServingsCount: 2, activeModalServingsMultiplier: 1,
+  activeModalRecipe: null, activeModalServingsCount: 1, activeModalServingsMultiplier: 1,
   recipeSpeechRecognition: null, recipeSpeechIsListening: false, recipeExploreVisible: false,
   lastGeneratedRecipeObj: null, playVideoCache: {}, playMusicAudio: null,
   playMusicTrack: { name: '', url: '' }, authUnsubscribe: null, currentAuthUid: '',

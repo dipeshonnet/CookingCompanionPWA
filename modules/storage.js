@@ -1,3 +1,4 @@
+import { normalizeMealSelection } from './recipe-portions.js';
 import { BackendAuthDB } from './backend-auth-db.js';
 import { restorePlayBackgroundMusic, stopPlayBackgroundMusic } from './play-media.js';
 import { normalizeRecipeForStorage } from './recipe-domain.js';
@@ -5,6 +6,7 @@ import { STATE, STORAGE_KEYS, RUNTIME, CLOUD_SYNC_DEBOUNCE_MS } from './state.js
 import { buildUserProfile } from './user-profile.js';
 import { APP_CONFIG } from './app-config.js';
 import { AI_PROVIDERS, getProviderConfig, updateAiSettingsFields } from './ai-providers.js';
+import { serializeCookingState, restoreCookingState } from './cooking-state.js';
 
 let saveChain = Promise.resolve();
 let revision = 0;
@@ -70,6 +72,11 @@ function migrateLegacyGuest() {
   localStorage.setItem(marker, 'true');
 }
 
+export function normalizeScheduledMeals(schedule) {
+  if (!schedule || typeof schedule !== 'object' || Array.isArray(schedule)) return {};
+  return Object.fromEntries(Object.entries(schedule).map(([slot, value]) => [slot, normalizeMealSelection(value)]).filter(([, value]) => value));
+}
+
 export function loadStateFromStorage(scope = 'guest') {
   RUNTIME.storageScope = scope;
   if (scope === 'guest') migrateLegacyGuest();
@@ -88,9 +95,10 @@ export function loadStateFromStorage(scope = 'guest') {
   if (scope === 'guest') STATE.user.email = '';
   STATE.pantry = normalizePantry(readStored(STORAGE_KEYS.PANTRY, []));
   const schedule = readStored(STORAGE_KEYS.SCHEDULE, {});
-  STATE.scheduledMeals = schedule && typeof schedule === 'object' && !Array.isArray(schedule) ? schedule : {};
+  STATE.scheduledMeals = normalizeScheduledMeals(schedule);
   const recipes = readStored(STORAGE_KEYS.CUSTOM_RECIPES, []);
   STATE.customRecipes = Array.isArray(recipes) ? recipes.filter(r => r && typeof r === 'object' && r.title).map(normalizeRecipeForStorage) : [];
+  hydrateCookingState(readStored(STORAGE_KEYS.COOKING, {}));
   updateAiSettingsFields('ai', getAiProvider(), getApiKey());
   updateAiSettingsFields('profile-ai', getAiProvider(), getApiKey());
   restorePlayBackgroundMusic().catch(error => console.warn('Local music unavailable:', error));
@@ -99,15 +107,25 @@ export function loadStateFromStorage(scope = 'guest') {
 export function hydrateStateFromPayload(payload = {}) {
   STATE.user = buildUserProfile({ ...STATE.user, ...payload.user, loggedIn: STATE.user.loggedIn });
   STATE.pantry = normalizePantry(payload.pantry);
-  STATE.scheduledMeals = payload.scheduledMeals && !Array.isArray(payload.scheduledMeals) ? payload.scheduledMeals : {};
+  STATE.scheduledMeals = normalizeScheduledMeals(payload.scheduledMeals);
   STATE.customRecipes = Array.isArray(payload.customRecipes) ? payload.customRecipes.filter(r => r && r.title).map(normalizeRecipeForStorage) : [];
+  hydrateCookingState(payload.cooking);
+}
+
+function hydrateCookingState(saved) {
+  STATE.activeTimers.forEach(timer => clearInterval(timer.intervalId));
+  clearInterval(RUNTIME.playSession.intervalId);
+  const cooking = restoreCookingState(saved);
+  STATE.activeTimers = cooking.activeTimers;
+  RUNTIME.playSession = cooking.playSession;
 }
 
 export function getPersistentState() {
   const { loggedIn, email, ...user } = STATE.user;
   return JSON.parse(JSON.stringify({ user,
     pantry: STATE.pantry.map(({ nutritionLoading, nutritionRequestId, ...item }) => item),
-    scheduledMeals: STATE.scheduledMeals, customRecipes: STATE.customRecipes
+    scheduledMeals: STATE.scheduledMeals, customRecipes: STATE.customRecipes,
+    cooking: serializeCookingState(STATE.activeTimers, RUNTIME.playSession)
   }));
 }
 
@@ -115,7 +133,8 @@ export function saveStateToStorage({ sync = true } = {}) {
   try {
     const data = getPersistentState();
     const records = [[STORAGE_KEYS.USER, data.user], [STORAGE_KEYS.PANTRY, data.pantry],
-      [STORAGE_KEYS.SCHEDULE, data.scheduledMeals], [STORAGE_KEYS.CUSTOM_RECIPES, data.customRecipes]];
+      [STORAGE_KEYS.SCHEDULE, data.scheduledMeals], [STORAGE_KEYS.CUSTOM_RECIPES, data.customRecipes],
+      [STORAGE_KEYS.COOKING, data.cooking]];
     // Mark pending work before writing recipes: a full storage quota must not
     // persist a new recipe and then report its save as failed at the dirty flag.
     if (sync && RUNTIME.currentAuthUid) localStorage.setItem(scopedStorageKey('dirty'), 'true');

@@ -64,7 +64,7 @@ try {
   await page.locator('[data-view="dashboard"]').click();
   check('dashboard recommendations use the personal title', (await page.locator('#dashboard-recommendations').innerText()).includes('My Poha'));
   await page.locator('[data-view="planner"]').click();
-  check('planner and shopping list use personal version', (await page.locator('#meal-planner-week-grid').innerText()).includes('My Poha') && (await page.locator('#planner-shopping-list').innerText()).includes('3 cups'));
+  check('planner and shopping list use personal version', (await page.locator('#meal-planner-week-grid').innerText()).includes('My Poha') && (await page.locator('#planner-shopping-list').innerText()).includes('1½ cups'));
   await openRecipe('handpicked-poha');
   check('personal details preserve attribution', (await page.locator('#modal-image-credit').innerText()).includes('CC BY-SA'));
   await page.locator('#modal-btn-start-parallel-timers').click();
@@ -147,6 +147,7 @@ try {
     (await import('/modules/backend-auth-db.js')).BackendAuthDB.loadUserState = window.personalOriginalLoad;
   });
   check('device-only versions stay separate from account versions', await effectiveTitle('handpicked-poha') === 'My Poha Updated');
+  await page.locator('#btn-login-local').click();
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
   await context.setOffline(true);
@@ -160,7 +161,7 @@ try {
   await page.locator('#modal-btn-revert-recipe').click();
   check('offline revert restores the default without losing likes or meal links', await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
-    return (await import('/modules/recipe-domain.js')).getRecipeById('handpicked-poha').title === 'Poha' && STATE.user.likedRecipeIds.includes('handpicked-poha') && STATE.scheduledMeals['Monday-Lunch'] === 'handpicked-poha';
+    return (await import('/modules/recipe-domain.js')).getRecipeById('handpicked-poha').title === 'Poha' && STATE.user.likedRecipeIds.includes('handpicked-poha') && STATE.scheduledMeals['Monday-Lunch'].recipeId === 'handpicked-poha';
   }));
   await context.setOffline(false);
   await page.setViewportSize({ width: 390, height: 844 });

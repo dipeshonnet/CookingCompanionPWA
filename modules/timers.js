@@ -5,6 +5,30 @@ import { getAllRecipes } from './recipe-domain.js';
 import { STATE, RUNTIME } from './state.js';
 import { escapeHtml, formatTimerClock } from './utils.js';
 import { getActiveTimerEntries, getRemainingTimerFraction, renderFloatingTimers, timerOwnerLabel } from './active-timer-summary.js';
+import { saveStateToStorage } from './storage.js';
+
+function tickCookingTimer(timer) {
+  timer.timeLeft = Math.max(0, Math.ceil((timer.deadline - Date.now()) / 1000));
+  if (timer.timeLeft > 0 && timer.timeLeft <= 3 && timer.lastBeep !== timer.timeLeft) {
+    playShortBeep();
+    timer.lastBeep = timer.timeLeft;
+  }
+  if (timer.timeLeft <= 0) {
+    clearInterval(timer.intervalId);
+    STATE.activeTimers = STATE.activeTimers.filter(t => t.id !== timer.id);
+    saveStateToStorage();
+    triggerTimerFinishedAlert(timer);
+  }
+  renderActiveTimers();
+}
+
+export function resumeCookingTimers() {
+  for (const timer of [...STATE.activeTimers]) {
+    clearInterval(timer.intervalId);
+    tickCookingTimer(timer);
+    if (timer.timeLeft > 0) timer.intervalId = setInterval(() => tickCookingTimer(timer), 1000);
+  }
+}
 
 export function startCookingTimer(recipeTitle, stepIdx, durationSeconds, cookName = "Cook 1", stepLabel = "", options = {}) {
   const timerMultiplier = getExperienceTimerMultiplier();
@@ -36,23 +60,10 @@ export function startCookingTimer(recipeTitle, stepIdx, durationSeconds, cookNam
     intervalId: null
   };
 
-  newTimer.intervalId = setInterval(() => {
-    newTimer.timeLeft = Math.max(0, Math.ceil((newTimer.deadline - Date.now()) / 1000));
-    if (newTimer.timeLeft > 0 && newTimer.timeLeft <= 3 && newTimer.lastBeep !== newTimer.timeLeft) {
-      playShortBeep();
-      newTimer.lastBeep = newTimer.timeLeft;
-    }
-    
-    if (newTimer.timeLeft <= 0) {
-      clearInterval(newTimer.intervalId);
-      triggerTimerFinishedAlert(newTimer);
-      STATE.activeTimers = STATE.activeTimers.filter(t => t.id !== newTimer.id);
-    }
-    
-    renderActiveTimers();
-  }, 1000);
+  newTimer.intervalId = setInterval(() => tickCookingTimer(newTimer), 1000);
 
   STATE.activeTimers.push(newTimer);
+  saveStateToStorage();
   speakPlayStep({ cook: cookName, title: stepLabel, item: stepLabel || `Step ${stepIdx + 1}`, attention: options.attention, action: options.action || recipeTitle });
   renderActiveTimers();
   if (!options.silent) alert(`Started timer: ${stepLabel || `Step ${stepIdx + 1}`}.`);
@@ -87,6 +98,7 @@ export function cancelActiveTimer(timerId) {
   if (timer) {
     clearInterval(timer.intervalId);
     STATE.activeTimers = STATE.activeTimers.filter(t => t.id !== timerId);
+    saveStateToStorage();
     renderActiveTimers();
   }
 }

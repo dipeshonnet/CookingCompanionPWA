@@ -6,33 +6,19 @@ import { escapeHtml } from './utils.js';
 import { fetchCustomRecipe } from '../ai.js';
 import { getProviderConfig } from './ai-providers.js';
 import { ingredientLabel } from './ingredient-images.js';
-
-export function renderAIIngredientSelector() {
-  const selectableGrid = document.getElementById("ai-selectable-ingredients");
-  if (!selectableGrid) return;
-
-  selectableGrid.innerHTML = "";
-
-  if (STATE.pantry.length === 0) {
-    selectableGrid.innerHTML = `<p class="empty-state" style="color: var(--text-dim); font-size: 13px;">Add ingredients to your Pantry first to select them here.</p>`;
-    return;
-  }
-
-  STATE.pantry.forEach(item => {
-    if (['Vegetarian', 'Vegan'].includes(STATE.user.dietPreference) && ['Meat', 'Seafood'].includes(item.category)) return;
-    if (STATE.user.dietPreference === 'Vegan' && item.category === 'Dairy') return;
-    const chip = document.createElement("span");
-    chip.className = "selectable-tag";
-    chip.dataset.ingredientName = item.name;
-    chip.innerHTML = ingredientLabel(item.name);
-    chip.addEventListener("click", () => {
-      chip.classList.toggle("selected");
-    });
-    selectableGrid.appendChild(chip);
-  });
-}
+import { recipeSourcesHtml, searchAttributionHtml } from './recipe-sources.js';
+import { renderRecipeTimeline } from './recipe-timeline.js';
 
 export async function handleAIGeneration() {
+  const generateBtn = document.getElementById("ai-generate-btn");
+  if (generateBtn.disabled) return;
+  const descriptionInput = document.getElementById('ai-recipe-description');
+  const description = descriptionInput.value.trim();
+  if (!description || !descriptionInput.checkValidity()) {
+    alert('Describe the dish or meal you would like to cook (up to 2,000 characters).');
+    descriptionInput.focus();
+    return;
+  }
   const scope = RUNTIME.storageScope;
   const provider = getAiProvider();
   const apiKey = getApiKey(provider);
@@ -41,23 +27,17 @@ export async function handleAIGeneration() {
     return;
   }
 
-  const selectedChips = document.querySelectorAll("#ai-selectable-ingredients .selectable-tag.selected");
-  const selectedIngredients = Array.from(selectedChips).map(c => c.dataset.ingredientName);
-  
-  if (selectedIngredients.length === 0) {
-    alert("Please select at least one ingredient chip to guide the AI!");
-    return;
-  }
-
   const dietPref = document.getElementById("ai-diet-preference").value;
   const requestedDiet = STATE.user.dietPreference !== 'None' ? STATE.user.dietPreference : dietPref;
   const difficulty = document.getElementById("ai-difficulty").value;
   const cookCount = normalizeProcessCount(document.getElementById("ai-cook-count")?.value);
+  const availableCooks = Number(document.getElementById('ai-available-cooks').value) === 2 ? 2 : 1;
 
   const loader = document.getElementById("ai-loader");
   const resultPanel = document.getElementById("ai-result-panel");
-  const generateBtn = document.getElementById("ai-generate-btn");
-  
+  const loaderTitle = document.getElementById('ai-loader-title');
+  RUNTIME.lastGeneratedRecipeObj = null;
+  loaderTitle.textContent = 'Searching recipe websites...';
   loader.style.display = "flex";
   resultPanel.style.display = "none";
   generateBtn.disabled = true;
@@ -65,11 +45,15 @@ export async function handleAIGeneration() {
 
   try {
     const generatedData = await fetchCustomRecipe(apiKey, {
-      ingredients: selectedIngredients,
+      description,
       dietary: requestedDiet,
       complexity: difficulty,
-      cookCount
-    }, provider);
+      cookCount,
+      availableCooks
+    }, provider, { onProgress: () => {
+      if (scope !== RUNTIME.storageScope || provider !== getAiProvider()) return false;
+      loaderTitle.textContent = 'Building your cooking plan...';
+    } });
     if (scope !== RUNTIME.storageScope || provider !== getAiProvider()) return;
 
     if (generatedData) {
@@ -85,7 +69,9 @@ export async function handleAIGeneration() {
       body.innerHTML = `
         <p style="font-style: italic; color: var(--text-muted); margin-bottom: 20px;">${escapeHtml(normalizedGenerated.description)}</p>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        ${recipeSourcesHtml(normalizedGenerated.sources)}
+        ${searchAttributionHtml(normalizedGenerated.searchAttribution)}
+        <div class="ai-recipe-summary">
           <div>
             <h4 style="font-size: 15px; margin-bottom: 10px; color: var(--accent);"><i data-lucide="shopping-cart"></i> Ingredients Needed</h4>
             <ul class="ingredients-list">
@@ -103,23 +89,32 @@ export async function handleAIGeneration() {
           </div>
         </div>
 
+        <div class="form-group"><label for="ai-preview-cook-count">Preview cooking with</label><select id="ai-preview-cook-count" class="form-control"><option value="1" ${availableCooks === 1 ? 'selected' : ''}>1 cook</option><option value="2" ${availableCooks === 2 ? 'selected' : ''}>2 cooks</option></select></div>
+        <div id="ai-recipe-timeline" class="recipe-timeline"></div>
         <h4 style="font-size: 15px; margin-bottom: 12px; color: var(--accent);"><i data-lucide="list-ordered"></i> Preparation Directions</h4>
         <div class="steps-list">
-          ${normalizedGenerated.steps.map((s, idx) => `
+          ${normalizedGenerated.steps.map(s => `
             <div class="step-card">
               <div class="step-card-header">
                 <span class="step-card-num">${escapeHtml(s.title)}</span>
-                <span style="display: flex; gap: 8px; align-items: center;">
+                <span style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <span class="cook-pill">${escapeHtml(s.actionType)}</span>
+                  <span class="cook-pill">${escapeHtml(s.stepType)}</span>
                   ${normalizedGenerated.cookCount > 1 ? `<span class="cook-pill">${escapeHtml(processLabel(s.cook))}</span>` : ""}
                   <span class="step-duration-pill">${formatDurationLabel(s.duration)}</span>
                   <span class="cook-pill">${s.attention === 'passive' ? 'Unattended' : 'Hands-on'}</span>
                 </span>
               </div>
               <p class="step-detail-text"><span class="step-detail-item">${ingredientLabel(s.item)}:</span> ${escapeHtml(s.action)}</p>
+              <p class="step-prerequisites">Prerequisites: ${s.dependsOn.length ? s.dependsOn.map(id => escapeHtml(normalizedGenerated.steps.find(step => step.id === id).title)).join(', ') : 'None — independent action'}</p>
             </div>
           `).join("")}
         </div>
       `;
+      const previewCooks = document.getElementById('ai-preview-cook-count');
+      const renderTimeline = () => renderRecipeTimeline('ai-recipe-timeline', normalizedGenerated, { availableCooks: Number(previewCooks.value) });
+      previewCooks.addEventListener('change', renderTimeline);
+      renderTimeline();
 
       resultPanel.style.display = "block";
       resultPanel.scrollIntoView({ behavior: "smooth" });
@@ -141,7 +136,7 @@ export function saveGeneratedRecipeToExplore() {
   const finalRecipe = normalizeRecipeForStorage({
     ...RUNTIME.lastGeneratedRecipeObj,
     id: "ai-" + Date.now(),
-    rating: 4.8,
+    rating: 0,
     image: RUNTIME.lastGeneratedRecipeObj.image || FALLBACK_RECIPE_IMAGE,
     tags: ["AI-Generated", ...(RUNTIME.lastGeneratedRecipeObj.tags || [])]
   });

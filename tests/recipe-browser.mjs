@@ -37,6 +37,18 @@ try {
   await timeline.locator('[data-timeline-action="rinse"]').focus();
   await page.keyboard.press('Enter');
   check('Gantt bars expose action details with keyboard', (await timeline.locator('.timeline-selection').innerText()).includes('Prerequisites: None'));
+  await timeline.locator('[data-timeline-action="drain"]').click();
+  check('selection highlights the action and its prerequisites', await timeline.locator('[data-timeline-action="drain"]').getAttribute('aria-pressed') === 'true' && await timeline.locator('[data-timeline-row="rinse"]').evaluate(row => row.classList.contains('prerequisite')) && await timeline.locator('.timeline-links > path.highlighted').count() > 0);
+  const overviewWidth = await timeline.locator('.timeline-canvas').evaluate(canvas => canvas.offsetWidth);
+  await timeline.locator('[data-timeline-zoom="detail"]').click();
+  check('detail scale gives short actions more space', await timeline.locator('.timeline-canvas').evaluate(canvas => canvas.offsetWidth) > overviewWidth);
+  const labelLeft = await timeline.locator('.timeline-action-label').first().evaluate(label => label.getBoundingClientRect().left);
+  await timeline.locator('.timeline-scroll').evaluate(scroll => { scroll.scrollLeft = 280; });
+  check('action labels stay frozen while the time grid scrolls', Math.abs(await timeline.locator('.timeline-action-label').first().evaluate(label => label.getBoundingClientRect().left) - labelLeft) < 1);
+  await timeline.locator('[data-timeline-zoom="overview"]').click();
+  await timeline.locator('.timeline-scroll').evaluate(scroll => { scroll.scrollLeft = 0; });
+  await mkdir('output/playwright', { recursive: true });
+  await timeline.screenshot({ path: 'output/playwright/gantt-preview-desktop.png' });
   await page.locator('#modal-btn-start-parallel-timers').click();
   check('guided action opens player with selected cook count', await page.locator('#view-play').isVisible() && await page.locator('#play-cook-count').inputValue() === '2');
   check('two cooks receive distinct ready hands-on actions', (await page.locator('#play-col-cook1').innerText()).includes('Rinse poha') && (await page.locator('#play-col-cook2').innerText()).includes('Chop onion'));
@@ -69,12 +81,24 @@ try {
   await page.evaluate(() => { const el = document.querySelector('#play-recipe-timeline .timeline-scroll'); el.scrollTop = 140; el.focus(); });
   await page.waitForTimeout(1300);
   check('live timeline preserves expanded dependencies, scrolling and keyboard focus', await page.evaluate(() => document.querySelector('#play-recipe-timeline details').open && document.querySelector('#play-recipe-timeline .timeline-scroll').scrollTop === 140 && document.activeElement.classList.contains('timeline-scroll')));
+  const liveTimeline = page.locator('#play-recipe-timeline');
+  await liveTimeline.locator('[data-timeline-action="soften"]').click();
+  await liveTimeline.locator('[data-timeline-zoom="detail"]').click();
+  await page.waitForTimeout(1300);
+  check('live updates retain selected action, scale and scale-button focus', await liveTimeline.locator('[data-timeline-action="soften"]').getAttribute('aria-pressed') === 'true' && await liveTimeline.getAttribute('data-timeline-zoom') === 'detail' && await page.evaluate(() => document.activeElement.dataset.timelineZoom === 'detail'));
+  await liveTimeline.locator('[data-timeline-zoom="overview"]').click();
   await mkdir('output/playwright', { recursive: true });
   await page.screenshot({ path: 'output/playwright/recipe-dependencies-desktop.png', fullPage: true });
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     await page.waitForTimeout(400);
     check(`player timeline stays contained at ${width}px`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    check(`mobile chart leaves room beside frozen labels at ${width}px`, await liveTimeline.locator('.timeline-scroll').evaluate(scroll => scroll.clientWidth - scroll.querySelector('.timeline-action-label').offsetWidth >= 80));
+    if (width === 390) {
+      await liveTimeline.locator('summary').click();
+      await liveTimeline.locator('.timeline-scroll').evaluate(scroll => { scroll.scrollTop = 0; scroll.scrollLeft = 0; });
+      await liveTimeline.screenshot({ path: 'output/playwright/gantt-preview-mobile.png' });
+    }
   }
   await page.screenshot({ path: 'output/playwright/recipe-dependencies-mobile.png', fullPage: true });
   await page.locator('#play-recipe-reset-btn').click();

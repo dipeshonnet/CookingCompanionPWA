@@ -3,7 +3,12 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function owner(uid) { return request.auth != null && request.auth.uid == uid; }
     match /users/{uid}/app/{document} {
-      allow read: if owner(uid) && document in ['profile', 'pantry', 'schedule', 'recipes', 'state'];
+      allow read: if owner(uid) && document in ['profile', 'pantry', 'schedule', 'recipes', 'state', 'cooking'];
+      allow delete: if owner(uid) && document == 'cooking';
+      allow create, update: if owner(uid) && document == 'cooking'
+        && request.resource.data.keys().hasOnly(['activeTimers', 'playSession'])
+        && request.resource.data.activeTimers is list
+        && (request.resource.data.playSession == null || request.resource.data.playSession is map);
       allow create, update: if owner(uid) && document == 'profile'
         && request.resource.data.keys().hasOnly(['schemaVersion', 'user'])
         && request.resource.data.schemaVersion == 2 && request.resource.data.user is map;

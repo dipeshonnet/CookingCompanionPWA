@@ -1256,6 +1256,17 @@ button:focus-visible, summary:focus-visible {
   gap: 20px;
 }
 
+.ai-controls small { display: block; margin-top: 8px; color: var(--text-muted); line-height: 1.5; }
+.ai-recipe-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-bottom: 24px; }
+.recipe-sources { margin-bottom: 20px; overflow-wrap: anywhere; }
+.recipe-sources p, .step-prerequisites { color: var(--text-muted); font-size: 13px; }
+.recipe-sources ul { padding-left: 20px; }
+.recipe-sources a { color: var(--accent); }
+.recipe-search-attribution { width: 100%; height: 150px; border: 0; margin-bottom: 16px; }
+#ai-recipe-timeline { margin-bottom: 24px; }
+#ai-result-panel .step-card-header { flex-wrap: wrap; }
+@media (max-width: 600px) { .ai-recipe-summary { grid-template-columns: minmax(0, 1fr); } }
+
 .form-group {
   display: flex;
   min-width: 0;
@@ -2257,29 +2268,78 @@ body.has-floating-timers .main-content { padding-bottom: 280px; }
   }
 }
 /* Dependency timeline and action editing */
-.recipe-timeline { margin: 18px 0; min-width: 0; max-width: 100%; }
+.recipe-timeline { --timeline-label-width: 248px; --timeline-track-min: 840px; margin: 18px 0; min-width: 0; max-width: 100%; }
 .recipe-timeline:empty { display: none; }
-.recipe-timeline-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
-.recipe-timeline-header h3 { font-size: 18px; }
-.recipe-timeline-header span, .timeline-legend { color: var(--text-muted); font-size: 12px; }
-.timeline-legend { margin-bottom: 12px; }
-.timeline-scroll { overflow-x: auto; max-height: 540px; overflow-y: auto; border: 1px solid var(--border-glass); border-radius: 10px; }
-.timeline-scroll:focus-visible, .timeline-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.timeline-canvas { position: relative; min-width: 1000px; background: rgba(0,0,0,.1); }
-.timeline-time-axis { position: absolute; left: 220px; right: 20px; top: 12px; display: flex; justify-content: space-between; color: var(--text-muted); font-size: 12px; }
-.timeline-group { position: absolute; left: 12px; right: 12px; height: 38px; padding: 10px; background: var(--bg-card, rgba(255,255,255,.06)); border-bottom: 1px solid var(--border-glass); font-weight: 600; font-size: 13px; }
-.timeline-action-label { position: absolute; left: 12px; width: 196px; height: 42px; font-size: 12px; display: flex; flex-direction: column; justify-content: center; z-index: 2; }
-.timeline-action-label strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.timeline-action-label small { color: var(--text-muted); font-size: 11px; }
-.timeline-bar-row { position: absolute; left: 220px; right: 20px; height: 40px; pointer-events: none; }
-.timeline-bar { position: absolute; top: 7px; height: 27px; min-width: 5px; padding: 0 5px; background: #276b65; color: #fff; border: 1px solid #65c5b8; border-radius: 4px; overflow: hidden; white-space: nowrap; text-align: left; font-size: 11px; pointer-events: auto; }
-.timeline-bar.passive { background: repeating-linear-gradient(45deg, #425a7a, #425a7a 5px, #30435f 5px, #30435f 10px); border-color: #98b4df; }
-.timeline-bar.completed { opacity: .55; }
-.timeline-bar.running { box-shadow: 0 0 0 2px rgba(101,197,184,.35); }
-.timeline-links { position: absolute; left: 220px; top: 0; width: calc(100% - 240px); height: 100%; overflow: visible; pointer-events: none; }
-.timeline-links > path { fill: none; stroke: #a7b4c3; stroke-width: 1; opacity: .65; }
-.timeline-links marker path { fill: #a7b4c3; }
-.timeline-now { position: absolute; top: 40px; bottom: 0; width: 2px; background: #f6c667; pointer-events: none; }
+.recipe-timeline[data-timeline-zoom="detail"] { --timeline-track-min: 1440px; }
+.recipe-timeline-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.recipe-timeline-header h3 { font-size: 21px; line-height: 1.4; }
+.timeline-eyebrow { color: var(--text-muted); font-size: 10px; font-weight: 700; letter-spacing: 1.5px; }
+.timeline-estimate { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border-glass); border-radius: 8px; font-size: 12px; }
+.timeline-estimate span { color: var(--text-muted); }
+.timeline-estimate strong { color: var(--text-main); font-size: 14px; }
+.timeline-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.timeline-legend { display: flex; flex-wrap: wrap; gap: 14px; color: #b8c6d9; font-size: 11px; }
+.timeline-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.timeline-swatch { width: 14px; height: 10px; border-radius: 3px; background: #57d3ba; }
+.timeline-swatch.passive { background: repeating-linear-gradient(135deg, #c4b5fd, #c4b5fd 3px, #7963b5 3px, #7963b5 6px); }
+.timeline-legend-arrow { font-size: 17px; line-height: 10px; font-style: normal; }
+.timeline-zoom { display: inline-flex; padding: 3px; border: 1px solid var(--border-glass); border-radius: 8px; background: #0c1220; }
+.timeline-zoom button { min-height: 32px; padding: 4px 10px; border: 0; border-radius: 5px; background: transparent; color: #aebbd0; font: 500 11px var(--font-body); cursor: pointer; }
+.timeline-zoom button[aria-pressed="true"] { background: #29364b; color: #fff; box-shadow: 0 1px 3px #0003; }
+.timeline-zoom button:hover { color: #fff; }
+.timeline-scroll { overflow: auto; max-height: 540px; border: 1px solid #334155; border-radius: 12px; scrollbar-color: #526078 #111827; scrollbar-width: auto; isolation: isolate; }
+.timeline-scroll:focus-visible, .timeline-bar:focus-visible, .timeline-zoom button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.timeline-canvas { position: relative; min-width: calc(var(--timeline-label-width) + var(--timeline-track-min) + 40px); background: #101725; }
+.timeline-time-axis { position: sticky; top: 0; height: 48px; display: flex; background: #1b2535; border-bottom: 1px solid #3b475b; z-index: 8; font-size: 11px; font-variant-numeric: tabular-nums; }
+.timeline-corner { position: sticky; left: 0; flex: 0 0 var(--timeline-label-width); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: #1b2535; border-right: 1px solid #3b475b; color: #e2e8f0; font-weight: 600; z-index: 1; }
+.timeline-corner span { color: #aebbd0; font-size: 10px; font-weight: 400; }
+.timeline-axis-track { position: relative; flex: 1; margin: 0 20px; }
+.timeline-axis-track > span { position: absolute; top: 15px; transform: translateX(-50%); white-space: nowrap; color: #cbd5e1; }
+.timeline-axis-track > span:first-child { transform: none; }
+.timeline-axis-track > span:last-child { transform: translateX(-100%); }
+.timeline-grid, .timeline-now-track { position: absolute; left: calc(var(--timeline-label-width) + 20px); right: 20px; top: 48px; bottom: 0; pointer-events: none; }
+.timeline-grid i { position: absolute; top: 0; bottom: 0; border-left: 1px dashed #ffffff16; }
+.timeline-color-0 { --lane-color: #5ee0c1; --lane-bg: #164e48; }
+.timeline-color-1 { --lane-color: #93b7ff; --lane-bg: #243e6b; }
+.timeline-color-2 { --lane-color: #f4c575; --lane-bg: #63491e; }
+.timeline-color-3 { --lane-color: #f2a6cb; --lane-bg: #63324e; }
+.timeline-group { position: absolute; left: 0; width: 100%; height: 42px; display: flex; align-items: center; gap: 20px; background: #1a2434; border-top: 1px solid #334155; border-bottom: 1px solid #334155; }
+.timeline-group-label { position: sticky; left: 0; flex: 0 0 var(--timeline-label-width); height: 100%; padding: 0 16px; display: flex; align-items: center; gap: 8px; background: #1a2434; color: var(--lane-color); font-size: 12px; font-weight: 600; border-right: 1px solid #334155; z-index: 4; }
+.timeline-group-label i { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: var(--lane-color); }
+.timeline-group > span { color: #aebbd0; font-size: 11px; }
+.timeline-row { position: absolute; left: 0; width: 100%; height: 64px; display: flex; border-bottom: 1px solid #ffffff0a; }
+.timeline-row:nth-child(even) { background: #ffffff02; }
+.timeline-row:hover { background: #ffffff08; }
+.timeline-row.selected { background: #f59e0b0c; }
+.timeline-action-label { position: sticky; left: 0; flex: 0 0 var(--timeline-label-width); height: 100%; padding: 6px 14px; display: flex; align-items: center; gap: 10px; background: #141d2c; border-right: 1px solid #334155; z-index: 4; }
+.timeline-action-label > div { min-width: 0; }
+.timeline-action-label strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; color: #edf2fa; font-size: 12px; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
+.timeline-action-label small { display: block; margin-top: 4px; color: #aebbd0; font-size: 10px; line-height: 1.2; }
+.timeline-row.selected .timeline-action-label { background: #302a20; box-shadow: inset 3px 0 var(--accent); }
+.timeline-row.prerequisite .timeline-action-label { box-shadow: inset 3px 0 var(--lane-color); }
+.timeline-status-dot { display: flex; align-items: center; justify-content: center; width: 13px; height: 13px; flex-shrink: 0; border: 1px solid #64748b; border-radius: 50%; font-size: 9px; }
+.timeline-status-dot.running { border: 3px solid var(--lane-color); }
+.timeline-status-dot.completed { background: var(--lane-color); border-color: var(--lane-color); color: #10221f; }
+.timeline-bar-row { position: relative; flex: 1; margin: 0 20px; height: 64px; pointer-events: none; }
+.timeline-bar { position: absolute; top: 15px; height: 34px; min-width: 6px; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--lane-bg); color: #fff; border: 1px solid var(--lane-color); border-left-width: 3px; border-radius: 7px; white-space: nowrap; text-align: left; font: 500 11px var(--font-body); pointer-events: auto; cursor: pointer; box-shadow: 0 2px 4px #0002; z-index: 2; }
+.timeline-bar > span { overflow: hidden; text-overflow: ellipsis; }
+.timeline-bar > small { margin-left: auto; font-size: 10px; flex-shrink: 0; color: #fff; }
+.timeline-bar.compact { padding: 0; border-left-width: 1px; }
+.timeline-bar::after { content: ''; position: absolute; inset: -5px; min-width: 24px; }
+.timeline-bar.passive { background: repeating-linear-gradient(135deg, #45386c, #45386c 6px, #352d54 6px, #352d54 12px); border-color: #c4b5fd; }
+.timeline-bar.completed { background: #273b3b; border-color: #7eaaa2; color: #d2e2df; }
+.timeline-bar.running { box-shadow: 0 0 0 3px #5ee0c126; }
+.timeline-bar:hover, .timeline-bar[aria-pressed="true"] { filter: brightness(1.2); outline: 2px solid #f8fafc; outline-offset: 2px; z-index: 3; }
+.timeline-bar-duration { position: absolute; top: 23px; margin-left: 9px; color: #cbd5e1; font-size: 10px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.timeline-bar-duration.before { margin-left: 0; margin-right: 9px; }
+.timeline-links { position: absolute; left: calc(var(--timeline-label-width) + 20px); top: 0; width: calc(100% - var(--timeline-label-width) - 40px); height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
+.timeline-links > path { fill: none; stroke: #8495ae; stroke-width: 1.25; opacity: .45; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.timeline-links > path.highlighted { stroke: #fbbf24; stroke-width: 2; opacity: 1; }
+.timeline-links marker path { fill: #b9c6d9; }
+.timeline-now-track { z-index: 3; }
+.timeline-now { position: absolute; top: 0; bottom: 0; width: 2px; background: #fbbf24; }
+.timeline-now > span { position: sticky; top: 50px; display: inline-block; padding: 1px 5px; border-radius: 4px; background: #fbbf24; color: #241a05; font-size: 10px; font-weight: 700; }
+.timeline-hint { margin-top: 10px; font-size: 11px; color: var(--text-muted); }
 .timeline-dependencies { margin-top: 12px; font-size: 12px; color: var(--text-muted); }
 .timeline-dependencies summary { cursor: pointer; padding: 8px 0; }
 .timeline-dependencies ol { padding-left: 24px; line-height: 1.8; }
@@ -2287,7 +2347,7 @@ body.has-floating-timers .main-content { padding-bottom: 280px; }
 .play-column-list { max-height: min(70vh, 720px); overflow-y: auto; }
 .recipe-step-warning { color: #f6c667; }
 .step-card-num { text-transform: none; letter-spacing: normal; }
-.timeline-selection { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+.timeline-selection { font-size: 12px; color: #d8e1ed; margin-top: 10px; padding: 12px 14px; background: #1b2535; border: 1px solid #475569; border-left: 3px solid var(--accent); border-radius: 8px; }
 .timeline-selection:empty { display: none; }
 .recipe-step-dependency-field { grid-column: 1 / -1; }
 .recipe-step-attention-field { grid-column: 1 / -1; }
@@ -2296,8 +2356,22 @@ body.has-floating-timers .main-content { padding-bottom: 280px; }
 #play-cook-status { color: var(--text-muted); font-size: 13px; }
 #recipe-modal .modal-content { min-width: 0; }
 @media (max-width: 768px) {
-  .recipe-timeline-header { flex-direction: column; }
+  .recipe-timeline { --timeline-label-width: 174px; }
+  .recipe-timeline-header { align-items: flex-start; }
+  .timeline-action-label { padding-left: 10px; padding-right: 10px; gap: 7px; }
+  .timeline-action-label strong { font-size: 11px; }
+  .timeline-group-label { padding: 0 10px; font-size: 11px; }
+  .timeline-corner { padding: 0 10px; }
   #recipe-modal .modal-actions { flex-wrap: wrap; }
+}
+@media (max-width: 480px) {
+  .recipe-timeline { --timeline-label-width: 136px; }
+  .glass-card.recipe-timeline { padding: 16px 12px; }
+  .timeline-status-dot { width: 10px; height: 10px; }
+  .timeline-corner span { display: none; }
+  .timeline-group-label { gap: 5px; font-size: 10px; }
+  .timeline-legend { gap: 10px; }
+  .timeline-estimate { padding: 6px 8px; }
 }
 
 /* Compact, locally bundled cooking demonstrations. */
@@ -2313,3 +2387,15 @@ body.has-floating-timers .main-content { padding-bottom: 280px; }
 .recipe-image-credit { color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; margin-bottom: 12px; }
 .personal-recipe-badge { color: var(--success); font-size: 12px; font-weight: 600; }
 .recipe-builder-actions { flex-wrap: wrap; }
+
+/* Portion counts describe diners, independently of the number of cooks. */
+.portion-field { margin-bottom: 0; }
+.portion-control { display: flex; align-items: center; gap: 6px; }
+.portion-control .form-control, .portion-input { width: 76px; min-width: 60px; text-align: center; }
+.portion-control button { padding: 8px 12px; min-height: 40px; min-width: 40px; }
+.portion-field small, .portion-timing-note { color: var(--text-muted); font-size: 12px; }
+.portion-timing-note { margin: 8px 0 20px; }
+.play-ingredients { padding: 16px; margin-bottom: 16px; }
+.play-ingredients ul { padding: 12px 0 0 20px; }
+#select-meal-modal .portion-field { margin-bottom: 20px; }
+#modal-servings-dec, #modal-servings-inc { min-width: 32px; min-height: 32px; }

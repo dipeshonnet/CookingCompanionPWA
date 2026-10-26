@@ -1,3 +1,4 @@
+import { scaleRecipeForPortions } from './recipe-portions.js';
 import { initLucide } from './navigation.js';
 import { showRecipeDetailsModal } from './recipe-detail.js';
 import { getVisibleRecipes, getRecipeById, isPersonalRecipe, safeImageSource } from './recipe-domain.js';
@@ -72,6 +73,7 @@ export function renderDashboard() {
 // INGREDIENTS MATCHING ENGINE
 // ----------------------------------------------------
 export function calculatePantryMatchPercent(recipe) {
+  recipe = scaleRecipeForPortions(recipe, 1);
   if (STATE.pantry.length === 0 || recipe.ingredients.length === 0) return 0;
   
   let matches = 0;
@@ -98,7 +100,7 @@ export function createRecipeCard(recipe) {
   const safeTags = (recipe.tags || []).slice(0, 2).map(t => `<span class="recipe-tag">${escapeHtml(t)}</span>`).join("");
   const matchPill = matchPct > 0 
     ? `<span class="recipe-match">${matchPct}% Match</span>` 
-    : `<span>${escapeHtml(recipe.cookTime)} mins</span>`;
+    : `<span>${escapeHtml(scaleRecipeForPortions(recipe, 1).cookTime)} mins</span>`;
 
   card.innerHTML = `
     <div class="recipe-image-wrapper">

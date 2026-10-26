@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdir, readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { recipeSearchCompletion } from './ai-fixtures.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE_PATH ? pathToFileURL(process.env.PLAYWRIGHT_MODULE_PATH).href : 'playwright');
 const server = spawn(process.execPath, ['tools/dev-server.mjs'], { env: { ...process.env, PORT: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -131,7 +132,7 @@ try {
   check('quantity controls', (await page.locator('#pantry-manager-tags').innerText()).includes('201 g'));
   await page.locator('[data-view="ai-generator"]').click();
   check('explore remains hidden initially', !(await page.locator('#recipe-explore-panel').isVisible()));
-  check('ingredient selector uses the same photo as the pantry', (await page.locator('#ai-selectable-ingredients img.ingredient-thumbnail').first().getAttribute('src')).endsWith('/tomato.webp'));
+  check('AI draft accepts a high-level description without ingredient selection', await page.locator('#ai-recipe-description').count() === 1 && await page.locator('#ai-selectable-ingredients').count() === 0);
   await page.locator('#recipe-title-input').fill('Browser Test Soup');
   await page.locator('#recipe-tags-input').fill('Vegan');
   await page.locator('#recipe-add-parallel-process').click();
@@ -192,12 +193,12 @@ try {
   await page.locator('#cook-meal-toast-close').click();
   await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
-    STATE.pantry.find(item => item.name === 'Tomato').quantity = 50;
+    STATE.pantry.find(item => item.name === 'Tomato').quantity = 25;
     (await import('/modules/storage.js')).saveStateToStorage();
   });
   await page.locator('#explore-recipes-grid .recipe-card').click();
   await page.locator('#modal-btn-cook').click();
-  check('shortage appears in themed cook dialog', (await page.locator('#cook-meal-shortage-list').innerText()).includes('Tomato: need 100 g, have 50 g'));
+  check('shortage appears in themed cook dialog', (await page.locator('#cook-meal-shortage-list').innerText()).includes('Tomato: need 50 g, have 25 g'));
   check('keeping pantry remains default for a new meal', await page.locator('input[name="cook-pantry-mode"][value="keep"]').isChecked());
   await page.setViewportSize({ width: 390, height: 844 });
   check('cook dialog fits phone viewport', await page.evaluate(() => {
@@ -208,7 +209,7 @@ try {
   await page.screenshot({ path: 'output/cook-meal-mobile.png', animations: 'disabled' });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.keyboard.press('Escape');
-  check('Escape cancels cooking without changing pantry', !(await page.locator('#cook-meal-modal').isVisible()) && await page.evaluate(async () => (await import('/modules/state.js')).STATE.pantry.find(item => item.name === 'Tomato')?.quantity === 50));
+  check('Escape cancels cooking without changing pantry', !(await page.locator('#cook-meal-modal').isVisible()) && await page.evaluate(async () => (await import('/modules/state.js')).STATE.pantry.find(item => item.name === 'Tomato')?.quantity === 25));
   await page.locator('#modal-btn-cook').click();
   await page.locator('input[name="cook-pantry-mode"][value="deduct"]').check();
   await page.locator('#cook-meal-confirm-btn').click();
@@ -253,11 +254,12 @@ try {
   await page.locator('#play-recipe-reset-btn').click();
   check('reset clears boards', await page.locator('#play-col-completed .play-step-card').count() === 0);
   await page.locator('[data-view="planner"]').click();
-  await page.locator('.planner-slot button').first().click();
+  const plannedSlot = page.locator('.planner-day-card').first().locator('.planner-slot').filter({ hasText: exported.recipes[0].category });
+  await plannedSlot.locator('button').click();
   await page.locator('#select-meal-recipe-dropdown').selectOption(exported.recipes[0].id);
   await page.locator('#btn-select-meal-save').click();
   check('planner saves selected recipe', (await page.locator('.planner-day-card').first().innerText()).includes('Browser Test Soup'));
-  await page.locator('.planner-slot button').first().click();
+  await plannedSlot.locator('button').click();
   await page.locator('#select-meal-recipe-dropdown').selectOption('');
   await page.locator('#btn-select-meal-save').click();
   check('clearing meal removes its schedule record', await page.evaluate(async () => Object.keys((await import('/modules/state.js')).STATE.scheduledMeals).length) === 0);
@@ -268,12 +270,17 @@ try {
     const request = route.request();
     const provider = request.url().includes('api.openai.com') ? 'openai' : request.url().includes('api.groq.com') ? 'groq' : 'gemini';
     const payload = request.postDataJSON();
+    if (payload.tools) {
+      aiRequests.push({ provider, search: true });
+      await route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(recipeSearchCompletion(provider)) });
+      return;
+    }
     const schema = provider === 'gemini' ? payload.generationConfig.responseJsonSchema : payload.response_format.json_schema.schema;
     assert.equal(request.headers()[provider === 'gemini' ? 'x-goog-api-key' : 'authorization'], provider === 'gemini' ? 'gemini-test-key' : 'Bearer ' + (provider === 'groq' ? 'test-only-key' : 'openai-test-key'));
     aiRequests.push({ provider, schema });
     const result = schema.properties.calories
       ? { calories: 100, protein_g: 10, carbs_g: 20, fat_g: 2, fiber_g: 1 }
-      : { stepSchemaVersion: 2, title: 'Mock ' + provider + ' Rice', description: 'A simple rice dish', prepTime: 1, cookTime: 2, servings: 2, tags: ['Vegan'], category: 'Dinner', ingredients: [{ name: 'Rice', amount: 100, unit: 'g' }], steps: [{ id: 'boil-rice', title: 'Boil rice', attention: 'active', dependsOn: [], item: 'Rice', action: 'Boil rice in pot', text: 'Boil rice in pot', duration: 120, stepType: 'Cook', cook: 'Cook 1' }] };
+      : { stepSchemaVersion: 2, title: 'Mock ' + provider + ' Rice', description: 'A simple rice dish', difficulty: 'Easy', prepTime: 1, cookTime: 2, servings: 2, tags: ['Vegan'], category: 'Dinner', ingredients: [{ name: 'Rice', amount: 100, unit: 'g' }], steps: [{ id: 'boil-rice', title: 'Boil rice', attention: 'active', dependsOn: [], item: 'Rice', action: 'Boil rice in pot', actionType: 'Boil', text: 'Boil rice in pot', duration: 120, stepType: 'Cook', cook: 'Cook 1' }] };
     const body = provider === 'gemini' ? { candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(result) }] } }] } : { choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(result) } }] };
     await route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(body) });
   });
@@ -300,10 +307,10 @@ try {
     await page.locator('#pantry-manager-tags .pantry-tag').last().locator('[data-qty="1"]').click();
     check(provider + ' nutrition scales without another request', (await page.locator('#pantry-manager-tags').innerText()).includes('101 kcal') && aiRequests.length === count);
     await page.locator('[data-view="ai-generator"]').click();
-    await page.locator('#ai-selectable-ingredients .selectable-tag').last().click();
+    await page.locator('#ai-recipe-description').fill('A simple rice dinner for two');
     await page.locator('#ai-generate-btn').click();
     await page.locator('#ai-result-panel').waitFor({ state: 'visible' });
-    check(provider + ' creates a structured recipe draft', await page.locator('#ai-recipe-title').innerText() === 'Mock ' + provider + ' Rice' && aiRequests.at(-1).provider === provider);
+    check(provider + ' searches then creates a structured recipe draft', await page.locator('#ai-recipe-title').innerText() === 'Mock ' + provider + ' Rice' && aiRequests.at(-1).provider === provider && aiRequests.at(-2).search === true);
   }
   await page.unroute(providerRoute);
   await page.locator('#ai-provider-select').selectOption('openai');

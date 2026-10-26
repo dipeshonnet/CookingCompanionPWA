@@ -6,7 +6,7 @@ const UNITS = {
 
 export function canonicalUnit(unit) {
   const text = String(unit || 'pcs').trim().toLowerCase();
-  const aliases = { cups: 'cup', tablespoons: 'tbsp', teaspoons: 'tsp', grams: 'g', kilograms: 'kg', pieces: 'pcs', piece: 'pcs', cloves: 'clove', slices: 'slice' };
+  const aliases = { pc: 'pcs', cups: 'cup', tablespoons: 'tbsp', teaspoons: 'tsp', grams: 'g', kilograms: 'kg', pieces: 'pcs', piece: 'pcs', cloves: 'clove', slices: 'slice' };
   return aliases[text] || text;
 }
 

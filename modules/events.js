@@ -1,3 +1,4 @@
+import { setupPortionControls } from './portion-controls.js';
 import { handleGoogleSignIn, signInLocalOnly, handleEmailSignIn, handleEmailSignUp, handleLogout } from './auth.js';
 import { renderPantryView, addPantryIngredient } from './ingredients.js';
 import { setupIngredientAutocomplete } from './ingredient-autocomplete.js';
@@ -8,7 +9,7 @@ import { resetPlayRecipeSession, startPlayRecipeSession, changePlayRecipe, updat
 import { openProfileModal, closeProfileModal, saveProfileSettings } from './profile.js';
 import { handleAIGeneration, saveGeneratedRecipeToExplore } from './recipe-ai.js';
 import { setRecipeExploreVisibility, toggleRecipeExplorePanel, addRecipeIngredientRow, addRecipeStepRow, removeRecipeBuilderRow, updateStepCookControls, updateStepDependencyControls, recalculateRecipeTimeTotals, handleCustomRecipeSave, resetAddRecipeForm, editRecipe, cancelRecipeEdit } from './recipe-builder.js';
-import { updateRecipeModalIngredientsAndButtons, handleCookMeal, closeCookMealDialog, confirmCookMeal, handleRevertRecipe } from './recipe-detail.js';
+import { updateRecipeModalPortions, updateRecipeModalIngredientsAndButtons, handleCookMeal, closeCookMealDialog, confirmCookMeal, handleRevertRecipe } from './recipe-detail.js';
 import { handleRecipeShare, handleRecipeExport, closeRecipeExportModal, confirmRecipeExportSelected, handleRecipeImport } from './recipe-transfer.js';
 import { renderDashboard, renderExploreRecipes } from './recipe-views.js';
 import { buildRecipeDraftFromTalk, updateVoiceStatus, startRecipeVoiceInput, stopRecipeVoiceInput } from './recipe-voice.js';
@@ -328,25 +329,10 @@ export function setupEventListeners() {
     });
   }
 
-  // Recipe Modal Servings adjusters
-  const decServingsBtn = document.getElementById("modal-servings-dec");
-  const incServingsBtn = document.getElementById("modal-servings-inc");
-  if (decServingsBtn && incServingsBtn) {
-    decServingsBtn.addEventListener("click", () => {
-      if (RUNTIME.activeModalServingsCount > 1) {
-        RUNTIME.activeModalServingsCount--;
-        RUNTIME.activeModalServingsMultiplier = RUNTIME.activeModalServingsCount / RUNTIME.activeModalRecipe.servings;
-        document.getElementById("modal-servings").innerText = RUNTIME.activeModalServingsCount;
-        updateRecipeModalIngredientsAndButtons();
-      }
-    });
-    incServingsBtn.addEventListener("click", () => {
-      RUNTIME.activeModalServingsCount++;
-      RUNTIME.activeModalServingsMultiplier = RUNTIME.activeModalServingsCount / RUNTIME.activeModalRecipe.servings;
-      document.getElementById("modal-servings").innerText = RUNTIME.activeModalServingsCount;
-      updateRecipeModalIngredientsAndButtons();
-    });
-  }
+  document.getElementById('modal-servings-dec').addEventListener('click', () => updateRecipeModalPortions(RUNTIME.activeModalServingsCount - 1));
+  document.getElementById('modal-servings-inc').addEventListener('click', () => updateRecipeModalPortions(RUNTIME.activeModalServingsCount + 1));
+  document.getElementById('modal-servings').addEventListener('change', event => updateRecipeModalPortions(event.target.value));
+  setupPortionControls();
 
   // Recipe Modal Cook Meal button
   const cookMealBtn = document.getElementById("modal-btn-cook");
@@ -382,7 +368,7 @@ export function setupEventListeners() {
   const parallelTimerBtn = document.getElementById("modal-btn-start-parallel-timers");
   if (parallelTimerBtn) {
     parallelTimerBtn.addEventListener("click", () => {
-      if (RUNTIME.activeModalRecipe) startGuidedRecipe(RUNTIME.activeModalRecipe, document.getElementById('modal-cook-count')?.value);
+      if (RUNTIME.activeModalRecipe) startGuidedRecipe(RUNTIME.activeModalRecipe, document.getElementById('modal-cook-count')?.value, RUNTIME.activeModalServingsCount);
     });
   }
 

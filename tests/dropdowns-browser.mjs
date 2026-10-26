@@ -20,6 +20,23 @@ try {
     const play=await import('/modules/play-recipe.js');
     const {getAllRecipes,recipeMatchesDietPreference}=await import('/modules/recipe-domain.js');
     const planner=await import('/modules/planner.js');
+    const scheduled=document.getElementById('select-meal-recipe-dropdown');
+    STATE.user.dietPreference='None';
+    for(const slot of ['Breakfast','Lunch','Dinner']) {
+      planner.openScheduleDropdown('Monday',slot);
+      const expected=getAllRecipes().filter(recipe=>recipe.category===slot);
+      assertBrowser(expected.length>0,`${slot} has matching recipes`);
+      assertBrowser(JSON.stringify([...scheduled.options].slice(1).map(option=>[option.value,option.textContent]))===JSON.stringify(expected.map(recipe=>[recipe.id,recipe.title])),`${slot} lists only matching recipes with plain titles`);
+      scheduled.value=expected[0].id;planner.saveScheduledMealSelection();
+      planner.openScheduleDropdown('Monday',slot);
+      assertBrowser(scheduled.value===expected[0].id,`${slot} selection stays saved`);
+    }
+    const mismatched=getAllRecipes().find(recipe=>recipe.category==='Dinner');
+    STATE.scheduledMeals['Tuesday-Breakfast']=mismatched.id;
+    planner.openScheduleDropdown('Tuesday','Breakfast');
+    assertBrowser(![...scheduled.options].some(option=>option.value===mismatched.id),'An old mismatched assignment is excluded from the choices');
+    assertBrowser(scheduled.value===''&&STATE.scheduledMeals['Tuesday-Breakfast']===mismatched.id,'Opening the picker keeps the saved assignment until an explicit save');
+    document.getElementById('select-meal-modal').style.display='none';
     nav.switchView('play');
     const cooks=document.getElementById('play-cook-count');
     cooks.value='2';cooks.dispatchEvent(new Event('change',{bubbles:true}));
@@ -28,15 +45,15 @@ try {
     assertBrowser(cooks.value==='2','Changing recipe preserves two cooks');
     choice.value='not-a-recipe';play.renderPlayRecipeView();
     assertBrowser(choice.selectedIndex===0,'Missing recipe returns to the placeholder');
-    const filtered=getAllRecipes().find(recipe=>!recipeMatchesDietPreference(recipe,'Vegetarian'));
+    const filtered=getAllRecipes().find(recipe=>recipe.category==='Dinner'&&!recipeMatchesDietPreference(recipe,'Vegetarian'));
     assertBrowser(Boolean(filtered),'Fixture contains a non-vegetarian recipe');
     STATE.scheduledMeals['Monday-Dinner']=filtered.id;
     STATE.user.dietPreference='Vegetarian';
     planner.openScheduleDropdown('Monday','Dinner');
-    const scheduled=document.getElementById('select-meal-recipe-dropdown');
     assertBrowser(scheduled.value===filtered.id,'Filtered scheduled meal stays selected');
+    assertBrowser(scheduled.selectedOptions[0].textContent===`${filtered.title} (outside diet preference)`,'The preserved selection omits the category prefix');
     planner.saveScheduledMealSelection();
-    assertBrowser(STATE.scheduledMeals['Monday-Dinner']===filtered.id,'Saving preserves the filtered meal');
+    assertBrowser(STATE.scheduledMeals['Monday-Dinner'].recipeId===filtered.id && STATE.scheduledMeals['Monday-Dinner'].portions===1,'Saving preserves the filtered meal');
     planner.openScheduleDropdown('Monday','Dinner');
     scheduled.value='';planner.saveScheduledMealSelection();
     assertBrowser(!STATE.scheduledMeals['Monday-Dinner'],'Empty option explicitly clears the meal');
@@ -48,7 +65,7 @@ try {
     return true;
     function assertBrowser(value,message){if(!value)throw new Error(message);}
   }));
-  console.log('PASS recipe changes preserve cook count; missing recipes use placeholder; filtered meals and active sessions retain selections');
+  console.log('PASS planner filters all meal slots with plain titles and saved selections; recipe changes preserve cook count; filtered meals and active sessions retain selections');
   const groups=[
     ['pantry',['#pantry-category-input','#pantry-unit-input']],
     ['ai-generator',['#recipe-category-input','#recipe-difficulty-input','.recipe-ingredient-unit','.recipe-step-action-type','.recipe-step-type','.recipe-step-cook','.recipe-step-attention','.recipe-step-dependencies','#ai-provider-select','#ai-diet-preference','#ai-difficulty']],

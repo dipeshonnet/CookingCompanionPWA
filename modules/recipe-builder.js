@@ -1,6 +1,5 @@
 import { normalizeActionType, inferActionType, actionTypeOptions, actionVideoHtml } from './action-types.js';
 import { switchView, initLucide } from './navigation.js';
-import { renderAIIngredientSelector } from './recipe-ai.js';
 import { normalizeCookLabel, normalizeProcessCount, processKeys, processLabel, recipeProcessCount, normalizeStepType, inferStepTypeFromAction, normalizeRecipeForStorage, hasCombinedCommands, getDefaultRecipe, getRecipeById } from './recipe-domain.js';
 import { renderExploreRecipes } from './recipe-views.js';
 import { STATE, RUNTIME, FALLBACK_RECIPE_IMAGE } from './state.js';
@@ -26,7 +25,6 @@ export function renderAddRecipeView() {
   ensureRecipeBuilderDefaults();
   const aiDiet = document.getElementById("ai-diet-preference");
   if (aiDiet) aiDiet.value = STATE.user.dietPreference || "None";
-  renderAIIngredientSelector();
   updateStepCookControls();
   initLucide();
 }
@@ -75,12 +73,14 @@ export function unitOptions(selectedUnit = "pcs") {
   return units.map(unit => `<option value="${escapeHtml(unit)}" ${unit === selectedUnit ? "selected" : ""}>${escapeHtml(unit)}</option>`).join("");
 }
 
-export function addRecipeIngredientRow(values = {}) {
+export function addRecipeIngredientRow(values = {}, sourceIndex = null) {
   const list = document.getElementById("recipe-ingredients-list");
   if (!list) return;
 
   const row = document.createElement("div");
   row.className = "recipe-builder-row recipe-ingredient-row";
+  row.portionIngredient = structuredClone(values);
+  row.portionIngredientIndex = sourceIndex;
   row.innerHTML = `
     <div class="form-group">
       <label>Item</label>
@@ -118,6 +118,7 @@ export function addRecipeStepRow(values = {}) {
   const stepType = normalizeStepType(values.stepType || values.type || inferStepTypeFromAction(values.action || values.text || ""));
   const row = document.createElement("div");
   row.className = "recipe-builder-row recipe-step-row";
+  row.portionStep = structuredClone(values);
   row.dataset.stepId = values.id || crypto.randomUUID();
   const previous = list.lastElementChild;
   row.dataset.dependsOn = JSON.stringify(values.dependsOn ?? (previous ? [previous.dataset.stepId] : []));
@@ -256,6 +257,7 @@ export function collectCustomRecipeFromForm() {
   const ingredientRows = Array.from(document.querySelectorAll(".recipe-ingredient-row"));
   const ingredients = ingredientRows
     .map(row => ({
+      ...(row.portionIngredient?.gramsPerPiece && row.portionIngredient.name === cleanText(row.querySelector(".recipe-ingredient-name")?.value) ? { gramsPerPiece: row.portionIngredient.gramsPerPiece, pieceLabel: row.portionIngredient.pieceLabel } : {}),
       name: cleanText(row.querySelector(".recipe-ingredient-name")?.value),
       amount: toNonNegativeNumber(row.querySelector(".recipe-ingredient-amount")?.value, 0),
       unit: row.querySelector(".recipe-ingredient-unit")?.value || "pcs"
@@ -291,7 +293,15 @@ export function collectCustomRecipeFromForm() {
       return null;
     }
 
+    const original = row.portionStep;
+    const scaling = original?.scaling ? structuredClone(original.scaling) : null;
+    if (scaling) {
+      const ingredientNamesUnchanged = ingredientRows.length === ingredients.length && ingredientRows.every((item, index) => item.portionIngredientIndex === index && item.portionIngredient?.name === ingredients[index].name);
+      if (action !== original.action || item !== original.item || !ingredientNamesUnchanged) { delete scaling.template; delete scaling.quantities; delete scaling.ingredients; }
+      if (scaling.mode === 'batch') scaling.secondsPerBatch = scaling.group ? Math.round(minutes * 60) : Math.round(minutes * 60) / Math.ceil(scaling.yield / scaling.capacity);
+    }
     steps.push({
+      ...(scaling ? { scaling } : {}),
       id: row.dataset.stepId,
       title: stepTitle,
       dependsOn: JSON.parse(row.dataset.dependsOn || '[]'),
@@ -311,6 +321,19 @@ export function collectCustomRecipeFromForm() {
     return null;
   }
 
+  // If an explicitly aliased phase was edited or removed, retain the editor's
+  // full action sequence rather than silently collapsing their instructions.
+  const previous = RUNTIME.recipeEditContext?.portionSteps || stepRows.map(row => row.portionStep).filter(Boolean);
+  const groupIds = new Set(previous.filter(step => step.scaling?.group).map(step => step.id));
+  const groupChanged = previous.some(original => {
+    if (!original.scaling?.group && !original.scaling?.aliasOf) return false;
+    const current = steps.find(step => step.id === original.id);
+    return !current || (original.scaling?.aliasOf && (current.action !== original.action || current.duration !== original.duration || current.title !== original.title || current.item !== original.item || JSON.stringify(current.dependsOn) !== JSON.stringify(original.dependsOn)));
+  });
+  if (groupChanged) for (const step of steps) {
+    if (groupIds.has(step.id) || step.scaling?.aliasOf) delete step.scaling;
+  }
+
   const tags = cleanText(document.getElementById("recipe-tags-input")?.value)
     .split(",")
     .map(tag => cleanText(tag))
@@ -321,6 +344,8 @@ export function collectCustomRecipeFromForm() {
     id: RUNTIME.recipeEditContext?.id || `custom-${crypto.randomUUID()}`,
     ...(RUNTIME.recipeEditContext?.baseRecipeId ? { baseRecipeId: RUNTIME.recipeEditContext.baseRecipeId } : {}),
     ...(RUNTIME.recipeEditContext?.imageCredit && document.getElementById('recipe-image-input').value === RUNTIME.recipeEditContext.image ? { imageCredit: RUNTIME.recipeEditContext.imageCredit } : {}),
+    ...(RUNTIME.recipeEditContext?.sources ? { sources: RUNTIME.recipeEditContext.sources } : {}),
+    ...(RUNTIME.recipeEditContext?.searchAttribution ? { searchAttribution: RUNTIME.recipeEditContext.searchAttribution } : {}),
     title,
     description: cleanText(document.getElementById("recipe-description-input")?.value) || "A custom recipe from your kitchen.",
     category: document.getElementById("recipe-category-input")?.value || "Dinner",
@@ -393,8 +418,8 @@ export function populateRecipeFormFromDraft(draft) {
   ingredientsList.innerHTML = "";
   stepsList.innerHTML = "";
 
-  (draft.ingredients && draft.ingredients.length ? draft.ingredients : [{}]).forEach(ingredient => {
-    addRecipeIngredientRow(ingredient);
+  (draft.ingredients && draft.ingredients.length ? draft.ingredients : [{}]).forEach((ingredient, index) => {
+    addRecipeIngredientRow(ingredient, index);
   });
 
   (draft.steps && draft.steps.length ? draft.steps : [{}]).forEach(step => {
@@ -424,7 +449,7 @@ export function editRecipe(id) {
   document.getElementById('recipe-modal').style.display = 'none';
   switchView('ai-generator');
   populateRecipeFormFromDraft(normalizeRecipeForStorage(structuredClone(recipe)));
-  RUNTIME.recipeEditContext = { id, scope: RUNTIME.storageScope, image: recipe.image, imageCredit: recipe.imageCredit, rating: recipe.rating,
+  RUNTIME.recipeEditContext = { id, scope: RUNTIME.storageScope, image: recipe.image, imageCredit: recipe.imageCredit, rating: recipe.rating, sources: recipe.sources, searchAttribution: recipe.searchAttribution, portionSteps: structuredClone(recipe.steps),
     ...(getDefaultRecipe(id) ? { baseRecipeId: id } : {}) };
   updateRecipeEditorMode();
   document.getElementById('custom-recipe-form').scrollIntoView({ behavior: 'smooth', block: 'start' });

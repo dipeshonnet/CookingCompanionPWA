@@ -3,6 +3,14 @@ import { mergePendingState } from './cloud-records.js';
 import { renderApp } from './navigation.js';
 import { STATE, RUNTIME } from './state.js';
 import { scopedStorageKey, readStored, loadStateFromStorage, hydrateStateFromPayload, getPersistentState, saveStateToStorage, hasPendingCloudChanges, syncStateToCloud, resetSignedOutRuntimeState } from './storage.js';
+import { resumeCookingTimers } from './timers.js';
+import { resumePlayRecipeSession } from './play-recipe.js';
+
+export function resumeAccountCooking() {
+  if (!STATE.user.loggedIn) return;
+  resumeCookingTimers();
+  resumePlayRecipeSession();
+}
 
 function clearAuthPassword() {
   const input = document.getElementById('auth-password-input');
@@ -12,11 +20,12 @@ function clearAuthPassword() {
 export async function applyAuthUser(user) {
   clearAuthPassword();
   const generation = ++RUNTIME.authGeneration;
+  if (STATE.user.loggedIn) saveStateToStorage({ sync: false });
   RUNTIME.suppressCloudSave = true;
   resetSignedOutRuntimeState();
   RUNTIME.currentAuthUid = '';
   loadStateFromStorage(user ? user.uid : 'guest');
-  if (!user) { RUNTIME.suppressCloudSave = false; renderApp(); return; }
+  if (!user) { RUNTIME.suppressCloudSave = false; resumeAccountCooking(); renderApp(); return; }
   STATE.user.loggedIn = false;
   renderApp();
   let loaded = false;
@@ -35,7 +44,9 @@ export async function applyAuthUser(user) {
   STATE.user.loggedIn = true;
   RUNTIME.currentAuthUid = user.uid;
   RUNTIME.localMode = false;
+  localStorage.removeItem(scopedStorageKey('local-mode', 'guest'));
   RUNTIME.suppressCloudSave = false;
+  resumeAccountCooking();
   saveStateToStorage({ sync: false });
   if (loaded && (!cloud || hasPendingCloudChanges() || BackendAuthDB.needsMigration(user.uid))) await syncStateToCloud();
   renderApp();
@@ -81,11 +92,13 @@ export async function signInLocalOnly() {
   if (RUNTIME.currentAuthUid) await handleLogout();
   else if (BackendAuthDB.currentUser()) await BackendAuthDB.signOut();
   ++RUNTIME.authGeneration;
+  resetSignedOutRuntimeState();
   loadStateFromStorage('guest');
   RUNTIME.localMode = true;
   STATE.user.loggedIn = true;
   STATE.user.email = '';
   localStorage.setItem(scopedStorageKey('local-mode'), 'true');
+  resumeAccountCooking();
   renderApp();
 }
 

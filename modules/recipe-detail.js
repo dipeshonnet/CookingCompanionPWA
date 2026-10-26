@@ -1,3 +1,4 @@
+import { scaleRecipeForPortions, normalizePortions, formatIngredientAmount } from './recipe-portions.js';
 import { renderPantryView } from './ingredients.js';
 import { ingredientLabel, ingredientThumbnail } from './ingredient-images.js';
 import { initLucide } from './navigation.js';
@@ -12,9 +13,10 @@ import { convertQuantity, findPantryMatch } from './units.js';
 import { escapeHtml } from './utils.js';
 import { renderRecipeTimeline } from './recipe-timeline.js';
 import { getExperienceTimerMultiplier } from './profile.js';
+import { recipeSourcesHtml, searchAttributionHtml } from './recipe-sources.js';
 
-export function showRecipeDetailsModal(recipe) {
-  const displayRecipe = normalizeRecipeForStorage(getRecipeById(recipe.id) || recipe);
+export function showRecipeDetailsModal(recipe, portions = 1) {
+  const displayRecipe = scaleRecipeForPortions(normalizeRecipeForStorage(getRecipeById(recipe.id) || recipe), portions);
   RUNTIME.activeModalRecipe = displayRecipe;
   RUNTIME.activeModalServingsCount = displayRecipe.servings;
   RUNTIME.activeModalServingsMultiplier = 1.0;
@@ -22,10 +24,13 @@ export function showRecipeDetailsModal(recipe) {
   document.getElementById("modal-image").src = displayRecipe.image;
   document.getElementById("modal-title").innerText = displayRecipe.title;
   document.getElementById("modal-description").innerText = displayRecipe.description;
+  document.getElementById('modal-recipe-sources').innerHTML = recipeSourcesHtml(displayRecipe.sources) + searchAttributionHtml(displayRecipe.searchAttribution);
   
   document.getElementById("modal-prep").innerText = `Prep: ${displayRecipe.prepTime}m`;
   document.getElementById("modal-cook").innerText = `Cook: ${displayRecipe.cookTime}m`;
-  document.getElementById("modal-servings").innerText = RUNTIME.activeModalServingsCount;
+  document.getElementById("modal-servings").value = RUNTIME.activeModalServingsCount;
+  document.getElementById("modal-servings-dec").disabled = RUNTIME.activeModalServingsCount <= 1;
+  document.getElementById("modal-portion-timing-note").textContent = displayRecipe.timingIsOriginal ? "Actions without portion-specific timing rules keep their original estimates." : "Times are estimates for these portions. Follow the cooking and doneness instructions.";
   document.getElementById("modal-rating").innerText = displayRecipe.rating || 'Not rated';
   document.getElementById('modal-personal-version').hidden = !isPersonalRecipe(displayRecipe);
   document.getElementById('modal-btn-revert-recipe').hidden = !isPersonalRecipe(displayRecipe);
@@ -83,6 +88,19 @@ export function showRecipeDetailsModal(recipe) {
   initLucide();
 }
 
+export function updateRecipeModalPortions(value) {
+  if (!RUNTIME.activeModalRecipe) return;
+  const cooks = document.getElementById('modal-cook-count').value;
+  try { showRecipeDetailsModal(RUNTIME.activeModalRecipe, normalizePortions(value)); }
+  catch (error) {
+    document.getElementById('modal-servings').value = RUNTIME.activeModalServingsCount;
+    alert(error.message);
+    return;
+  }
+  document.getElementById('modal-cook-count').value = cooks;
+  document.getElementById('modal-cook-count').onchange();
+}
+
 export function handleRevertRecipe() {
   const recipe = RUNTIME.activeModalRecipe;
   if (!isPersonalRecipe(recipe) || !confirm('Revert to default? Your saved changes to this recipe will be removed from your account. Likes and meal assignments will be kept.')) return;
@@ -117,7 +135,7 @@ export function updateRecipeModalIngredientsAndButtons() {
         stockLabel = `<span style="color: var(--success); font-size: 11px; margin-left: 8px;">[In Stock]</span>`;
       } else {
         checkIcon = `<i data-lucide="alert-triangle" style="color: var(--accent); width: 14px; height: 14px; display:inline; vertical-align:middle;"></i>`;
-        stockLabel = `<span style="color: var(--accent); font-size: 11px; margin-left: 8px;">[Need ${Math.round(requiredQty*100)/100}, have ${pantryMatch.quantity}]</span>`;
+        stockLabel = `<span style="color: var(--accent); font-size: 11px; margin-left: 8px;">[Need ${escapeHtml(formatIngredientAmount(ing, requiredQty))}, have ${pantryMatch.quantity}]</span>`;
       }
     } else {
       checkIcon = `<i data-lucide="circle" style="color: var(--text-dim); width: 14px; height: 14px; display:inline; vertical-align:middle;"></i>`;
@@ -126,7 +144,7 @@ export function updateRecipeModalIngredientsAndButtons() {
 
     item.innerHTML = `
       <span class="ingredient-stock-label">${ingredientLabel(ing.name)} ${checkIcon} ${stockLabel}</span>
-      <span style="color: var(--text-muted); font-weight: 500;">${Math.round(requiredQty * 100) / 100} ${escapeHtml(ing.unit)}</span>
+      <span style="color: var(--text-muted); font-weight: 500;">${escapeHtml(formatIngredientAmount(ing, requiredQty))}</span>
     `;
     ingContainer.appendChild(item);
   });
@@ -148,7 +166,7 @@ export function handleCookMeal() {
     if (!pantryMatch) {
       shortages.push({ name: ing.name, message: `${ing.name}: missing` });
     } else if (convertQuantity(pantryMatch.quantity, pantryMatch.unit, ing.unit) < requiredQty) {
-      shortages.push({ name: ing.name, message: `${ing.name}: need ${Math.round(requiredQty * 100) / 100} ${ing.unit}, have ${pantryMatch.quantity} ${pantryMatch.unit}` });
+      shortages.push({ name: ing.name, message: `${ing.name}: need ${formatIngredientAmount(ing, requiredQty)}, have ${pantryMatch.quantity} ${pantryMatch.unit}` });
     }
   });
 

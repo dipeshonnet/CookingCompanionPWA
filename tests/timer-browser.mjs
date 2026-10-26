@@ -145,6 +145,96 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.locator('#btn-logout').click();
   check('sign-out hides timers and clears reserved space', await widget.isHidden() && await page.evaluate(() => !document.body.classList.contains('has-floating-timers')));
+  await page.locator('#btn-login-local').click();
+  check('device-only login restores cooking progress', await widget.locator('.floating-timer-row').count() === 2);
+  await page.reload();
+  check('page reload restores the running cooking session', await widget.locator('.floating-timer-row').count() === 2);
+
+  // Exercise the real account lifecycle with an isolated in-memory cloud backend.
+  await page.evaluate(async () => {
+    const { BackendAuthDB } = await import('/modules/backend-auth-db.js');
+    const { applyAuthUser } = await import('/modules/auth.js');
+    window.testCloud = new Map();
+    BackendAuthDB.isReady = () => true;
+    BackendAuthDB.needsMigration = () => false;
+    BackendAuthDB.loadUserState = async uid => structuredClone(window.testCloud.get(uid) || null);
+    BackendAuthDB.saveUserState = async (uid, payload) => window.testCloud.set(uid, structuredClone(payload));
+    BackendAuthDB.signOut = () => applyAuthUser(null);
+    await applyAuthUser({ uid: 'timer-account-a', email: 'a@example.test' });
+    const { STATE } = await import('/modules/state.js');
+    STATE.user.mutePlayAudio = true;
+    STATE.user.playStepVideo = false;
+    STATE.customRecipes = [{ stepSchemaVersion: 2, id: 'account-recipe', title: 'Account soup', steps: [
+      { id: 'cook', title: 'Cook soup', action: 'Cook soup', item: 'Soup', cook: 'Cook 1', duration: 120, attention: 'active', dependsOn: [] },
+      { id: 'serve', title: 'Serve soup', action: 'Serve soup', item: 'Soup', cook: 'Cook 1', duration: 30, attention: 'active', dependsOn: ['cook'] }
+    ] }];
+    (await import('/modules/navigation.js')).switchView('play');
+    document.getElementById('play-recipe-select').value = 'account-recipe';
+    (await import('/modules/play-recipe.js')).startPlayRecipeSession();
+    (await import('/modules/timers.js')).startCookingTimer('Account tea', 0, 90, 'Cook 1', 'Steep tea', { silent: true });
+    const { RUNTIME } = await import('/modules/state.js');
+    window.accountDeadlines = [STATE.activeTimers[0].deadline, RUNTIME.playSession.running['Cook 1'].deadline];
+  });
+  await page.locator('#btn-logout').click();
+  await page.locator('#auth-view').waitFor({ state: 'visible' });
+  check('account logout hides its timers', await widget.isHidden());
+  await page.evaluate(async () => {
+    await (await import('/modules/auth.js')).applyAuthUser({ uid: 'timer-account-b', email: 'b@example.test' });
+  });
+  check('another account cannot see the first account timers', await widget.isHidden());
+  await page.locator('#btn-logout').click();
+  await page.locator('#auth-view').waitFor({ state: 'visible' });
+  await page.evaluate(async () => {
+    // No device cache: restoration must come from the account's cloud payload.
+    localStorage.clear();
+    await (await import('/modules/auth.js')).applyAuthUser({ uid: 'timer-account-a', email: 'a@example.test' });
+  });
+  check('account login restores individual and Play Recipe timers from cloud', await widget.locator('.floating-timer-row').count() === 2);
+  check('restoration preserves original deadlines', await page.evaluate(async () => {
+    const { STATE, RUNTIME } = await import('/modules/state.js');
+    return STATE.activeTimers[0].deadline === window.accountDeadlines[0] && RUNTIME.playSession.running['Cook 1'].deadline === window.accountDeadlines[1];
+  }));
+  await page.evaluate(async () => {
+    const { STATE, RUNTIME } = await import('/modules/state.js');
+    STATE.activeTimers[0].deadline = Date.now() - 1;
+    RUNTIME.playSession.running['Cook 1'].deadline = Date.now() - 1;
+    (await import('/modules/storage.js')).saveStateToStorage();
+    await (await import('/modules/auth.js')).handleLogout();
+    await (await import('/modules/auth.js')).applyAuthUser({ uid: 'timer-account-a', email: 'a@example.test' });
+  });
+  check('expired individual timer is removed and recipe moves to the next action', await page.evaluate(async () => {
+    const { STATE, RUNTIME } = await import('/modules/state.js');
+    return STATE.activeTimers.length === 0 && RUNTIME.playSession.completed.length === 1 &&
+      RUNTIME.playSession.running['Cook 1'].id === 'serve' && RUNTIME.playSession.running['Cook 1'].timeLeft > 0;
+  }));
+  await page.evaluate(async () => {
+    (await import('/modules/play-recipe.js')).resetPlayRecipeSession();
+    await (await import('/modules/auth.js')).handleLogout();
+    await (await import('/modules/auth.js')).applyAuthUser({ uid: 'timer-account-a', email: 'a@example.test' });
+  });
+  check('reset sessions stay cleared after account login', await widget.isHidden());
+  await page.evaluate(async () => {
+    const { BackendAuthDB } = await import('/modules/backend-auth-db.js');
+    window.onlineLoad = BackendAuthDB.loadUserState;
+    window.onlineSave = BackendAuthDB.saveUserState;
+    BackendAuthDB.loadUserState = async () => { throw new Error('Simulated offline'); };
+    BackendAuthDB.saveUserState = async () => { throw new Error('Simulated offline'); };
+    (await import('/modules/timers.js')).startCookingTimer('Offline tea', 0, 120, 'Cook 1', 'Steep offline', { silent: true });
+    await (await import('/modules/auth.js')).handleLogout();
+    await (await import('/modules/auth.js')).applyAuthUser({ uid: 'timer-account-a', email: 'a@example.test' });
+  });
+  check('offline logout and login retain pending account timers', await widget.locator('.floating-timer-row').count() === 1 && (await widget.innerText()).includes('Steep offline'));
+  await page.evaluate(async () => {
+    const { BackendAuthDB } = await import('/modules/backend-auth-db.js');
+    BackendAuthDB.loadUserState = window.onlineLoad;
+    BackendAuthDB.saveUserState = window.onlineSave;
+    await (await import('/modules/storage.js')).syncStateToCloud();
+    const { STATE } = await import('/modules/state.js');
+    (await import('/modules/timers.js')).cancelActiveTimer(STATE.activeTimers[0].id);
+    await (await import('/modules/auth.js')).handleLogout();
+    await (await import('/modules/auth.js')).applyAuthUser({ uid: 'timer-account-a', email: 'a@example.test' });
+  });
+  check('cancelled timers stay cleared after account login', await widget.isHidden());
   check('no uncaught browser errors', errors.length === 0);
   console.log(`${passed} active timer browser checks passed.`);
 } finally {

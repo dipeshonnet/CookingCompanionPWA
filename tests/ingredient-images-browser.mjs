@@ -55,9 +55,9 @@ try {
     (await import('/modules/navigation.js')).switchView('dashboard');
     return document.querySelectorAll('#dashboard-pantry-list img.ingredient-thumbnail').length === 8;
   }));
-  check('AI ingredient selector uses ingredient photos', await page.evaluate(async () => {
+  check('AI draft uses a meal description instead of pantry selection', await page.evaluate(async () => {
     (await import('/modules/navigation.js')).switchView('ai-generator');
-    return document.querySelectorAll('#ai-selectable-ingredients img.ingredient-thumbnail').length === 156;
+    return Boolean(document.querySelector('#ai-recipe-description')) && !document.querySelector('#ai-selectable-ingredients');
   }));
   await page.locator('.recipe-ingredient-name').first().fill('aubergine');
   check('recipe editor recognizes aliases and updates the photo', (await page.locator('.recipe-ingredient-row img').first().getAttribute('src')).endsWith('/brinjal.webp'));

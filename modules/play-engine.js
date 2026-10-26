@@ -7,7 +7,7 @@ export function createPlaySession(recipe, multiplier = 1, availableCooks = 1) {
   const count = normalizeAvailableCooks(availableCooks);
   const factor = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
   return {
-    recipeId: recipe.id, availableCooks: count, startedAt: null, intervalId: null,
+    recipeId: recipe.id, portions: recipe.portions || normalized.servings, ingredients: structuredClone(normalized.ingredients), availableCooks: count, startedAt: null, intervalId: null,
     completed: [], passiveRunning: [], running: { 'Cook 1': null, ...(count === 2 ? { 'Cook 2': null } : {}) },
     upcoming: normalized.steps.map((step, order) => {
       const duration = Math.max(1, Math.round(step.duration * (step.attention === 'passive' ? 1 : factor)));

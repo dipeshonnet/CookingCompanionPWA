@@ -62,11 +62,13 @@ The live Pages project is Git-integrated. Cloudflare clones `main`, runs `npm ru
 
 1. Run `npm test`, `npm run test:browser`, and `npm run test:timers` locally. Browser tests use an isolated device-only profile and need Playwright installed or `PLAYWRIGHT_MODULE_PATH` set.
 2. Push the tested commit to `main` in `dipeshonnet/CookingCompanionPWA`. Confirm the `cooking-companion-git-dipesh` Pages deployment succeeds at that commit.
-3. Verify `https://cooking.everydayai.work/asset-manifest.json` matches the expected build version and that the Google/email controls are enabled. Existing tabs may need a reload after the new service worker installs. Finish running timers first because active sessions do not survive reload.
+3. Verify `https://cooking.everydayai.work/asset-manifest.json` matches the expected build version and that the Google/email controls are enabled. Existing tabs may need a reload after the new service worker installs. Timers created by releases before account timer persistence cannot be recovered after reload.
 4. Keep **cooking.everydayai.work** attached under the new project's **Custom domains**. Its proxied CNAME points to `cooking-companion-git-dipesh.pages.dev`; do not change other DNS records.
 5. Check HTTPS login and offline startup. Do not commit credentials, local Firebase config, tests' generated output, or screenshots to the deployment source.
 
 Deploy database rules separately when they change, using the official authenticated Firebase CLI:
+
+For account timer persistence, deploy the updated rules **before** the client release. The client reads and writes the owner-only `users/{uid}/app/cooking` document. Without those rules, cloud loading and saving will fail and the app will use the account's device cache.
 
 ```sh
 firebase deploy --only firestore --project cooking-companion-6bd5b --non-interactive
@@ -91,8 +93,9 @@ Release `3740e84b6fd6f1c9` was published successfully. HTTPS, CSP, HSTS, nosniff
 
 ## Data and Quota Behavior
 
-- Firestore stores one document per ingredient, recipe, and meal slot, plus a profile document. Only changed documents are written after a 900 ms debounce. Timer ticks do not write to Firestore.
-- Login reads the profile and the user's three collections once; there are no continuously billed snapshot listeners. Large collections mean correspondingly more reads.
+- Firestore stores one document per ingredient, recipe, and meal slot, plus a profile document and an optional cooking document containing individual timers and Play Recipe progress. Starts, cancellations, resets, cook-count changes, and action transitions save cooking state; countdown-only ticks do not write to Firestore. Writes use the existing 900 ms debounce, and logout flushes pending changes.
+- Login reads the profile, cooking document, and the user's three collections once; there are no continuously billed snapshot listeners. Large collections mean correspondingly more reads.
+- Cooking state is cached separately for each account and the device-only guest. Running actions retain their original deadlines through logout and reload. Expired individual timers alert once on return; expired Play Recipe actions finish on return, and newly eligible actions then receive their full duration. Browser notification/audio delivery while the app is closed is not provided.
 - Cloud persistence excludes API keys, audio/video blobs, login state, email identity, running timers, and transient UI state. Email comes from Firebase Authentication.
 - Guest and authenticated accounts have distinct local namespaces. Signing out keeps recovery data on this device, so shared-device users should clear site data when needed.
 - Offline changes merge against the last successful sync snapshot on sign-in, preserving unrelated cloud additions. Conflicting edits to the same record use the local pending record. Concurrent already-open tabs/devices do not provide real-time collaborative editing.

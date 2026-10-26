@@ -1,5 +1,5 @@
 import { loadStateFromStorage } from './modules/storage.js';
-import { initAuthenticationLayer } from './modules/auth.js';
+import { initAuthenticationLayer, resumeAccountCooking } from './modules/auth.js';
 import { setupEventListeners } from './modules/events.js';
 import { renderApp, initLucide } from './modules/navigation.js';
 
@@ -8,6 +8,7 @@ async function bootstrap() {
   loadStateFromStorage();
   setupEventListeners();
   renderApp();
+  resumeAccountCooking();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
       .then(registration => registration.update())

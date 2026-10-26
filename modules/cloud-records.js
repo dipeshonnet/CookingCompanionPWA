@@ -1,8 +1,14 @@
+import { normalizeMealSelection } from './recipe-portions.js';
+
 export function toCloudRecords(payload) {
   const records = new Map([['app/profile', { schemaVersion: 2, user: payload.user || {} }]]);
+  if (payload.cooking?.activeTimers?.length || payload.cooking?.playSession) records.set('app/cooking', payload.cooking);
   for (const item of payload.pantry || []) records.set(`pantry/${encodeURIComponent(item.id)}`, item);
   for (const recipe of payload.customRecipes || []) records.set(`recipes/${encodeURIComponent(recipe.id)}`, recipe);
-  for (const [slot, recipeId] of Object.entries(payload.scheduledMeals || {})) records.set(`meals/${encodeURIComponent(slot)}`, { recipeId });
+  for (const [slot, value] of Object.entries(payload.scheduledMeals || {})) {
+    const selection = normalizeMealSelection(value);
+    if (selection) records.set(`meals/${encodeURIComponent(slot)}`, selection);
+  }
   return records;
 }
 
@@ -21,10 +27,11 @@ export function mergePendingState(remote, base, local) {
     if (change.remove) merged.delete(change.path); else merged.set(change.path, change.value);
   }
   const payload = { user: merged.get('app/profile')?.user || {}, pantry: [], customRecipes: [], scheduledMeals: {} };
+  if (merged.has('app/cooking')) payload.cooking = merged.get('app/cooking');
   for (const [path, value] of merged) {
     if (path.startsWith('pantry/')) payload.pantry.push(value);
     if (path.startsWith('recipes/')) payload.customRecipes.push(value);
-    if (path.startsWith('meals/')) payload.scheduledMeals[decodeURIComponent(path.slice(6))] = value.recipeId;
+    if (path.startsWith('meals/')) payload.scheduledMeals[decodeURIComponent(path.slice(6))] = normalizeMealSelection(value);
   }
   return payload;
 }
