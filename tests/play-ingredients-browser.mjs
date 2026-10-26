@@ -24,7 +24,7 @@ try {
   check('an unselected recipe explains how to show ingredients', await page.locator('#play-ingredients-empty').isVisible() && (await page.locator('#play-ingredients-empty').innerText()).includes('Choose a recipe'));
   const recipes = await page.evaluate(async () => (await import('/modules/recipe-domain.js')).getVisibleRecipes());
   for (const recipe of recipes) {
-    await page.locator('#play-recipe-select').selectOption(recipe.id);
+    await page.locator('#play-recipe-select').selectOption(recipe.id, { force: true });
     for (const portions of [1, 4]) {
       await page.locator('#play-portions').fill(String(portions));
       await page.locator('#play-portions').dispatchEvent('change');
@@ -38,7 +38,7 @@ try {
   }
   check(`all ${recipes.length} built-in recipes show visible ingredients at one and four portions`, true);
   await page.locator('.play-ingredients summary').click();
-  await page.locator('#play-recipe-select').selectOption('handpicked-poha');
+  await page.locator('#play-recipe-select').selectOption('handpicked-poha', { force: true });
   check('selecting another recipe opens its ingredient list', await page.locator('#play-portion-ingredients li').first().isVisible());
   await page.evaluate(async () => {
     const { STATE, RUNTIME } = await import('/modules/state.js');
@@ -75,18 +75,18 @@ try {
     STATE.customRecipes.push({ ...source, id: 'empty-ingredients', ingredients: [] });
     (await import('/modules/play-recipe.js')).renderPlayRecipeView();
   });
-  await page.locator('#play-recipe-select').selectOption('custom-ingredients');
+  await page.locator('#play-recipe-select').selectOption('custom-ingredients', { force: true });
   check('custom recipes use their own scaled ingredient list', await page.locator('#play-portion-ingredients').innerText() === '100 g Custom rice');
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 1000 });
     check(`ingredients remain visible at ${width}px`, await page.locator('#play-portion-ingredients li').first().isVisible());
   }
   await mkdir('output/playwright', { recursive: true });
-  await page.locator('#play-recipe-select').selectOption('handpicked-poha');
+  await page.locator('#play-recipe-select').selectOption('handpicked-poha', { force: true });
   await page.locator('.play-ingredients').screenshot({ path: 'output/playwright/play-ingredients-mobile.png' });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.locator('.play-ingredients').screenshot({ path: 'output/playwright/play-ingredients-desktop.png' });
-  await page.locator('#play-recipe-select').selectOption('empty-ingredients');
+  await page.locator('#play-recipe-select').selectOption('empty-ingredients', { force: true });
   check('recipes without ingredients explain the empty list', await page.locator('#play-ingredients-empty').isVisible() && (await page.locator('#play-ingredients-empty').innerText()).includes('No ingredients'));
   check('no uncaught browser errors', errors.length === 0);
   console.log(`${count} ingredient browser checks passed.`);

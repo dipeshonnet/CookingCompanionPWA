@@ -69,7 +69,7 @@ try {
   const groups=[
     ['pantry',['#pantry-category-input','#pantry-unit-input']],
     ['ai-generator',['#recipe-category-input','#recipe-difficulty-input','.recipe-ingredient-unit','.recipe-step-action-type','.recipe-step-type','.recipe-step-cook','.recipe-step-attention','.recipe-step-dependencies','#ai-provider-select','#ai-diet-preference','#ai-difficulty']],
-    ['play',['#play-recipe-select','#play-cook-count']],
+    ['play',['#play-cook-count']],
     ['planner',['#select-meal-recipe-dropdown']],
     ['profile',['#profile-diet-input','#profile-ai-provider-select']],
     ['detail',['#modal-cook-count']]

@@ -224,7 +224,7 @@ try {
   check('saving profile retains current view', await page.locator('#view-ai-generator').isVisible());
   check('diet filters recipes', await page.evaluate(async () => (await import('/modules/recipe-domain.js')).getVisibleRecipes().every(recipe => recipe.tags.includes('Vegan'))));
   await page.locator('[data-view="play"]').click();
-  await page.locator('#play-recipe-select').selectOption({ label: '[Dinner] Browser Test Soup' });
+  await page.locator('#play-recipe-select').selectOption({ label: 'Browser Test Soup' }, { force: true });
   check('play defaults to one cook', await page.locator('#play-cook-count').inputValue() === '1');
   await page.locator('#play-cook-count').selectOption('2');
   await page.locator('#play-recipe-start-btn').click();

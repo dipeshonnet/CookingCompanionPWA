@@ -1,4 +1,5 @@
 import { setupPortionControls } from './portion-controls.js';
+import { setupRecipePicker } from './recipe-picker.js';
 import { handleGoogleSignIn, signInLocalOnly, handleEmailSignIn, handleEmailSignUp, handleLogout } from './auth.js';
 import { renderPantryView, addPantryIngredient } from './ingredients.js';
 import { setupIngredientAutocomplete } from './ingredient-autocomplete.js';
@@ -19,6 +20,7 @@ import { getAiProvider, setAiProvider, getApiKey, setApiKey, saveStateToStorage 
 import { getProviderConfig, updateAiSettingsFields } from './ai-providers.js';
 
 export function setupEventListeners() {
+  setupRecipePicker();
   document.getElementById('modal-btn-edit-recipe')?.addEventListener('click', () => editRecipe(RUNTIME.activeModalRecipe?.id));
   document.getElementById('modal-btn-revert-recipe')?.addEventListener('click', handleRevertRecipe);
   document.getElementById('recipe-cancel-edit')?.addEventListener('click', cancelRecipeEdit);

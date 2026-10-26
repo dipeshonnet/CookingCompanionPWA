@@ -20,6 +20,48 @@ try {
   page.on('dialog', dialog => { dialogs.push(dialog.message()); dialog.accept(); });
   await page.goto(url);
   await page.locator('#btn-login-local').click();
+  const displayChecks = await page.evaluate(async () => {
+    const { APP_RECIPES } = await import('/recipes.js');
+    const { createRecipeCard } = await import('/modules/recipe-views.js');
+    const idli = APP_RECIPES.find(recipe => recipe.title === 'Idli');
+    const card = createRecipeCard(idli);
+    const placeholder = createRecipeCard({ ...idli, image: 'assets/logo.png' });
+    const { showRecipeDetailsModal } = await import('/modules/recipe-detail.js');
+    showRecipeDetailsModal(idli);
+    return {
+      image: card.querySelector('img').getAttribute('src'),
+      total: card.querySelector('.recipe-meta').textContent,
+      placeholder: placeholder.querySelector('.recipe-photo-placeholder')?.textContent,
+      estimate: document.querySelector('#modal-recipe-timeline .timeline-estimate strong').textContent,
+      prep: document.getElementById('modal-prep').textContent,
+      modalImage: document.getElementById('modal-image').getAttribute('src')
+    };
+  });
+  check('Idli card and details use the finished-dish photo', displayChecks.image === 'assets/recipes/idli.jpg' && displayChecks.modalImage === displayChecks.image);
+  check('missing dish photos show a placeholder', displayChecks.placeholder === 'Recipe photo unavailable');
+  check('card total includes overnight preparation and matches timeline', displayChecks.total.includes(`Total: ${displayChecks.estimate}`) && displayChecks.estimate.startsWith('18 hr ') && displayChecks.prep.includes('hr'));
+  await page.locator('#modal-image').evaluate(image => image.decode());
+  check('packaged Idli photo loads successfully', await page.locator('#modal-image').evaluate(image => image.naturalWidth > 0));
+  check('overnight Gantt axis uses hour labels', (await page.locator('#modal-recipe-timeline .timeline-axis-track').innerText()).includes('hr'));
+  const longTimeline = await page.evaluate(async () => {
+    const { renderRecipeTimeline } = await import('/modules/recipe-timeline.js');
+    const { createPlaySession, advancePlaySession } = await import('/modules/play-engine.js');
+    const recipe = { id: 'long-timeline', title: 'Long timeline', stepSchemaVersion: 2, steps: [
+      { id: 'wait', title: 'Rest dough', action: 'Rest dough.', duration: 2 * 86400 + 3600 + 60, attention: 'passive', dependsOn: [] }
+    ] };
+    const session = createPlaySession(recipe);
+    advancePlaySession(session, 0);
+    renderRecipeTimeline('modal-recipe-timeline', recipe, { session, now: (86400 + 3600 + 60) * 1000 });
+    const root = document.getElementById('modal-recipe-timeline');
+    return {
+      estimate: root.querySelector('.timeline-estimate').textContent,
+      axis: root.querySelector('.timeline-axis-track').textContent,
+      prerequisites: root.querySelector('.timeline-dependencies').textContent,
+      tooltip: root.querySelector('.timeline-bar').getAttribute('aria-label')
+    };
+  });
+  check('Gantt total, axis, tooltips and prerequisites use day/hour/minute labels', longTimeline.estimate.includes('2 days 1 hr 1 min') && longTimeline.axis.includes('day') && longTimeline.axis.startsWith('0 min') && longTimeline.prerequisites.includes('0 min–2 days 1 hr 1 min') && longTimeline.tooltip.includes('0 min to 2 days 1 hr 1 min'));
+  check('Gantt live elapsed time uses unit labels', longTimeline.estimate.includes('Elapsed: 1 day 1 hr 1 min'));
   await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
     STATE.user.mutePlayAudio = true;
@@ -64,7 +106,7 @@ try {
   check('adding a cook starts ready work immediately', await page.locator('#play-col-cook2 .play-step-card').count() === 1);
   await page.locator('#play-recipe-reset-btn').click();
   check('reset clears recipe, passive actions and returns to one cook', await page.locator('#play-cook-count').inputValue() === '1' && await page.locator('#play-col-unattended .play-step-card').count() === 0);
-  await page.locator('#play-recipe-select').selectOption('handpicked-poha');
+  await page.locator('#play-recipe-select').selectOption('handpicked-poha', { force: true });
   await page.locator('#play-recipe-start-btn').click();
   const expireCook1 = () => page.evaluate(async () => {
     const { RUNTIME } = await import('/modules/state.js');
@@ -158,7 +200,7 @@ try {
   });
   check('planner explains unsupported saved meals', (await page.locator('#planner-shopping-list').innerText()).includes('Shopping list unavailable'));
   await page.evaluate(async () => (await import('/modules/navigation.js')).switchView('play'));
-  await page.locator('#play-recipe-select').selectOption('oversized-batches');
+  await page.locator('#play-recipe-select').selectOption('oversized-batches', { force: true });
   check('unsupported saved recipe cannot start playback', await page.locator('#play-recipe-start-btn').isDisabled() && (await page.locator('#play-portion-note').innerText()).includes('2,000 cooking actions'));
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.reload();

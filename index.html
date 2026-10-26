@@ -538,8 +538,13 @@
         <div class="glass-card" style="margin-bottom: 18px;">
           <div class="pantry-input-group play-controls" style="align-items: end;">
             <div class="form-group" style="flex: 2; min-width: 0; margin-bottom: 0;">
-              <label for="play-recipe-select">Choose Recipe</label>
-              <select id="play-recipe-select" class="form-control"></select>
+              <label for="play-recipe-search">Choose Recipe</label>
+              <div class="recipe-picker">
+                <input id="play-recipe-search" class="form-control" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="play-recipe-options" placeholder="Type or choose a recipe" autocomplete="off" spellcheck="false">
+                <span class="recipe-picker-arrow" aria-hidden="true">▾</span>
+                <div id="play-recipe-options" class="recipe-picker-options" role="listbox" aria-label="Recipes" hidden></div>
+                <select id="play-recipe-select" hidden aria-hidden="true" tabindex="-1"></select>
+              </div>
             </div>
             <div class="form-group portion-field"><label for="play-portions">Portions</label><div class="portion-control"><button type="button" class="btn-secondary" data-portion-target="play-portions" data-portion-delta="-1" aria-label="Decrease portions" disabled>−</button><input id="play-portions" class="form-control" type="number" min="1" step="1" value="1" aria-describedby="play-portions-hint"><button type="button" class="btn-secondary" data-portion-target="play-portions" data-portion-delta="1" aria-label="Increase portions">+</button></div><small id="play-portions-hint">1 portion serves 1 person.</small></div>
             <div class="form-group" style="margin-bottom:0"><label for="play-cook-count">Number of cooks</label><select id="play-cook-count" class="form-control"><option value="1">1 cook</option><option value="2">2 cooks</option></select></div>

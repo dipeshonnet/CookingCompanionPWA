@@ -228,12 +228,14 @@ export function hasCombinedCommands(action) {
 }
 
 export function formatDurationLabel(seconds) {
-  const total = Math.max(0, Math.round(seconds || 0));
+  const total = Number.isFinite(Number(seconds)) ? Math.max(0, Math.round(Number(seconds))) : 0;
   if (total <= 0) return "No timer";
 
-  const minutes = Math.floor(total / 60);
-  const secs = total % 60;
-  if (minutes === 0) return `${secs}s`;
-  if (secs === 0) return `${minutes}m`;
-  return `${minutes}m ${secs}s`;
+  const units = [[86400, 'day'], [3600, 'hr'], [60, 'min'], [1, 'sec']];
+  let remaining = total;
+  return units.flatMap(([size, label]) => {
+    const value = Math.floor(remaining / size);
+    remaining %= size;
+    return value ? [`${value} ${label}${label === 'day' && value !== 1 ? 's' : ''}`] : [];
+  }).join(' ');
 }

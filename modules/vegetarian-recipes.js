@@ -17,7 +17,9 @@ function recipe(title, category, cuisine, description, list, actions, difficulty
   const items = ingredients(list);
   const dairy = /\b(ghee|paneer|butter|yogurt|curd|buttermilk|cream|cheese|ricotta|mozzarella|feta|parmesan)\b|(?<!coconut )\bmilk\b/i;
   return { id: `veg-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-$/, '')}`, title, category,
-    description, difficulty, servings, cookCount: 1, stepSchemaVersion: 2, rating: 0, image: 'assets/logo.png',
+    description, difficulty, servings, cookCount: 1, stepSchemaVersion: 2, rating: 0,
+    image: title === 'Idli' ? 'assets/recipes/idli.jpg' : 'assets/logo.png',
+    ...(title === 'Idli' ? { imageCredit: 'Idli - South Indian Snack by Zeel Patel, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Source: https://commons.wikimedia.org/wiki/File:Idli_-_South_Indian_Snack.JPG. Resized; display cropped to fit.' } : {}),
     tags: ['Vegetarian', 'Egg-Free', cuisine, ...(!items.some(item => dairy.test(item.name)) ? ['Vegan'] : [])],
     ingredients: items, steps,
     prepTime: Math.ceil(steps.filter(s => s.stepType === 'Prep').reduce((n, s) => n + s.duration, 0) / 60),

@@ -11,6 +11,7 @@ import { ingredientLabel } from './ingredient-images.js';
 import { renderRecipeTimeline } from './recipe-timeline.js';
 import { switchView } from './navigation.js';
 import { saveStateToStorage } from './storage.js';
+import { syncRecipePicker } from './recipe-picker.js';
 
 export { formatTimerClock } from './utils.js';
 
@@ -21,12 +22,12 @@ export function renderPlayRecipeView() {
   for (const recipe of getVisibleRecipes()) {
     const option = document.createElement('option');
     option.value = recipe.id;
-    option.textContent = `[${recipe.category}] ${recipe.title}`;
+    option.textContent = recipe.title;
     select.appendChild(option);
   }
   if (RUNTIME.playSession.recipeId && ![...select.options].some(option => option.value === selected)) {
     const recipe = getAllRecipes().find(recipe => recipe.id === selected);
-    select.appendChild(new Option(recipe ? `[${recipe.category}] ${recipe.title}` : 'Current cooking session', selected));
+    select.appendChild(new Option(recipe ? recipe.title : 'Current cooking session', selected));
   }
   select.value = [...select.options].some(option => option.value === selected) ? selected : '';
   if (RUNTIME.playSession.recipeId) {
@@ -108,7 +109,8 @@ export function renderPlayBoards() {
   const note = document.getElementById('play-cook-status');
   if (note) note.textContent = session.availableCooks === 1 && session.running['Cook 2'] ? 'Cook 2 will leave after their current action finishes.' : '';
   document.getElementById('play-recipe-select').disabled = Boolean(session.intervalId || (session.recipeId && session.upcoming.length));
-  document.getElementById('play-recipe-start-btn').disabled = Boolean(session.recipeId || portionError);
+  syncRecipePicker();
+  document.getElementById('play-recipe-start-btn').disabled = Boolean(!source || session.recipeId || portionError);
   const availableCooks = normalizeAvailableCooks(document.getElementById('play-cook-count')?.value);
   renderRecipeTimeline('play-recipe-timeline', recipe, { availableCooks, multiplier: getExperienceTimerMultiplier(), ...(session.recipeId ? { session, now: Date.now() } : {}) });
   renderActiveTimers();

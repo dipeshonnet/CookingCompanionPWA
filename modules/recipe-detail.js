@@ -28,12 +28,13 @@ export function showRecipeDetailsModal(recipe, portions = 1) {
   RUNTIME.activeModalServingsMultiplier = 1.0;
 
   document.getElementById("modal-image").src = displayRecipe.image;
+  document.getElementById("modal-image").alt = displayRecipe.image === 'assets/logo.png' ? 'Recipe photo unavailable' : displayRecipe.title;
   document.getElementById("modal-title").innerText = displayRecipe.title;
   document.getElementById("modal-description").innerText = displayRecipe.description;
   document.getElementById('modal-recipe-sources').innerHTML = recipeSourcesHtml(displayRecipe.sources) + searchAttributionHtml(displayRecipe.searchAttribution);
   
-  document.getElementById("modal-prep").innerText = `Prep: ${displayRecipe.prepTime}m`;
-  document.getElementById("modal-cook").innerText = `Cook: ${displayRecipe.cookTime}m`;
+  document.getElementById("modal-prep").innerText = `Prep: ${formatDurationLabel(displayRecipe.prepTime * 60)}`;
+  document.getElementById("modal-cook").innerText = `Cook: ${formatDurationLabel(displayRecipe.cookTime * 60)}`;
   document.getElementById("modal-servings").value = RUNTIME.activeModalServingsCount;
   document.getElementById("modal-servings-dec").disabled = RUNTIME.activeModalServingsCount <= 1;
   document.getElementById("modal-portion-timing-note").textContent = displayRecipe.timingIsOriginal ? "Actions without portion-specific timing rules keep their original estimates." : "Times are estimates for these portions. Follow the cooking and doneness instructions.";

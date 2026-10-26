@@ -516,6 +516,16 @@ h1, h2, h3, h4, h5, h6 {
   transition: transform 0.5s ease;
 }
 
+.recipe-photo-placeholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 52px 16px 16px;
+  background: var(--bg-secondary, #20212e);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 .recipe-card:hover .recipe-image {
   transform: scale(1.08);
 }
@@ -2379,11 +2389,27 @@ body.has-floating-timers .main-content { padding-bottom: 280px; }
 .recipe-builder-actions { flex-wrap: wrap; }
 
 /* Portion counts describe diners, independently of the number of cooks. */
+.recipe-picker { position: relative; min-width: 0; }
+.recipe-picker > input { height: 46px; padding-right: 36px; }
+.recipe-picker-arrow { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+.recipe-picker-options { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 20; max-height: 280px; overflow-y: auto; overscroll-behavior: contain; padding: 6px; border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: #1b2232; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4); }
+.recipe-picker-options [role="option"], .recipe-picker-empty { padding: 12px; border-radius: 10px; overflow-wrap: anywhere; font-size: 14px; }
+.recipe-picker-options [role="option"] { cursor: pointer; }
+.recipe-picker-options [role="option"]:hover, .recipe-picker-options .is-active { background: rgba(245, 158, 11, 0.15); }
+.recipe-picker-options [aria-selected="true"] { color: var(--accent-light); }
+.recipe-picker-empty { color: var(--text-muted); }
 .portion-field { margin-bottom: 0; }
 .portion-control { display: flex; flex-flow: row nowrap; align-items: center; gap: 6px; }
 .portion-control .form-control, .portion-input { width: 76px; min-width: 60px; text-align: center; }
 .portion-control button { flex: 0 0 40px; padding: 8px 12px; min-height: 40px; min-width: 40px; }
 .portion-field small, .portion-timing-note { color: var(--text-muted); font-size: 12px; }
+.play-controls .portion-field { position: relative; }
+.play-controls .portion-control .form-control,
+.play-controls .portion-control button { height: 46px; }
+.play-controls .portion-field small { position: absolute; top: 100%; left: 0; margin-top: 8px; }
+@media (max-width: 768px) {
+  .play-controls .portion-field small { position: static; display: block; }
+}
 .portion-timing-note { margin: 8px 0 20px; }
 .play-ingredients { padding: 16px; margin-bottom: 16px; }
 .play-ingredients ul { padding: 12px 0 0 20px; }

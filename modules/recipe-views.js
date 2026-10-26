@@ -2,26 +2,14 @@ import { recipeScore, sharedVersion, rateRecipe, ratingLevel, RATING_OPTIONS } f
 import { scaleRecipeForPortions, RecipeActionLimitError } from './recipe-portions.js';
 import { initLucide } from './navigation.js';
 import { showRecipeDetailsModal } from './recipe-detail.js';
-import { getVisibleRecipes, getRecipeById, isPersonalRecipe, safeImageSource } from './recipe-domain.js';
+import { getVisibleRecipes, getRecipeById, isPersonalRecipe, safeImageSource, formatDurationLabel } from './recipe-domain.js';
+import { buildRecipeSchedule } from './play-engine.js';
 import { STATE } from './state.js';
 import { renderActiveTimers } from './timers.js';
 import { availableQuantity } from './units.js';
 import { formatQuantity, escapeHtml } from './utils.js';
 import { HANDPICKED_RECIPES } from '../recipes.js';
-import { ingredientLabel, ingredientImageSource } from './ingredient-images.js';
-
-function recipeCardImage(recipe) {
-  const original = safeImageSource(recipe.image);
-  if (original !== 'assets/logo.png') return original;
-  const titleWords = new Set((recipe.title || '').toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 2));
-  const ingredients = recipe.ingredients || [];
-  const best = ingredients
-    .map(item => ({ name: item.name, score: (item.name || '').toLowerCase().split(/[^a-z0-9]+/).filter(word => titleWords.has(word)).length }))
-    .sort((a, b) => b.score - a.score)
-    .map(item => ingredientImageSource(item.name))
-    .find(Boolean);
-  return best || ingredientImageSource(ingredients[0]?.name) || original;
-}
+import { ingredientLabel } from './ingredient-images.js';
 
 export function renderDashboard() {
   document.getElementById("dashboard-welcome-heading").innerText = `Welcome, ${STATE.user.name}!`;
@@ -113,18 +101,19 @@ export function createRecipeCard(recipe) {
   const safeTitle = escapeHtml(recipe.title);
   const safeCategory = escapeHtml(recipe.category);
   const safeDescription = escapeHtml(recipe.description);
-  const safeImage = escapeHtml(recipeCardImage(recipe));
+  const imageSource = safeImageSource(recipe.image);
+  const safeImage = escapeHtml(imageSource);
   const safeTags = (recipe.tags || []).slice(0, 2).map(t => `<span class="recipe-tag">${escapeHtml(t)}</span>`).join("");
   let timing = 'Timing unavailable';
-  try { timing = `${scaleRecipeForPortions(recipe, 1).cookTime} mins`; }
+  try { timing = `Total: ${formatDurationLabel(buildRecipeSchedule(scaleRecipeForPortions(recipe, 1)).duration)}`; }
   catch (error) { if (!(error instanceof RecipeActionLimitError)) throw error; }
   const matchPill = matchPct > 0 
     ? `<span class="recipe-match">${matchPct}% Match</span>` 
-    : `<span>${escapeHtml(timing)}</span>`;
+    : '';
 
   card.innerHTML = `
     <div class="recipe-image-wrapper">
-      <img class="recipe-image" src="${safeImage}" alt="${safeTitle}"${recipe.imageCredit ? ` title="${escapeHtml(recipe.imageCredit)}"` : ''} loading="lazy" decoding="async">
+      ${imageSource === 'assets/logo.png' ? '<div class="recipe-photo-placeholder">Recipe photo unavailable</div>' : `<img class="recipe-image" src="${safeImage}" alt="${safeTitle}"${recipe.imageCredit ? ` title="${escapeHtml(recipe.imageCredit)}"` : ''} loading="lazy" decoding="async">`}
       <span class="recipe-badge">${safeCategory}</span>
       <span class="recipe-score" aria-label="${recipeScore(recipe) ? `${recipeScore(recipe).toFixed(1)} out of 5 stars` : 'Not yet rated'}">★ ${recipeScore(recipe) ? `${Number(recipeScore(recipe).toFixed(1))}/5` : 'Unrated'}</span>
     </div>
@@ -143,10 +132,18 @@ export function createRecipeCard(recipe) {
         </select>
       </label>
       <div class="recipe-meta">
-        <span><i data-lucide="clock" style="width: 12px; height: 12px;"></i> ${matchPill}</span>
+        <span><i data-lucide="clock" style="width: 12px; height: 12px;"></i> ${escapeHtml(timing)}</span>
+        ${matchPill}
       </div>
     </div>
   `;
+
+  card.querySelector('.recipe-image')?.addEventListener('error', event => {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'recipe-photo-placeholder';
+    placeholder.textContent = 'Recipe photo unavailable';
+    event.target.replaceWith(placeholder);
+  }, { once: true });
 
   // Attach interactive detail triggers
   card.addEventListener("click", (e) => {

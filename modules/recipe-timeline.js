@@ -1,6 +1,8 @@
 import { buildRecipeSchedule } from './play-engine.js';
 import { processLabel, formatDurationLabel } from './recipe-domain.js';
-import { escapeHtml, formatTimerClock } from './utils.js';
+import { escapeHtml } from './utils.js';
+
+const formatTimelineTime = seconds => seconds > 0 ? formatDurationLabel(seconds) : '0 min';
 
 export function renderRecipeTimeline(target, recipe, options = {}) {
   const element = typeof target === 'string' ? document.getElementById(target) : target;
@@ -47,14 +49,14 @@ export function renderRecipeTimeline(target, recipe, options = {}) {
       const elbow = Math.min(width + 10, fromX + 10);
       return `<path data-from="${escapeHtml(id)}" data-to="${escapeHtml(step.id)}" d="M ${fromX} ${fromY} H ${elbow} V ${toY - 24} H ${toX} V ${toY - 17}" marker-end="url(#${uid}-arrow)"/>`;
     })).join('');
-    const descriptionFor = step => `${step.title}. ${formatDurationLabel(step.duration)}. ${formatTimerClock(step.start)} to ${formatTimerClock(step.end)}. ${step.attention === 'passive' ? 'Unattended' : step.assignedCook}. Prerequisites: ${dependencyText(step)}. ${step.status}.`;
+    const descriptionFor = step => `${step.title}. ${formatDurationLabel(step.duration)}. ${formatTimelineTime(step.start)} to ${formatTimelineTime(step.end)}. ${step.attention === 'passive' ? 'Unattended' : step.assignedCook}. Prerequisites: ${dependencyText(step)}. ${step.status}.`;
     element.dataset.timelineZoom = zoom;
-    element.innerHTML = `<div class="recipe-timeline-header"><div><span class="timeline-eyebrow">RECIPE PLAN</span><h3>Cooking timeline</h3></div><div class="timeline-estimate"><span>Estimated elapsed</span><strong>${formatDurationLabel(Math.ceil(schedule.duration))}</strong>${options.session ? `<span>Elapsed: ${formatTimerClock(schedule.elapsed)}</span>` : ''}</div></div>
+    element.innerHTML = `<div class="recipe-timeline-header"><div><span class="timeline-eyebrow">RECIPE PLAN</span><h3>Cooking timeline</h3></div><div class="timeline-estimate"><span>Estimated elapsed</span><strong>${formatDurationLabel(Math.ceil(schedule.duration))}</strong>${options.session ? `<span>Elapsed: ${formatTimelineTime(schedule.elapsed)}</span>` : ''}</div></div>
       ${recipe.stepSchemaVersion !== 2 ? '<p class="play-step-meta">Legacy recipe: actions run sequentially until their dependencies are reviewed.</p>' : ''}
       <div class="timeline-toolbar"><div class="timeline-legend"><span><i class="timeline-swatch"></i>Hands-on</span><span><i class="timeline-swatch passive"></i>Unattended</span><span><i class="timeline-legend-arrow" aria-hidden="true">↳</i>Prerequisite</span></div><div class="timeline-zoom" role="group" aria-label="Timeline scale"><button type="button" data-timeline-zoom="overview" aria-pressed="${zoom === 'overview'}">Overview</button><button type="button" data-timeline-zoom="detail" aria-pressed="${zoom === 'detail'}">More detail</button></div></div>
       <div class="timeline-scroll" tabindex="0" role="region" aria-label="Scrollable recipe dependency timeline" aria-describedby="${uid}-hint">
         <div class="timeline-canvas" style="height:${height}px">
-          <div class="timeline-time-axis"><div class="timeline-corner">Action <span>${schedule.steps.length} total</span></div><div class="timeline-axis-track">${ticks.map(time => `<span style="left:${time / total * 100}%">${formatTimerClock(time)}</span>`).join('')}</div></div>
+          <div class="timeline-time-axis"><div class="timeline-corner">Action <span>${schedule.steps.length} total</span></div><div class="timeline-axis-track">${ticks.map(time => `<span style="left:${time / total * 100}%">${formatTimelineTime(time)}</span>`).join('')}</div></div>
           <div class="timeline-grid" aria-hidden="true">${ticks.map(time => `<i style="left:${time / total * 100}%"></i>`).join('')}</div>
           ${headings.map(({ group, top, count }) => `<div class="timeline-group ${groupColor(group)}" style="top:${top}px"><div class="timeline-group-label"><i></i>${escapeHtml(processLabel(group))}</div><span>${count} actions</span></div>`).join('')}
           <svg class="timeline-links" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><defs><marker id="${uid}-arrow" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs>${arrows}</svg>
@@ -74,7 +76,7 @@ export function renderRecipeTimeline(target, recipe, options = {}) {
       </div>
       <p class="timeline-hint" id="${uid}-hint">Select an action to see its timing and prerequisites. Scroll to explore. Estimates follow your experience setting.</p>
       <p class="timeline-selection" role="status"></p>
-      <details class="timeline-dependencies" ${detailsOpen ? 'open' : ''}><summary>Action prerequisites and planned times</summary><ol>${schedule.steps.map(step => `<li><strong>${escapeHtml(step.title)}</strong> (${formatTimerClock(step.start)}–${formatTimerClock(step.end)}): ${escapeHtml(dependencyText(step))}</li>`).join('')}</ol></details>`;
+      <details class="timeline-dependencies" ${detailsOpen ? 'open' : ''}><summary>Action prerequisites and planned times</summary><ol>${schedule.steps.map(step => `<li><strong>${escapeHtml(step.title)}</strong> (${formatTimelineTime(step.start)}–${formatTimelineTime(step.end)}): ${escapeHtml(dependencyText(step))}</li>`).join('')}</ol></details>`;
     const scroll = element.querySelector('.timeline-scroll');
     scroll.scrollLeft = scrollPosition[0];
     scroll.scrollTop = scrollPosition[1];

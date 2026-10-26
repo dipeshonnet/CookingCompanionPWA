@@ -52,7 +52,7 @@ try {
   await page.locator('[data-view="play"]').click();
   check('reload restores the selected portions and frozen ingredients', await page.locator('#play-portions').inputValue() === '4' && (await page.locator('#play-portion-ingredients').textContent()).includes('5 cups Water'));
   await page.locator('#play-recipe-reset-btn').click();
-  await page.locator('#play-recipe-select').selectOption('handpicked-upma');
+  await page.locator('#play-recipe-select').selectOption('handpicked-upma', { force: true });
   check('fresh Play Recipe selections default to one', await page.locator('#play-portions').inputValue() === '1' && !(await page.locator('#play-portions').isDisabled()));
   await page.locator('[data-portion-target="play-portions"][data-portion-delta="1"]').click();
   check('Play Recipe previews ingredients for selected diners', (await page.locator('#play-portion-ingredients').textContent()).includes('2½ cups Water'));

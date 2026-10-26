@@ -40,7 +40,7 @@ try {
   });
   const startRecipe = async () => {
     await page.evaluate(async () => (await import('/modules/navigation.js')).switchView('play'));
-    await page.locator('#play-recipe-select').selectOption('timer-test');
+    await page.locator('#play-recipe-select').selectOption('timer-test', { force: true });
     await page.locator('#play-cook-count').selectOption('2');
     await page.locator('#play-recipe-start-btn').click();
   };
