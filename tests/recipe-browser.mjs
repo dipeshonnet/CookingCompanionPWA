@@ -125,6 +125,45 @@ try {
   await page.locator('#recipe-import-file').setInputFiles({ name: 'cycle.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ recipes: [valid] })) });
   const importError = await importDialog;
   check('cyclic imports are rejected without saving', importError.message().includes('cycle') && await page.evaluate(async () => !(await import('/modules/state.js')).STATE.customRecipes.some(r => r.id === 'invalid-cycle')));
+  const batchRecipe = counts => ({ id: 'oversized-batches', title: 'Oversized batches', servings: 1, ingredients: [],
+    steps: counts.map((yieldCount, index) => ({ action: 'Stir sauce.', scaling: { mode: 'batch', group: `pan-${index}`, yield: yieldCount, capacity: 1, secondsPerBatch: 1 } })) });
+  const beforeImport = await page.evaluate(() => JSON.stringify(localStorage));
+  for (const counts of [[2001], [1001, 1001]]) {
+    await page.locator('#recipe-import-file').setInputFiles({ name: 'batch-limit.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ recipes: [batchRecipe(counts)] })) });
+    await page.waitForFunction(() => document.getElementById('recipe-import-file').value === '');
+    check('oversized import leaves storage untouched', beforeImport === await page.evaluate(() => JSON.stringify(localStorage)));
+    check('oversized import explains the 2000-action budget', dialogs.at(-1).includes('2,000 cooking actions'));
+  }
+  // Simulate data saved by an older release: preserve it for export without
+  // letting one unsupported recipe break unrelated views or navigation.
+  await page.evaluate(async raw => {
+    const { STATE } = await import('/modules/state.js');
+    STATE.customRecipes.push((await import('/modules/recipe-domain.js')).normalizeRecipeForStorage(raw));
+    STATE.pantry = [{ id: 'rice', name: 'Rice', quantity: 1, unit: 'g' }];
+    STATE.scheduledMeals = { 'Monday-Dinner': { recipeId: raw.id, portions: 1 } };
+    (await import('/modules/storage.js')).saveStateToStorage({ sync: false });
+    (await import('/modules/recipe-views.js')).renderDashboard();
+    (await import('/modules/recipe-views.js')).renderExploreRecipes();
+  }, batchRecipe([2001]));
+  check('saved oversized recipes keep Explore usable', (await page.locator('#explore-recipes-grid').innerText()).includes('Timing unavailable'));
+  await page.evaluate(async () => {
+    const recipe = (await import('/modules/recipe-domain.js')).getRecipeById('oversized-batches');
+    (await import('/modules/recipe-detail.js')).showRecipeDetailsModal(recipe);
+    (await import('/modules/recipe-transfer.js')).openRecipeExportModal();
+  });
+  check('saved oversized recipe remains exportable', await page.locator('.recipe-export-check[value="oversized-batches"]').count() === 1);
+  await page.evaluate(async () => {
+    (await import('/modules/recipe-transfer.js')).closeRecipeExportModal();
+    (await import('/modules/navigation.js')).switchView('planner');
+  });
+  check('planner explains unsupported saved meals', (await page.locator('#planner-shopping-list').innerText()).includes('Shopping list unavailable'));
+  await page.evaluate(async () => (await import('/modules/navigation.js')).switchView('play'));
+  await page.locator('#play-recipe-select').selectOption('oversized-batches');
+  check('unsupported saved recipe cannot start playback', await page.locator('#play-recipe-start-btn').isDisabled() && (await page.locator('#play-portion-note').innerText()).includes('2,000 cooking actions'));
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.reload();
+  await page.locator('[data-view="pantry"]').click();
+  check('reload with an oversized saved recipe preserves navigation', await page.locator('#view-pantry').isVisible());
   check('no uncaught browser errors', errors.length === 0);
   console.log(`${passed} recipe dependency browser checks passed.`);
 } finally { await browser?.close(); server.kill(); }

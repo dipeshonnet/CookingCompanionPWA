@@ -534,32 +534,22 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--accent-light);
 }
 
-.recipe-favorite {
+.recipe-score {
   position: absolute;
   top: 14px;
   right: 14px;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  padding: 6px 10px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #fbbf24;
+  font-size: 13px;
+  font-weight: 700;
 }
-
-.recipe-favorite:hover, .recipe-favorite.active {
-  color: #ef4444;
-  transform: scale(1.1);
-}
-
-.recipe-favorite {
-  border: 0;
-}
+.recipe-author { color: var(--text-muted); font-size: 13px; margin: 8px 0 12px; overflow-wrap: anywhere; }
+.recipe-rating-control { display: grid; gap: 6px; font-size: 12px; color: var(--text-muted); margin: 12px 0; }
+.recipe-rating-select { width: 100%; min-height: 44px; }
+.explore-rating-filter { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.explore-rating-filter select { width: auto; min-width: 165px; }
 
 .planner-slot button {
   width: 100%;
@@ -2390,12 +2380,15 @@ body.has-floating-timers .main-content { padding-bottom: 280px; }
 
 /* Portion counts describe diners, independently of the number of cooks. */
 .portion-field { margin-bottom: 0; }
-.portion-control { display: flex; align-items: center; gap: 6px; }
+.portion-control { display: flex; flex-flow: row nowrap; align-items: center; gap: 6px; }
 .portion-control .form-control, .portion-input { width: 76px; min-width: 60px; text-align: center; }
-.portion-control button { padding: 8px 12px; min-height: 40px; min-width: 40px; }
+.portion-control button { flex: 0 0 40px; padding: 8px 12px; min-height: 40px; min-width: 40px; }
 .portion-field small, .portion-timing-note { color: var(--text-muted); font-size: 12px; }
 .portion-timing-note { margin: 8px 0 20px; }
 .play-ingredients { padding: 16px; margin-bottom: 16px; }
 .play-ingredients ul { padding: 12px 0 0 20px; }
+.play-ingredients summary { cursor: pointer; }
+.play-ingredients li { padding: 4px 0; overflow-wrap: anywhere; }
+#play-ingredients-empty { padding-top: 12px; color: var(--text-muted); }
 #select-meal-modal .portion-field { margin-bottom: 20px; }
 #modal-servings-dec, #modal-servings-inc { min-width: 32px; min-height: 32px; }

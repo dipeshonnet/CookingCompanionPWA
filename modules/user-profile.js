@@ -22,6 +22,7 @@ export function buildUserProfile(raw = {}) {
     mutePlayAudio: Boolean(raw.mutePlayAudio),
     experience: ['Expert', 'Somewhat', 'Beginner'].includes(raw.experience) ? raw.experience : defaults.experience,
     likedRecipeIds: Array.isArray(raw.likedRecipeIds) ? raw.likedRecipeIds.filter(id => typeof id === 'string').slice(0, 2000) : [],
+    recipeRatings: Object.fromEntries(Object.entries(raw.recipeRatings && typeof raw.recipeRatings === 'object' ? raw.recipeRatings : {}).filter(([id, score]) => id.length <= 200 && [1, 3, 5].includes(score)).slice(0, 2000)),
     loggedIn: Boolean(raw.loggedIn)
   };
 };

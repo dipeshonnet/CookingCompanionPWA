@@ -1,4 +1,4 @@
-import { normalizeMealSelection, normalizePortions, scaleRecipeForPortions, formatIngredientAmount } from './recipe-portions.js';
+import { normalizeMealSelection, normalizePortions, scaleRecipeForPortions, formatIngredientAmount, RecipeActionLimitError } from './recipe-portions.js';
 import { initLucide } from './navigation.js';
 import { getAllRecipes, getVisibleRecipes } from './recipe-domain.js';
 import { renderDashboard } from './recipe-views.js';
@@ -122,10 +122,17 @@ export function renderPlannerShoppingList() {
     return;
   }
 
-  const recipes = activeIds.map(normalizeMealSelection).filter(Boolean).map(selection => {
-    const recipe = getAllRecipes().find(recipe => recipe.id === selection.recipeId);
-    return recipe ? scaleRecipeForPortions(recipe, selection.portions) : null;
-  }).filter(Boolean);
+  let recipes;
+  try {
+    recipes = activeIds.map(normalizeMealSelection).filter(Boolean).map(selection => {
+      const recipe = getAllRecipes().find(recipe => recipe.id === selection.recipeId);
+      return recipe ? scaleRecipeForPortions(recipe, selection.portions) : null;
+    }).filter(Boolean);
+  } catch (error) {
+    if (!(error instanceof RecipeActionLimitError)) throw error;
+    listContainer.textContent = `Shopping list unavailable: ${error.message} Update the affected meal selection.`;
+    return;
+  }
   const requiredList = buildShoppingList(recipes, STATE.pantry);
 
   if (requiredList.length === 0) {

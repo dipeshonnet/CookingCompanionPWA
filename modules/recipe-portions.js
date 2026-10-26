@@ -1,6 +1,15 @@
 import { formatQuantity } from './utils.js';
 import { convertQuantity } from './units.js';
 
+export const MAX_RECIPE_ACTIONS = 2000;
+
+export class RecipeActionLimitError extends Error {
+  constructor(message = `These portions exceed ${MAX_RECIPE_ACTIONS.toLocaleString('en-US')} cooking actions. Please cook in smaller groups.`) {
+    super(message);
+    this.name = 'RecipeActionLimitError';
+  }
+}
+
 export function normalizePortions(value) {
   const count = Number(value);
   return Number.isSafeInteger(count) && count > 0 ? count : 1;
@@ -44,6 +53,7 @@ export function retainPortionSource(copy, recipe) {
 // Always scale from the source, never from a previous on-screen selection.
 export function scaleRecipeForPortions(recipe, selected = 1) {
   const source = sources.get(recipe) || recipe;
+  if (source.steps?.length > MAX_RECIPE_ACTIONS) throw new RecipeActionLimitError();
   const portions = normalizePortions(selected);
   const servings = Math.max(1, Number(source.servings) || 1);
   const factor = portions / servings;
@@ -91,11 +101,20 @@ export function scaleRecipeForPortions(recipe, selected = 1) {
     group.push(step);
     groups.set(step.scaling.group, group);
   }
-  const finalIds = new Map(), expanded = new Map();
+  // Validate the whole expansion before allocating any batch copies.
+  let totalActions = result.steps.length;
+  const batchCounts = new Map();
   for (const [name, steps] of groups) {
     const rule = steps[0].scaling;
     const count = Math.max(1, Math.ceil(rule.yield * factor / rule.capacity - 1e-9));
-    if (count * steps.length + result.steps.length - steps.length > 500) throw new Error('These portions need too many cooking actions. Please cook in smaller groups.');
+    totalActions += (count - 1) * steps.length;
+    if (!Number.isSafeInteger(count) || totalActions > MAX_RECIPE_ACTIONS) throw new RecipeActionLimitError();
+    batchCounts.set(name, count);
+  }
+  const finalIds = new Map(), expanded = new Map();
+  for (const [name, steps] of groups) {
+    const rule = steps[0].scaling;
+    const count = batchCounts.get(name);
     const members = new Set(steps.map(step => step.id));
     const idFor = (id, batch) => batch === 0 ? id : `${id}-batch-${batch + 1}`;
     for (const step of steps) finalIds.set(step.id, idFor(step.id, count - 1));

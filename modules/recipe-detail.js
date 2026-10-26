@@ -1,4 +1,4 @@
-import { scaleRecipeForPortions, normalizePortions, formatIngredientAmount } from './recipe-portions.js';
+import { scaleRecipeForPortions, normalizePortions, formatIngredientAmount, RecipeActionLimitError } from './recipe-portions.js';
 import { renderPantryView } from './ingredients.js';
 import { ingredientLabel, ingredientThumbnail } from './ingredient-images.js';
 import { initLucide } from './navigation.js';
@@ -16,7 +16,13 @@ import { getExperienceTimerMultiplier } from './profile.js';
 import { recipeSourcesHtml, searchAttributionHtml } from './recipe-sources.js';
 
 export function showRecipeDetailsModal(recipe, portions = 1) {
-  const displayRecipe = scaleRecipeForPortions(normalizeRecipeForStorage(getRecipeById(recipe.id) || recipe), portions);
+  let displayRecipe;
+  try { displayRecipe = scaleRecipeForPortions(normalizeRecipeForStorage(getRecipeById(recipe.id) || recipe), portions); }
+  catch (error) {
+    if (!(error instanceof RecipeActionLimitError)) throw error;
+    alert(error.message);
+    return;
+  }
   RUNTIME.activeModalRecipe = displayRecipe;
   RUNTIME.activeModalServingsCount = displayRecipe.servings;
   RUNTIME.activeModalServingsMultiplier = 1.0;
@@ -31,7 +37,6 @@ export function showRecipeDetailsModal(recipe, portions = 1) {
   document.getElementById("modal-servings").value = RUNTIME.activeModalServingsCount;
   document.getElementById("modal-servings-dec").disabled = RUNTIME.activeModalServingsCount <= 1;
   document.getElementById("modal-portion-timing-note").textContent = displayRecipe.timingIsOriginal ? "Actions without portion-specific timing rules keep their original estimates." : "Times are estimates for these portions. Follow the cooking and doneness instructions.";
-  document.getElementById("modal-rating").innerText = displayRecipe.rating || 'Not rated';
   document.getElementById('modal-personal-version').hidden = !isPersonalRecipe(displayRecipe);
   document.getElementById('modal-btn-revert-recipe').hidden = !isPersonalRecipe(displayRecipe);
   document.getElementById('modal-image-credit').textContent = displayRecipe.imageCredit || '';
@@ -86,12 +91,18 @@ export function showRecipeDetailsModal(recipe, portions = 1) {
 
   document.getElementById("recipe-modal").style.display = "flex";
   initLucide();
+  return true;
 }
 
 export function updateRecipeModalPortions(value) {
   if (!RUNTIME.activeModalRecipe) return;
   const cooks = document.getElementById('modal-cook-count').value;
-  try { showRecipeDetailsModal(RUNTIME.activeModalRecipe, normalizePortions(value)); }
+  try {
+    if (!showRecipeDetailsModal(RUNTIME.activeModalRecipe, normalizePortions(value))) {
+      document.getElementById('modal-servings').value = RUNTIME.activeModalServingsCount;
+      return;
+    }
+  }
   catch (error) {
     document.getElementById('modal-servings').value = RUNTIME.activeModalServingsCount;
     alert(error.message);

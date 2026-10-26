@@ -59,6 +59,9 @@ try {
   await refreshFloating();
   check('Other has no preview and leaves the other cook animation intact', await widget.locator('.floating-timer-preview').count() === 1 &&
     await page.evaluate(() => window.otherCookPreview === document.querySelector('.floating-timer-preview')));
+  await page.evaluate(async () => { (await import('/modules/state.js')).RUNTIME.playSession.running['Cook 1'].actionType = 'Rinse'; });
+  await refreshFloating();
+  check('new actions appear in the floating timer', (await widget.locator('.floating-timer-preview').first().getAttribute('src')).endsWith('/rinse.gif'));
   await page.evaluate(async () => { (await import('/modules/state.js')).RUNTIME.playSession.running['Cook 1'].actionType = 'Simmer'; });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await refreshFloating();

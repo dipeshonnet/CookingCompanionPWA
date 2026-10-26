@@ -1,6 +1,7 @@
 // node tools/render-action-gifs.mjs; requires Playwright, a browser, Python + Pillow.
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
+import { access, stat } from 'node:fs/promises';
 import { ACTION_TYPES, actionVideoSource } from '../modules/action-types.js';
 import { drawCookingAction } from './action-illustrations.mjs';
 const require = createRequire(import.meta.url);
@@ -10,12 +11,16 @@ let total = 0;
 try {
   const page = await browser.newPage();
   for (const type of ACTION_TYPES) {
+    if (process.argv.includes('--missing')) {
+      try { await access(actionVideoSource(type)); continue; } catch { /* Render missing artwork. */ }
+    }
     const frames=[];
     for(let i=0;i<16;i++) frames.push(await page.evaluate(drawCookingAction, { type, time:i/16 }));
     const result=spawnSync(process.env.PYTHON_EXECUTABLE || 'python', ['tools/encode-action-gifs.py'], {input:JSON.stringify({frames,output:actionVideoSource(type)}),encoding:'utf8',windowsHide:true,maxBuffer:1024*1024});
     if(result.status!==0) throw new Error(result.stderr || result.error?.message || 'GIF encoding failed');
-    const bytes=Number(result.stdout.trim());total+=bytes;console.log(`${type}: ${bytes} bytes`);
+    const bytes=Number(result.stdout.trim());console.log(`${type}: ${bytes} bytes`);
   }
+  for (const type of ACTION_TYPES) total += (await stat(actionVideoSource(type))).size;
   console.log(`Total: ${total} bytes`);
-  if(total>498246)throw new Error('GIF set exceeds the original video size budget');
+  if(total>750000)throw new Error('GIF set exceeds the 750 KB storage budget');
 }finally{await browser.close();}

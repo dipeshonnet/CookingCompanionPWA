@@ -1,4 +1,4 @@
-import { scaleRecipeForPortions, normalizePortions, formatIngredientAmount } from './recipe-portions.js';
+import { scaleRecipeForPortions, normalizePortions, formatIngredientAmount, RecipeActionLimitError } from './recipe-portions.js';
 import { actionVideoHtml, inferActionType } from './action-types.js';
 import { createPlaySession, advancePlaySession, setAvailableCooks, normalizeAvailableCooks } from './play-engine.js';
 import { getAudioContext, playShortBeep, startPlayBackgroundMusic, stopPlayBackgroundMusic, speakPlayStep, ensurePlayStepVideo } from './play-media.js';
@@ -68,14 +68,26 @@ export function renderPlayBoards() {
   const recipes = session.recipeId ? getAllRecipes() : getVisibleRecipes();
   const source = recipes.find(recipe => recipe.id === (session.recipeId || document.getElementById('play-recipe-select')?.value));
   const portions = session.recipeId ? (session.portions || 1) : normalizePortions(document.getElementById('play-portions')?.value);
-  const recipe = source ? scaleRecipeForPortions(source, portions) : null;
+  let recipe = null, portionError = '';
+  try { recipe = source ? scaleRecipeForPortions(source, portions) : null; }
+  catch (error) {
+    if (!(error instanceof RecipeActionLimitError)) throw error;
+    portionError = error.message;
+  }
   const portionInput = document.getElementById('play-portions');
   portionInput.value = String(portions);
   portionInput.disabled = Boolean(session.recipeId);
   document.querySelectorAll('[data-portion-target="play-portions"]').forEach(button => { button.disabled = Boolean(session.recipeId) || (button.dataset.portionDelta === '-1' && portions === 1); });
-  const ingredients = session.ingredients || recipe?.ingredients || [];
-  document.getElementById('play-portion-ingredients').innerHTML = ingredients.map(ing => `<li>${escapeHtml(formatIngredientAmount(ing))} ${escapeHtml(ing.name)}</li>`).join('');
-  document.getElementById('play-portion-note').textContent = session.recipeId ? `Cooking for ${portions} ${portions === 1 ? 'person' : 'people'}. Reset cooking to change portions.` : recipe?.timingIsOriginal ? 'Actions without portion-specific timing rules keep their original estimates.' : '1 portion serves 1 person.';
+  // Only a running session owns frozen quantities; empty legacy snapshots
+  // must not hide the selected recipe's ingredients.
+  const ingredients = session.recipeId && session.ingredients?.length ? session.ingredients : recipe?.ingredients || [];
+  const ingredientList = document.getElementById('play-portion-ingredients');
+  ingredientList.innerHTML = ingredients.map(ing => `<li>${escapeHtml(formatIngredientAmount(ing))} ${escapeHtml(ing.name)}</li>`).join('');
+  ingredientList.hidden = ingredients.length === 0;
+  const emptyIngredients = document.getElementById('play-ingredients-empty');
+  emptyIngredients.hidden = ingredients.length > 0;
+  emptyIngredients.textContent = source || session.recipeId ? 'No ingredients have been added to this recipe.' : 'Choose a recipe to see its ingredients.';
+  document.getElementById('play-portion-note').textContent = portionError || (session.recipeId ? `Cooking for ${portions} ${portions === 1 ? 'person' : 'people'}. Reset cooking to change portions.` : recipe?.timingIsOriginal ? 'Actions without portion-specific timing rules keep their original estimates.' : '1 portion serves 1 person.');
   const byId = new Map([...(recipe?.steps || []), ...session.upcoming, ...session.completed].map(step => [step.id, step]));
   const completed = new Set(session.completed.map(step => step.id));
   const upcoming = session.upcoming.map(step => {
@@ -96,7 +108,7 @@ export function renderPlayBoards() {
   const note = document.getElementById('play-cook-status');
   if (note) note.textContent = session.availableCooks === 1 && session.running['Cook 2'] ? 'Cook 2 will leave after their current action finishes.' : '';
   document.getElementById('play-recipe-select').disabled = Boolean(session.intervalId || (session.recipeId && session.upcoming.length));
-  document.getElementById('play-recipe-start-btn').disabled = Boolean(session.recipeId);
+  document.getElementById('play-recipe-start-btn').disabled = Boolean(session.recipeId || portionError);
   const availableCooks = normalizeAvailableCooks(document.getElementById('play-cook-count')?.value);
   renderRecipeTimeline('play-recipe-timeline', recipe, { availableCooks, multiplier: getExperienceTimerMultiplier(), ...(session.recipeId ? { session, now: Date.now() } : {}) });
   renderActiveTimers();
@@ -122,6 +134,7 @@ export function changePlayRecipe() {
   resetPlayRecipeSession();
   document.getElementById('play-recipe-select').value = id;
   document.getElementById('play-cook-count').value = cooks;
+  document.querySelector('.play-ingredients').open = true;
   renderPlayBoards();
 }
 
@@ -159,6 +172,7 @@ export function startPlayRecipeSession() {
   getAudioContext();
   document.getElementById('play-portions').value = String(portions);
   RUNTIME.playSession = session;
+  document.querySelector('.play-ingredients').open = true;
   startPlayBackgroundMusic();
   runPlayRecipeTick();
   if (session.upcoming.length || Object.values(session.running).some(Boolean) || session.passiveRunning.length) session.intervalId = setInterval(runPlayRecipeTick, 250);

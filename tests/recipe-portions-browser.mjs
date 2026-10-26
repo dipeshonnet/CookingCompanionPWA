@@ -14,7 +14,7 @@ try {
     server.on('error', reject);
   });
   browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
   const page = await context.newPage(), errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('dialog', dialog => dialog.accept());
@@ -56,6 +56,25 @@ try {
   check('fresh Play Recipe selections default to one', await page.locator('#play-portions').inputValue() === '1' && !(await page.locator('#play-portions').isDisabled()));
   await page.locator('[data-portion-target="play-portions"][data-portion-delta="1"]').click();
   check('Play Recipe previews ingredients for selected diners', (await page.locator('#play-portion-ingredients').textContent()).includes('2½ cups Water'));
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    const name = (await caches.keys()).find(name => name.startsWith('cooking-companion-shell-'));
+    const cache = await caches.open(name);
+    await cache.put('/styles.css', new Response('.portion-control { display: block; }', { headers: { 'Content-Type': 'text/css' } }));
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.locator('[data-view="play"]').click();
+  for (const width of [1440, 900, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    check(`Play portions stay horizontal with stale cached CSS at ${width}px`, await page.locator('#play-portions').evaluate(input => {
+      const [minus, , plus] = [...input.parentElement.children].map(element => element.getBoundingClientRect());
+      const field = input.getBoundingClientRect();
+      return Math.abs(minus.top - plus.top) < 1 && Math.abs(field.top - minus.top) < 4 && minus.right <= field.left && field.right <= plus.left && plus.right <= innerWidth;
+    }));
+  }
+  await mkdir('output/playwright', { recursive: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.screenshot({ path: 'output/playwright/play-portions-desktop.png', fullPage: true });
   await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
     STATE.pantry = []; STATE.scheduledMeals = { 'Monday-Breakfast': 'handpicked-upma' };

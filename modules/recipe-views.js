@@ -1,14 +1,27 @@
-import { scaleRecipeForPortions } from './recipe-portions.js';
+import { recipeScore, sharedVersion, rateRecipe, ratingLevel, RATING_OPTIONS } from './recipe-community.js';
+import { scaleRecipeForPortions, RecipeActionLimitError } from './recipe-portions.js';
 import { initLucide } from './navigation.js';
 import { showRecipeDetailsModal } from './recipe-detail.js';
 import { getVisibleRecipes, getRecipeById, isPersonalRecipe, safeImageSource } from './recipe-domain.js';
 import { STATE } from './state.js';
-import { saveStateToStorage } from './storage.js';
 import { renderActiveTimers } from './timers.js';
 import { availableQuantity } from './units.js';
 import { formatQuantity, escapeHtml } from './utils.js';
 import { HANDPICKED_RECIPES } from '../recipes.js';
-import { ingredientLabel } from './ingredient-images.js';
+import { ingredientLabel, ingredientImageSource } from './ingredient-images.js';
+
+function recipeCardImage(recipe) {
+  const original = safeImageSource(recipe.image);
+  if (original !== 'assets/logo.png') return original;
+  const titleWords = new Set((recipe.title || '').toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 2));
+  const ingredients = recipe.ingredients || [];
+  const best = ingredients
+    .map(item => ({ name: item.name, score: (item.name || '').toLowerCase().split(/[^a-z0-9]+/).filter(word => titleWords.has(word)).length }))
+    .sort((a, b) => b.score - a.score)
+    .map(item => ingredientImageSource(item.name))
+    .find(Boolean);
+  return best || ingredientImageSource(ingredients[0]?.name) || original;
+}
 
 export function renderDashboard() {
   document.getElementById("dashboard-welcome-heading").innerText = `Welcome, ${STATE.user.name}!`;
@@ -73,7 +86,11 @@ export function renderDashboard() {
 // INGREDIENTS MATCHING ENGINE
 // ----------------------------------------------------
 export function calculatePantryMatchPercent(recipe) {
-  recipe = scaleRecipeForPortions(recipe, 1);
+  try { recipe = scaleRecipeForPortions(recipe, 1); }
+  catch (error) {
+    if (!(error instanceof RecipeActionLimitError)) throw error;
+    return 0;
+  }
   if (STATE.pantry.length === 0 || recipe.ingredients.length === 0) return 0;
   
   let matches = 0;
@@ -96,19 +113,20 @@ export function createRecipeCard(recipe) {
   const safeTitle = escapeHtml(recipe.title);
   const safeCategory = escapeHtml(recipe.category);
   const safeDescription = escapeHtml(recipe.description);
-  const safeImage = escapeHtml(safeImageSource(recipe.image));
+  const safeImage = escapeHtml(recipeCardImage(recipe));
   const safeTags = (recipe.tags || []).slice(0, 2).map(t => `<span class="recipe-tag">${escapeHtml(t)}</span>`).join("");
+  let timing = 'Timing unavailable';
+  try { timing = `${scaleRecipeForPortions(recipe, 1).cookTime} mins`; }
+  catch (error) { if (!(error instanceof RecipeActionLimitError)) throw error; }
   const matchPill = matchPct > 0 
     ? `<span class="recipe-match">${matchPct}% Match</span>` 
-    : `<span>${escapeHtml(scaleRecipeForPortions(recipe, 1).cookTime)} mins</span>`;
+    : `<span>${escapeHtml(timing)}</span>`;
 
   card.innerHTML = `
     <div class="recipe-image-wrapper">
       <img class="recipe-image" src="${safeImage}" alt="${safeTitle}"${recipe.imageCredit ? ` title="${escapeHtml(recipe.imageCredit)}"` : ''} loading="lazy" decoding="async">
       <span class="recipe-badge">${safeCategory}</span>
-      <button type="button" class="recipe-favorite ${STATE.user.likedRecipeIds?.includes(recipe.id) ? 'active' : ''}" data-id="${escapeHtml(recipe.id)}" aria-label="Like ${safeTitle}" aria-pressed="${STATE.user.likedRecipeIds?.includes(recipe.id) || false}">
-        <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
-      </button>
+      <span class="recipe-score" aria-label="${recipeScore(recipe) ? `${recipeScore(recipe).toFixed(1)} out of 5 stars` : 'Not yet rated'}">★ ${recipeScore(recipe) ? `${Number(recipeScore(recipe).toFixed(1))}/5` : 'Unrated'}</span>
     </div>
     <div class="recipe-content">
       <div class="recipe-tags">
@@ -116,9 +134,15 @@ export function createRecipeCard(recipe) {
         ${safeTags}
       </div>
       <h3 class="recipe-title">${safeTitle}</h3>
+      ${sharedVersion(recipe) ? `<p class="recipe-author">By ${escapeHtml(sharedVersion(recipe).authorName)}</p>` : ''}
       <p class="recipe-desc">${safeDescription}</p>
+      <label class="recipe-rating-control">Your rating
+        <select class="form-control recipe-rating-select" aria-label="Rate ${safeTitle}">
+          <option value="">Rate recipe</option>
+          ${RATING_OPTIONS.map(option => `<option value="${option.score}" ${STATE.user.recipeRatings?.[sharedVersion(recipe)?.id || recipe.id] === option.score ? 'selected' : ''}>${option.label} — ★ ${option.score}</option>`).join('')}
+        </select>
+      </label>
       <div class="recipe-meta">
-        <span><i data-lucide="star" style="width: 12px; height: 12px; fill: var(--accent); stroke: var(--accent);"></i> ${recipe.rating ? escapeHtml(recipe.rating) : 'Not rated'}</span>
         <span><i data-lucide="clock" style="width: 12px; height: 12px;"></i> ${matchPill}</span>
       </div>
     </div>
@@ -126,20 +150,24 @@ export function createRecipeCard(recipe) {
 
   // Attach interactive detail triggers
   card.addEventListener("click", (e) => {
-    if (e.target.closest(".recipe-favorite")) {
-      e.stopPropagation();
-      const fav = card.querySelector(".recipe-favorite");
-      const likes = new Set(STATE.user.likedRecipeIds || []);
-      if (likes.has(recipe.id)) likes.delete(recipe.id); else likes.add(recipe.id);
-      STATE.user.likedRecipeIds = [...likes];
-      fav.classList.toggle('active', likes.has(recipe.id));
-      fav.setAttribute('aria-pressed', String(likes.has(recipe.id)));
-      saveStateToStorage();
-      return;
-    }
+    if (e.target.closest('.recipe-rating-control')) return;
     showRecipeDetailsModal(recipe);
   });
 
+  card.querySelector('.recipe-rating-select').addEventListener('change', async event => {
+    const select = event.target;
+    if (!select.value) return;
+    select.disabled = true;
+    try {
+      await rateRecipe(recipe, Number(select.value));
+      renderExploreRecipes();
+      renderDashboard();
+    } catch (error) {
+      console.warn('Rating failed:', error);
+      alert('Could not save your rating. Please try again.');
+      select.disabled = false;
+    }
+  });
   return card;
 }
 
@@ -147,6 +175,8 @@ export function createRecipeCard(recipe) {
 // VIEW 2: EXPLORE RECIPES
 // ----------------------------------------------------
 export function renderExploreRecipes() {
+  const count = document.getElementById('explore-recipe-count');
+  if (count) count.textContent = getVisibleRecipes().length.toLocaleString();
   const grid = document.getElementById("explore-recipes-grid");
   grid.innerHTML = "";
 
@@ -155,7 +185,8 @@ export function renderExploreRecipes() {
   const categoryFilter = activeFilterBtn ? activeFilterBtn.getAttribute("data-filter") : "All";
 
   let filtered = getVisibleRecipes();
-  if (document.getElementById('recipe-like-btn')?.classList.contains('active')) filtered = filtered.filter(recipe => STATE.user.likedRecipeIds?.includes(recipe.id));
+  const ratingFilter = Number(document.getElementById('recipe-rating-filter')?.value);
+  if (ratingFilter) filtered = filtered.filter(recipe => ratingLevel(recipeScore(recipe)) === ratingFilter);
 
   // Search filter
   if (query) {

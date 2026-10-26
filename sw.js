@@ -43,6 +43,17 @@ self.addEventListener('fetch', event => {
       try { return await fetch(event.request); }
       catch { return await cache.match('/index.html') || Response.error(); }
     }
+    // Keep styles in sync with fresh page markup while retaining offline support.
+    if (event.request.destination === 'style') {
+      try {
+        const response = await fetch(event.request, { cache: 'no-cache' });
+        if (response.ok) {
+          await cache.put(event.request, response.clone());
+          return response;
+        }
+      } catch { /* Use the last working stylesheet when offline. */ }
+      return await cache.match(event.request) || Response.error();
+    }
     return await cache.match(event.request) || fetch(event.request).catch(() => Response.error());
   })());
 });

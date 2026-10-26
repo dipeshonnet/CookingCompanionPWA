@@ -1,0 +1,72 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
+import { mkdir } from 'node:fs/promises';
+
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE_PATH ? pathToFileURL(process.env.PLAYWRIGHT_MODULE_PATH).href : 'playwright');
+const server = spawn(process.execPath, ['tools/dev-server.mjs'], { env: { ...process.env, PORT: '0' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+let browser;
+try {
+  const url = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Server did not start')), 10000);
+    server.stdout.on('data', data => { const match = String(data).match(/http:\/\/localhost:\d+\//); if (match) { clearTimeout(timer); resolve(match[0]); } });
+    server.on('error', reject);
+  });
+  browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('dialog', dialog => dialog.accept());
+  await page.goto(url);
+  await page.locator('#btn-login-local').click();
+  await page.evaluate(async () => {
+    const { STATE } = await import('/modules/state.js');
+    const { normalizeRecipeForStorage, getDefaultRecipe } = await import('/modules/recipe-domain.js');
+    STATE.user.name = 'Test Chef <script>';
+    STATE.customRecipes = [normalizeRecipeForStorage({ ...getDefaultRecipe('handpicked-poha'), id: 'my-shared-poha', title: 'Community test poha' })];
+    (await import('/modules/storage.js')).saveStateToStorage();
+  });
+  await page.locator('[data-view="ai-generator"]').click();
+  assert.equal(await page.locator('#recipe-like-btn, .recipe-favorite').count(), 0);
+  await page.locator('#recipe-share-btn').click();
+  await page.locator('.recipe-share-check').check();
+  await page.locator('#recipe-share-confirm-btn').click();
+  await page.locator('#recipe-share-modal').waitFor({ state: 'hidden' });
+  await page.locator('#recipe-search').fill('Community test poha');
+  const card = page.locator('#explore-recipes-grid .recipe-card');
+  assert.equal(await card.count(), 1);
+  assert.match(await card.innerText(), /By Test Chef <script>/);
+  assert.equal(await card.locator('script').count(), 0);
+  await card.locator('select').selectOption('5');
+  await page.waitForFunction(() => document.querySelector('#explore-recipes-grid .recipe-score')?.textContent.includes('5/5'));
+  assert.equal(await page.locator('#recipe-modal').isVisible(), false);
+  await page.locator('#recipe-rating-filter').selectOption('3');
+  assert.equal(await card.count(), 0);
+  await page.locator('#recipe-rating-filter').selectOption('5');
+  assert.equal(await card.count(), 1);
+  await card.locator('select').selectOption('3');
+  await page.waitForFunction(() => !document.querySelector('#explore-recipes-grid .recipe-card'));
+  await page.locator('#recipe-rating-filter').selectOption('3');
+  assert.equal(await card.count(), 1);
+  await card.locator('select').selectOption('1');
+  await page.waitForFunction(() => !document.querySelector('#explore-recipes-grid .recipe-card'));
+  await page.locator('#recipe-rating-filter').selectOption('1');
+  assert.equal(await card.count(), 1);
+  await page.reload();
+  await page.locator('[data-view="ai-generator"]').click();
+  await page.locator('#recipe-explore-toggle-btn').click();
+  await page.locator('#recipe-search').fill('Community test poha');
+  assert.match(await card.innerText(), /By Test Chef <script>/);
+  assert.equal(await card.locator('select').inputValue(), '1');
+  assert.match(await card.locator('.recipe-score').innerText(), /1\/5/);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mkdir('output/playwright', { recursive: true });
+  await page.screenshot({ path: 'output/playwright/recipe-community-mobile.png', fullPage: true });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  assert.deepEqual(errors, []);
+  console.log('PASS sharing, safe author names, no duplicates or likes, 5/3/1 ratings, combined filters, reload persistence, and mobile layout');
+} finally {
+  await browser?.close();
+  server.kill();
+}

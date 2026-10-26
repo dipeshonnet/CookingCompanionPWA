@@ -1,23 +1,42 @@
 import { initLucide } from './navigation.js';
-import { renderAddRecipeView } from './recipe-builder.js';
+import { renderExploreRecipes } from './recipe-views.js';
+import { publishRecipes } from './recipe-community.js';
+import { setRecipeExploreVisibility, renderAddRecipeView } from './recipe-builder.js';
 import { getAllRecipes, getVisibleRecipes, hasCombinedCommands } from './recipe-domain.js';
-import { STATE } from './state.js';
+import { STATE, RUNTIME } from './state.js';
 import { saveStateToStorage } from './storage.js';
 import { escapeHtml, cleanText } from './utils.js';
 import { recipeForImport } from './recipe-personalization.js';
+import { scaleRecipeForPortions } from './recipe-portions.js';
 
-export async function handleRecipeShare() {
-  const shareText = `Check out my Cooking Companion recipes: ${window.location.href}`;
+export function handleRecipeShare() {
+  document.getElementById('recipe-share-list').innerHTML = STATE.customRecipes.map(recipe => `
+    <label class="profile-radio-row"><input type="checkbox" class="recipe-share-check" value="${escapeHtml(recipe.id)}"><span>${escapeHtml(recipe.title)}</span></label>
+  `).join('') || '<p>Save a custom recipe or a personal version before sharing.</p>';
+  document.getElementById('recipe-share-note').textContent = RUNTIME.currentAuthUid
+    ? `Selected recipes will appear in Explore for other signed-in users, by ${STATE.user.name}.`
+    : `Selected recipes will appear in Explore by ${STATE.user.name} on this device. Sign in to share with other users.`;
+  document.getElementById('recipe-share-modal').style.display = 'flex';
+}
+
+export async function confirmRecipeShare() {
+  const ids = [...document.querySelectorAll('.recipe-share-check:checked')].map(input => input.value);
+  if (!ids.length) { alert('Select at least one recipe to share.'); return; }
+  const button = document.getElementById('recipe-share-confirm-btn');
+  button.disabled = true;
   try {
-    if (navigator.share) {
-      await navigator.share({ title: "Cooking Companion Recipes", text: shareText, url: window.location.href });
-    } else {
-      await navigator.clipboard.writeText(shareText);
-      alert("Recipe link copied to clipboard.");
-    }
-  } catch (err) {
-    console.error("Share failed:", err);
-  }
+    await publishRecipes(ids);
+    document.getElementById('recipe-share-modal').style.display = 'none';
+    document.getElementById('recipe-search').value = '';
+    document.getElementById('recipe-rating-filter').value = '';
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === 'All'));
+    setRecipeExploreVisibility(true);
+    renderExploreRecipes();
+    alert(RUNTIME.currentAuthUid ? 'Recipes shared to Explore.' : 'Recipes shared to Explore on this device. Sign in to share with other users.');
+  } catch (error) {
+    console.error('Sharing failed:', error);
+    alert('Could not share recipes. Check your connection and try again.');
+  } finally { button.disabled = false; }
 }
 
 export function handleRecipeExport() {
@@ -96,6 +115,8 @@ export async function handleRecipeImport(event) {
       knownIds.add(recipe.id);
       return true;
     });
+    // Reject unsupported default portions before changing state or storage.
+    unique.forEach(recipe => scaleRecipeForPortions(recipe, 1));
     STATE.customRecipes = [...unique, ...STATE.customRecipes];
     saveStateToStorage();
     renderAddRecipeView();

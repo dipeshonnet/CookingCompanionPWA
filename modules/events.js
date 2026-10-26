@@ -10,8 +10,9 @@ import { openProfileModal, closeProfileModal, saveProfileSettings } from './prof
 import { handleAIGeneration, saveGeneratedRecipeToExplore } from './recipe-ai.js';
 import { setRecipeExploreVisibility, toggleRecipeExplorePanel, addRecipeIngredientRow, addRecipeStepRow, removeRecipeBuilderRow, updateStepCookControls, updateStepDependencyControls, recalculateRecipeTimeTotals, handleCustomRecipeSave, resetAddRecipeForm, editRecipe, cancelRecipeEdit } from './recipe-builder.js';
 import { updateRecipeModalPortions, updateRecipeModalIngredientsAndButtons, handleCookMeal, closeCookMealDialog, confirmCookMeal, handleRevertRecipe } from './recipe-detail.js';
-import { handleRecipeShare, handleRecipeExport, closeRecipeExportModal, confirmRecipeExportSelected, handleRecipeImport } from './recipe-transfer.js';
+import { handleRecipeShare, confirmRecipeShare, handleRecipeExport, closeRecipeExportModal, confirmRecipeExportSelected, handleRecipeImport } from './recipe-transfer.js';
 import { renderDashboard, renderExploreRecipes } from './recipe-views.js';
+import { refreshSharedRecipes } from './recipe-community.js';
 import { buildRecipeDraftFromTalk, updateVoiceStatus, startRecipeVoiceInput, stopRecipeVoiceInput } from './recipe-voice.js';
 import { STATE, RUNTIME } from './state.js';
 import { getAiProvider, setAiProvider, getApiKey, setApiKey, saveStateToStorage } from './storage.js';
@@ -124,7 +125,21 @@ export function setupEventListeners() {
   if (recipeShareBtn) recipeShareBtn.addEventListener("click", handleRecipeShare);
 
   const recipeExploreBtn = document.getElementById("recipe-explore-toggle-btn");
-  if (recipeExploreBtn) recipeExploreBtn.addEventListener("click", toggleRecipeExplorePanel);
+  if (recipeExploreBtn) recipeExploreBtn.addEventListener("click", async () => {
+    toggleRecipeExplorePanel();
+    if (!RUNTIME.recipeExploreVisible) return;
+    const scope = RUNTIME.storageScope;
+    const status = document.getElementById('recipe-community-status');
+    try {
+      await refreshSharedRecipes();
+      if (scope !== RUNTIME.storageScope) return;
+      status.textContent = '';
+      renderExploreRecipes();
+    } catch (error) {
+      if (scope === RUNTIME.storageScope) status.textContent = 'Community recipes could not refresh. Showing saved recipes. Try reopening Explore when connected.';
+      console.warn('Explore refresh failed:', error);
+    }
+  });
 
   const recipeExportBtn = document.getElementById("recipe-export-btn");
   if (recipeExportBtn) recipeExportBtn.addEventListener("click", handleRecipeExport);
@@ -136,14 +151,10 @@ export function setupEventListeners() {
     recipeImportFile.addEventListener("change", handleRecipeImport);
   }
 
-  const recipeLikeBtn = document.getElementById("recipe-like-btn");
-  if (recipeLikeBtn) {
-    recipeLikeBtn.addEventListener("click", () => {
-      recipeLikeBtn.classList.toggle("active");
-      recipeLikeBtn.setAttribute('aria-pressed', String(recipeLikeBtn.classList.contains('active')));
-      setRecipeExploreVisibility(true);
-      renderExploreRecipes();
-    });
+  document.getElementById('recipe-rating-filter')?.addEventListener('change', renderExploreRecipes);
+  document.getElementById('recipe-share-confirm-btn')?.addEventListener('click', confirmRecipeShare);
+  for (const id of ['recipe-share-close-btn', 'recipe-share-cancel-btn']) {
+    document.getElementById(id)?.addEventListener('click', () => { document.getElementById('recipe-share-modal').style.display = 'none'; });
   }
 
   const playRecipeStartBtn = document.getElementById("play-recipe-start-btn");

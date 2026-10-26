@@ -82,6 +82,22 @@ export function createBackend(config, sdk = () => globalThis.firebase) {
 
   return {
     init, isReady: ready, loadUserState, saveUserState,
+    async publishRecipe(id, data) {
+      if (!ready() || auth.currentUser?.uid !== data.authorId) throw new Error('Sign in to share recipes.');
+      await db.collection('sharedRecipes').doc(id).set(data);
+    },
+    async loadSharedRecipes() {
+      if (!ready() || !auth.currentUser) return [];
+      const result = await db.collection('sharedRecipes').limit(200).get();
+      return Promise.all(result.docs.map(async doc => {
+        const ratings = await doc.ref.collection('ratings').get();
+        return { ...doc.data(), id: doc.id, scores: ratings.docs.map(rating => rating.data().score) };
+      }));
+    },
+    async rateSharedRecipe(id, score) {
+      if (!ready() || !auth.currentUser) throw new Error('Sign in to rate community recipes.');
+      await db.collection('sharedRecipes').doc(id).collection('ratings').doc(auth.currentUser.uid).set({ score });
+    },
     currentUser: () => auth?.currentUser || null,
     needsMigration: uid => baselines.has(uid) && baselines.get(uid).size === 0,
     onAuthStateChanged: handler => auth.onAuthStateChanged(handler),

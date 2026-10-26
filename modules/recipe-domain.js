@@ -1,9 +1,9 @@
 import { normalizeActionType, inferActionType } from './action-types.js';
-import { STATE, FALLBACK_RECIPE_IMAGE } from './state.js';
+import { STATE, RUNTIME, FALLBACK_RECIPE_IMAGE } from './state.js';
 import { cleanText, toNonNegativeNumber } from './utils.js';
 import { APP_RECIPES } from '../recipes.js';
 import { normalizeRecipeSources } from './recipe-sources.js';
-import { retainPortionSource } from './recipe-portions.js';
+import { retainPortionSource, MAX_RECIPE_ACTIONS, RecipeActionLimitError } from './recipe-portions.js';
 
 export function recipeMatchesDietPreference(recipe, preference = STATE.user.dietPreference || "None") {
   if (!preference || preference === "None") return true;
@@ -29,7 +29,8 @@ export function getAllRecipes() {
   const overrides = new Map(STATE.customRecipes.filter(isPersonalRecipe).map(recipe => [recipe.id, recipe]));
   return [
     ...APP_RECIPES.map(recipe => overrides.get(recipe.id) || recipe),
-    ...STATE.customRecipes.filter(recipe => !getDefaultRecipe(recipe.id))
+    ...STATE.customRecipes.filter(recipe => !getDefaultRecipe(recipe.id)),
+    ...STATE.sharedRecipes.filter(recipe => !STATE.customRecipes.some(own => own.id === recipe.id || (recipe.authorId === (RUNTIME.currentAuthUid || 'guest') && own.id === recipe.sourceRecipeId)))
   ];
 }
 
@@ -57,7 +58,7 @@ export function processLabel(value) {
 }
 
 export function recipeProcessCount(recipe) {
-  const steps = Array.isArray(recipe.steps) ? recipe.steps.slice(0, 500) : [];
+  const steps = Array.isArray(recipe.steps) ? recipe.steps.slice(0, MAX_RECIPE_ACTIONS) : [];
   return Math.max(normalizeProcessCount(recipe.cookCount), ...steps.map(step =>
     Number.parseInt(normalizeCookLabel(step?.cook || step?.assignee || step?.person).split(' ')[1], 10)));
 }
@@ -74,7 +75,7 @@ export function normalizeStepType(value) {
 export function inferStepTypeFromAction(actionText) {
   const action = cleanText(actionText).toLowerCase();
   if (!action) return "Cook";
-  const prepHint = /\b(chop|slice|dice|mince|peel|wash|rinse|measure|mix|whisk|marinate|soak|prep|preheat)\b/i;
+  const prepHint = /\b(chop|slice|dice|mince|peel|wash|rinse|measure|crush|sift|roll|mix|whisk|marinate|soak|prep|preheat)\b/i;
   return prepHint.test(action) ? "Prep" : "Cook";
 }
 
@@ -126,10 +127,11 @@ export function safeImageSource(value) {
 
 export function normalizeRecipeForStorage(recipe) {
   if (!recipe || typeof recipe !== 'object') throw new Error('Invalid recipe');
+  if (recipe.steps?.length > MAX_RECIPE_ACTIONS) throw new RecipeActionLimitError();
   if (recipe.stepSchemaVersion === 2) validateRecipeSteps(recipe.steps);
   const cookCount = recipeProcessCount(recipe);
   const steps = Array.isArray(recipe.steps)
-    ? recipe.steps.slice(0, 500).map((step, index) => {
+    ? recipe.steps.slice(0, MAX_RECIPE_ACTIONS).map((step, index) => {
       const normalized = normalizeStep(step, index, cookCount);
       if (recipe.stepSchemaVersion !== 2) {
         normalized.id = `action-${index + 1}`;
@@ -141,6 +143,7 @@ export function normalizeRecipeForStorage(recipe) {
     : [];
 
   return retainPortionSource({
+    ...(recipe.authorId ? { authorId: cleanText(recipe.authorId).slice(0, 200), authorName: cleanText(recipe.authorName).slice(0, 100), sourceRecipeId: cleanText(recipe.sourceRecipeId).slice(0, 200) } : {}),
     stepSchemaVersion: recipe.stepSchemaVersion === 2 ? 2 : 1,
     ...(isPersonalRecipe(recipe) ? { baseRecipeId: recipe.id } : {}),
     ...(recipe.imageCredit ? { imageCredit: cleanText(recipe.imageCredit).slice(0, 2000) } : {}),
@@ -154,7 +157,7 @@ export function normalizeRecipeForStorage(recipe) {
     servings: Math.max(1, Math.round(toNonNegativeNumber(recipe.servings, 2))),
     cookCount,
     image: safeImageSource(recipe.image),
-    rating: toNonNegativeNumber(recipe.rating, 4.7),
+    rating: toNonNegativeNumber(recipe.rating, 0),
     ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients.filter(i => i && i.name).slice(0, 500).map(i => ({
       name: cleanText(i.name).slice(0, 200), amount: toNonNegativeNumber(i.amount), unit: cleanText(i.unit || 'pcs'),
       ...(Number.isFinite(i.gramsPerPiece) && i.gramsPerPiece > 0 ? { gramsPerPiece: i.gramsPerPiece, pieceLabel: cleanText(i.pieceLabel).slice(0, 100) } : {})
@@ -190,7 +193,7 @@ export function normalizeStepScaling(value) {
 }
 
 export function validateRecipeSteps(steps) {
-  if (!Array.isArray(steps) || !steps.length || steps.length > 500) throw new Error('Use between 1 and 500 actions.');
+  if (!Array.isArray(steps) || !steps.length || steps.length > MAX_RECIPE_ACTIONS) throw new Error(`Use between 1 and ${MAX_RECIPE_ACTIONS} actions.`);
   const byId = new Map();
   for (const step of steps) {
     if (!step || typeof step.id !== 'string' || !step.id.trim() || step.id !== step.id.trim()) throw new Error('Every action needs a unique ID.');
@@ -220,7 +223,7 @@ export function validateRecipeSteps(steps) {
 
 // Warn about distinct commands, without treating ingredient lists as commands.
 export function hasCombinedCommands(action) {
-  const verb = '(?:rinse|drain|chop|slice|dice|mince|peel|heat|add|pour|transfer|remove|stir|mix|fold|serve|garnish|flip|cook|simmer|cover|steam|toast|blend|whisk|season|turn|sprinkle|finish|mash|boil|reserve|cut|spread|top|drizzle)';
+  const verb = '(?:wash|soak|measure|crush|sift|roll|toss|marinate|rest|cool|rinse|drain|chop|slice|dice|mince|peel|heat|add|pour|transfer|remove|stir|mix|fold|serve|garnish|flip|cook|simmer|cover|steam|toast|blend|whisk|season|turn|sprinkle|finish|mash|boil|reserve|cut|spread|top|drizzle)';
   return new RegExp(`(?:[.;]\\s*|\\b(?:then|meanwhile|and)\\s+)${verb}\\b`, 'i').test(action);
 }
 

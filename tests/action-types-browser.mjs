@@ -15,7 +15,7 @@ try {
   await page.goto(url);await page.locator('#btn-login-local').click();
   await page.evaluate(async()=>{const b=await import('/modules/recipe-builder.js');(await import('/modules/navigation.js')).switchView('ai-generator');b.ensureRecipeBuilderDefaults();});
   const row=page.locator('.recipe-step-row').first(), select=row.locator('.recipe-step-action-type');
-  assert.equal(await select.locator('option').count(),23);
+  assert.equal(await select.locator('option').count(),39);
   assert.equal(await row.locator('.action-video-preview img').count(),0);
   const actions=await page.evaluate(async()=> (await import('/modules/action-types.js')).ACTION_TYPES);
   for(const type of actions){
@@ -25,14 +25,14 @@ try {
     const media=await row.locator('.action-video-preview img').evaluate(img=>({width:img.naturalWidth,height:img.naturalHeight,source:img.currentSrc}));
     assert.ok(media.width===320 && media.height===200 && media.source.endsWith('.gif'));
   }
-  await select.selectOption('Dice');await row.scrollIntoViewIfNeeded();
+  await select.selectOption('Rinse');await row.scrollIntoViewIfNeeded();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await mkdir('output',{recursive:true});await page.screenshot({path:'output/action-gifs-mobile.png',fullPage:true});
   await select.selectOption('Other');assert.equal(await row.locator('.action-video-preview img').count(),0);
-  await page.evaluate(async()=>{const b=await import('/modules/recipe-builder.js');b.populateRecipeFormFromDraft({steps:[{action:'Chop onion',actionType:'Other'},{action:'Mix flour',actionType:'Mix / Blend'}]});});
+  await page.evaluate(async()=>{const b=await import('/modules/recipe-builder.js');b.populateRecipeFormFromDraft({steps:[{action:'Chop onion',actionType:'Other'},{action:'Rinse rice',actionType:'Rinse'}]});});
   assert.equal(await page.locator('.recipe-step-action-type').first().inputValue(),'Other');
   assert.equal(await page.locator('.recipe-step-row').first().locator('.action-video-preview img').count(),0);
-  assert.equal(await page.locator('.recipe-step-action-type').nth(1).inputValue(),'Mix / Blend');
+  assert.equal(await page.locator('.recipe-step-action-type').nth(1).inputValue(),'Rinse');
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.waitForFunction(() => navigator.serviceWorker.controller);
   await page.context().setOffline(true);
@@ -46,5 +46,5 @@ try {
     return true;
   }), 'all GIFs available offline');
   assert.deepEqual(errors,[]);
-  console.log('PASS all 22 GIFs decode, dropdown previews update, Other clears, drafts retain selections, mobile fits, all GIFs work offline');
+  console.log('PASS all 38 GIFs decode, dropdown previews update, Other clears, drafts retain selections, mobile fits, all GIFs work offline');
 } finally {await browser?.close();server.kill();}

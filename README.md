@@ -42,6 +42,12 @@ Open recipe details and choose **Edit recipe**. **Save my version** creates one 
 
 ## Documentation
 
+**Share** lets you select saved custom recipes or personal versions to publish in Explore with your profile name. Signed-in sharing uses `sharedRecipes` in Firestore; deploy the updated `firestore.rules` with the app before enabling this across accounts. Device-only sharing stays on that device. Explore refreshes community recipes when opened. Published recipes are snapshots; share again to publish edits.
+
+Recipe cards support **High ★5**, **Medium ★3**, and **Low ★1** ratings. Explore combines rating, category, and search filters. Shared recipes show the average of account ratings (one editable vote per account); average scores of 4–5 are High, 2–below 4 are Medium, and above 0–below 2 are Low. Unrated recipes appear under All ratings. Other recipe ratings are saved in your profile. Likes have been replaced by ratings.
+
+Run `node tests/recipe-community-browser.mjs` for sharing, author names, ratings, filters, reload persistence, and mobile layout checks.
+
 - [Free Hosting and Domain Setup](docs/DEPLOYMENT.md)
 - [Architecture and Data Ownership](docs/ARCHITECTURE.md)
 - The in-app FAQ covers recipes, ingredients, profile, playback, exports, and storage.

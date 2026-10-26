@@ -2,7 +2,7 @@ import { DEFAULT_USER_PROFILE } from './user-profile.js';
 
 export const STATE = {
   user: { ...DEFAULT_USER_PROFILE }, pantry: [], scheduledMeals: {},
-  activeTimers: [], customRecipes: [], currentSelectedSlot: null
+  activeTimers: [], customRecipes: [], sharedRecipes: [], communityRatings: {}, currentSelectedSlot: null
 };
 
 export const STORAGE_KEYS = {

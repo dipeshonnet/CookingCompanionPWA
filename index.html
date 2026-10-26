@@ -266,14 +266,13 @@
         <div class="app-header">
           <div class="header-title">
             <h1>Recipe</h1>
-            <p>Explore 100 new egg-free vegetarian recipes, create your own, and save personal versions.</p>
+            <p>Explore <span id="explore-recipe-count">our</span> recipes, create your own, and save personal versions.</p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button id="recipe-explore-toggle-btn" class="btn-secondary" type="button"><i data-lucide="compass"></i> Explore</button>
             <button id="recipe-share-btn" class="btn-secondary" type="button"><i data-lucide="share-2"></i> Share</button>
             <button id="recipe-export-btn" class="btn-secondary" type="button"><i data-lucide="download"></i> Export</button>
             <button id="recipe-import-btn" class="btn-secondary" type="button"><i data-lucide="upload"></i> Import</button>
-            <button id="recipe-like-btn" class="btn-secondary" type="button"><i data-lucide="heart"></i> Like</button>
             <input id="recipe-import-file" type="file" accept="application/json" style="display: none;">
           </div>
         </div>
@@ -293,6 +292,15 @@
             <button class="btn-secondary filter-btn" data-filter="Dinner">Dinner</button>
             <button class="btn-secondary filter-btn" data-filter="Matched">Matched Ingredients</button>
           </div>
+          <label class="explore-rating-filter" for="recipe-rating-filter">Filter by rating
+            <select id="recipe-rating-filter" class="form-control">
+              <option value="">All ratings</option>
+              <option value="5">High — ★ 5</option>
+              <option value="3">Medium — ★ 3</option>
+              <option value="1">Low — ★ 1</option>
+            </select>
+          </label>
+          <p id="recipe-community-status" role="status" class="recipe-author"></p>
           <div class="recipes-grid" id="explore-recipes-grid" style="margin-bottom: 24px;"></div>
         </div>
 
@@ -542,7 +550,7 @@
 
         <p id="play-cook-status" role="status"></p>
         <p id="play-portion-note" role="status"></p>
-        <details class="glass-card play-ingredients"><summary>Ingredients for selected portions</summary><ul id="play-portion-ingredients"></ul></details>
+        <details class="glass-card play-ingredients" open><summary>Ingredients for selected portions</summary><p id="play-ingredients-empty" role="status">Choose a recipe to see its ingredients.</p><ul id="play-portion-ingredients"></ul></details>
         <div id="play-recipe-timeline" class="glass-card recipe-timeline"></div>
         <div class="play-board-grid">
           <div class="glass-card play-column">
@@ -668,6 +676,21 @@
     </button>
   </div>
 
+  <div id="recipe-share-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="recipe-share-title" style="z-index: 103; display: none;">
+    <div class="modal-content" style="max-width: 560px; padding: 24px;">
+      <div class="card-title-bar">
+        <h3 id="recipe-share-title">Share to Explore</h3>
+        <button id="recipe-share-close-btn" class="modal-btn-close" type="button" aria-label="Close sharing">×</button>
+      </div>
+      <p id="recipe-share-note" class="recipe-author"></p>
+      <div id="recipe-share-list" style="max-height: 320px; overflow: auto; display: grid; gap: 8px; margin: 16px 0;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="recipe-share-cancel-btn" class="btn-secondary" type="button">Cancel</button>
+        <button id="recipe-share-confirm-btn" class="btn-primary" type="button">Share selected</button>
+      </div>
+    </div>
+  </div>
+
   <div id="recipe-export-modal" class="modal-overlay" style="z-index: 103; display: none;">
     <div class="modal-content" style="max-width: 560px; padding: 24px;">
       <div class="card-title-bar" style="margin-bottom: 10px;">
@@ -712,7 +735,6 @@
             <input id="modal-servings" class="form-control portion-input" type="number" min="1" step="1" value="1" aria-describedby="modal-portions-hint">
             <button id="modal-servings-inc" class="btn-icon" style="width: 20px; height: 20px; border-radius: 4px; padding: 0; font-size: 11px; line-height: 1;" type="button" aria-label="Increase portions">+</button>
           </div>
-          <div class="modal-meta-tag"><i data-lucide="star" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px; color: var(--accent);"></i> <span id="modal-rating">4.9</span></div>
         </div>
 
         <p id="modal-portions-hint">1 portion serves 1 person.</p>

@@ -98,6 +98,9 @@ export function loadStateFromStorage(scope = 'guest') {
   STATE.scheduledMeals = normalizeScheduledMeals(schedule);
   const recipes = readStored(STORAGE_KEYS.CUSTOM_RECIPES, []);
   STATE.customRecipes = Array.isArray(recipes) ? recipes.filter(r => r && typeof r === 'object' && r.title).map(normalizeRecipeForStorage) : [];
+  const shared = readStored('shared-recipes', []);
+  STATE.sharedRecipes = Array.isArray(shared) ? shared.filter(r => r && r.authorId && r.title).map(normalizeRecipeForStorage) : [];
+  STATE.communityRatings = {};
   hydrateCookingState(readStored(STORAGE_KEYS.COOKING, {}));
   updateAiSettingsFields('ai', getAiProvider(), getApiKey());
   updateAiSettingsFields('profile-ai', getAiProvider(), getApiKey());

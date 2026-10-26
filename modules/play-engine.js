@@ -1,4 +1,5 @@
 import { normalizeRecipeForStorage } from './recipe-domain.js';
+import { MAX_RECIPE_ACTIONS } from './recipe-portions.js';
 
 export const normalizeAvailableCooks = value => Number(value) === 2 ? 2 : 1;
 
@@ -88,7 +89,7 @@ export function buildRecipeSchedule(recipe, { availableCooks = 1, multiplier = 1
     }
   };
   remember();
-  for (let iterations = 0; iterations <= 501; iterations++) {
+  for (let iterations = 0; iterations <= MAX_RECIPE_ACTIONS + 1; iterations++) {
     const events = advancePlaySession(projected, clock);
     remember();
     if (events.done) break;
