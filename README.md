@@ -42,6 +42,8 @@ Open recipe details and choose **Edit recipe**. **Save my version** creates one 
 
 ## Documentation
 
+The meal planner opens the current Monday–Sunday week with dates. Use the compact date picker, previous/next arrows, or **This week** to navigate. Past days are dimmed; each dated meal and its portions are saved through the existing account sync (or locally in device-only mode). Undated rotations are assigned to the current week once. The shopping list derives ingredients from all saved meals strictly after today, across weeks, minus pantry stock; today and past dates are excluded. Deploy the updated `firestore.rules` with this change so meal records accept portion counts. Run `npm run test:planner` for dated planning, shopping filters, reload persistence, and desktop/mobile calendar checks.
+
 **Share** lets you select saved custom recipes or personal versions to publish in Explore with your profile name. Signed-in sharing uses `sharedRecipes` in Firestore; deploy the updated `firestore.rules` with the app before enabling this across accounts. Device-only sharing stays on that device. Explore refreshes community recipes when opened. Published recipes are snapshots; share again to publish edits.
 
 Recipe cards support **High ★5**, **Medium ★3**, and **Low ★1** ratings. Explore combines rating, category, and search filters. Shared recipes show the average of account ratings (one editable vote per account); average scores of 4–5 are High, 2–below 4 are Medium, and above 0–below 2 are Low. Unrated recipes appear under All ratings. Other recipe ratings are saved in your profile. Likes have been replaced by ratings.

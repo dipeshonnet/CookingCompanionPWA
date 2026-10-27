@@ -3,7 +3,6 @@ import { scaleRecipeForPortions, RecipeActionLimitError } from './recipe-portion
 import { initLucide } from './navigation.js';
 import { showRecipeDetailsModal } from './recipe-detail.js';
 import { getVisibleRecipes, getRecipeById, isPersonalRecipe, safeImageSource, formatDurationLabel } from './recipe-domain.js';
-import { buildRecipeSchedule } from './play-engine.js';
 import { STATE } from './state.js';
 import { renderActiveTimers } from './timers.js';
 import { availableQuantity } from './units.js';
@@ -105,7 +104,10 @@ export function createRecipeCard(recipe) {
   const safeImage = escapeHtml(imageSource);
   const safeTags = (recipe.tags || []).slice(0, 2).map(t => `<span class="recipe-tag">${escapeHtml(t)}</span>`).join("");
   let timing = 'Timing unavailable';
-  try { timing = `Total: ${formatDurationLabel(buildRecipeSchedule(scaleRecipeForPortions(recipe, 1)).duration)}`; }
+  try {
+    const displayRecipe = scaleRecipeForPortions(recipe, 1);
+    timing = `Total: ${formatDurationLabel((displayRecipe.prepTime + displayRecipe.cookTime) * 60)}`;
+  }
   catch (error) { if (!(error instanceof RecipeActionLimitError)) throw error; }
   const matchPill = matchPct > 0 
     ? `<span class="recipe-match">${matchPct}% Match</span>` 
@@ -132,7 +134,7 @@ export function createRecipeCard(recipe) {
         </select>
       </label>
       <div class="recipe-meta">
-        <span><i data-lucide="clock" style="width: 12px; height: 12px;"></i> ${escapeHtml(timing)}</span>
+        <span title="Prep plus cook time for 1 portion. Parallel steps may shorten the cooking timeline."><i data-lucide="clock" style="width: 12px; height: 12px;"></i> ${escapeHtml(timing)}</span>
         ${matchPill}
       </div>
     </div>

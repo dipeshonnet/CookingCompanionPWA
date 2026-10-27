@@ -4,7 +4,7 @@ import { handleGoogleSignIn, signInLocalOnly, handleEmailSignIn, handleEmailSign
 import { renderPantryView, addPantryIngredient } from './ingredients.js';
 import { setupIngredientAutocomplete } from './ingredient-autocomplete.js';
 import { switchView } from './navigation.js';
-import { saveScheduledMealSelection } from './planner.js';
+import { saveScheduledMealSelection, setupPlannerCalendar } from './planner.js';
 import { setPlayBackgroundMusicFile } from './play-media.js';
 import { resetPlayRecipeSession, startPlayRecipeSession, changePlayRecipe, updatePlayCookCount, startGuidedRecipe } from './play-recipe.js';
 import { openProfileModal, closeProfileModal, saveProfileSettings } from './profile.js';
@@ -20,6 +20,7 @@ import { getAiProvider, setAiProvider, getApiKey, setApiKey, saveStateToStorage 
 import { getProviderConfig, updateAiSettingsFields } from './ai-providers.js';
 
 export function setupEventListeners() {
+  setupPlannerCalendar();
   setupRecipePicker();
   document.getElementById('modal-btn-edit-recipe')?.addEventListener('click', () => editRecipe(RUNTIME.activeModalRecipe?.id));
   document.getElementById('modal-btn-revert-recipe')?.addEventListener('click', handleRevertRecipe);

@@ -70,7 +70,9 @@ try {
   check('shopping list shows matching photos', await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
     STATE.pantry = [];
-    STATE.scheduledMeals = { 'Monday-Dinner': 'handpicked-poha' };
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    const { dateKey } = await import('/modules/planner-calendar.js');
+    STATE.scheduledMeals = { [`${dateKey(tomorrow)}-Dinner`]: 'handpicked-poha' };
     (await import('/modules/navigation.js')).switchView('planner');
     const rows = [...document.querySelectorAll('#planner-shopping-list .ingredient-item')];
     return rows.length > 0 && rows.every(row => row.querySelector('img.ingredient-thumbnail'));

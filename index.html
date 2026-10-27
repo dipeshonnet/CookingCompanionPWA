@@ -535,7 +535,7 @@
           </div>
         </div>
 
-        <div class="glass-card" style="margin-bottom: 18px;">
+        <div class="glass-card play-setup-card" style="margin-bottom: 18px;">
           <div class="pantry-input-group play-controls" style="align-items: end;">
             <div class="form-group" style="flex: 2; min-width: 0; margin-bottom: 0;">
               <label for="play-recipe-search">Choose Recipe</label>
@@ -586,7 +586,17 @@
             <h2><i data-lucide="calendar"></i> Weekly Meal Schedule</h2>
           </div>
           
-          <div class="planner-week" id="meal-planner-week-grid">
+          <div class="planner-calendar-controls">
+            <div class="planner-week-picker">
+              <button type="button" class="btn-secondary" data-planner-week="-1" aria-label="Previous week">‹</button>
+              <label>Week of <input type="date" id="planner-week-date" class="form-control"></label>
+              <button type="button" class="btn-secondary" data-planner-week="1" aria-label="Next week">›</button>
+              <button type="button" class="btn-secondary" data-planner-week="today">This week</button>
+            </div>
+            <span id="planner-week-range" aria-live="polite"></span>
+          </div>
+          <p class="planner-calendar-hint" id="planner-calendar-hint">Select a meal to add or edit it. Past days are dimmed. Scroll sideways to see every day.</p>
+          <div class="planner-week" id="meal-planner-week-grid" role="region" aria-label="Weekly meal calendar" aria-describedby="planner-calendar-hint" tabindex="0">
             <!-- Populated dynamically via JS -->
           </div>
         </div>
@@ -599,7 +609,7 @@
                 <h2><i data-lucide="shopping-bag"></i> Automated Shopping List</h2>
                 <button id="planner-print-list" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i data-lucide="printer"></i> Export List</button>
               </div>
-              <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Automatically generated list from ingredients of scheduled meals, cross-referenced with your pantry items!</p>
+              <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Ingredients for all meals dated after today, across your saved weeks, minus what’s in your pantry. Meal plans are saved to your account when signed in, or on this device in device-only mode.</p>
               
               <ul class="ingredients-list" id="planner-shopping-list" style="margin-bottom: 20px;">
                 <!-- Dynamic shopping list rows -->
@@ -815,7 +825,7 @@
   <div id="select-meal-modal" class="modal-overlay" style="z-index: 101;">
     <div class="modal-content" style="max-width: 400px; padding: 28px;">
       <h3 style="font-size: 20px; margin-bottom: 16px;"><i data-lucide="calendar"></i> Schedule Meal</h3>
-      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Choose which recipe you would like to schedule for this day and slot.</p>
+      <p id="schedule-meal-context" style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Choose which recipe you would like to schedule for this day and slot.</p>
       
       <div class="form-group" style="margin-bottom: 20px;">
         <label for="select-meal-recipe-dropdown">Select Recipe</label>

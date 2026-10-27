@@ -20,6 +20,8 @@ try {
     const play=await import('/modules/play-recipe.js');
     const {getAllRecipes,recipeMatchesDietPreference}=await import('/modules/recipe-domain.js');
     const planner=await import('/modules/planner.js');
+    const {dateKey,weekDates}=await import('/modules/planner-calendar.js');
+    const monday=dateKey(weekDates()[0]),tuesday=dateKey(weekDates()[1]);
     const scheduled=document.getElementById('select-meal-recipe-dropdown');
     STATE.user.dietPreference='None';
     for(const slot of ['Breakfast','Lunch','Dinner']) {
@@ -32,10 +34,10 @@ try {
       assertBrowser(scheduled.value===expected[0].id,`${slot} selection stays saved`);
     }
     const mismatched=getAllRecipes().find(recipe=>recipe.category==='Dinner');
-    STATE.scheduledMeals['Tuesday-Breakfast']=mismatched.id;
+    STATE.scheduledMeals[`${tuesday}-Breakfast`]=mismatched.id;
     planner.openScheduleDropdown('Tuesday','Breakfast');
     assertBrowser(![...scheduled.options].some(option=>option.value===mismatched.id),'An old mismatched assignment is excluded from the choices');
-    assertBrowser(scheduled.value===''&&STATE.scheduledMeals['Tuesday-Breakfast']===mismatched.id,'Opening the picker keeps the saved assignment until an explicit save');
+    assertBrowser(scheduled.value===''&&STATE.scheduledMeals[`${tuesday}-Breakfast`]===mismatched.id,'Opening the picker keeps the saved assignment until an explicit save');
     document.getElementById('select-meal-modal').style.display='none';
     nav.switchView('play');
     const cooks=document.getElementById('play-cook-count');
@@ -47,16 +49,16 @@ try {
     assertBrowser(choice.selectedIndex===0,'Missing recipe returns to the placeholder');
     const filtered=getAllRecipes().find(recipe=>recipe.category==='Dinner'&&!recipeMatchesDietPreference(recipe,'Vegetarian'));
     assertBrowser(Boolean(filtered),'Fixture contains a non-vegetarian recipe');
-    STATE.scheduledMeals['Monday-Dinner']=filtered.id;
+    STATE.scheduledMeals[`${monday}-Dinner`]=filtered.id;
     STATE.user.dietPreference='Vegetarian';
     planner.openScheduleDropdown('Monday','Dinner');
     assertBrowser(scheduled.value===filtered.id,'Filtered scheduled meal stays selected');
     assertBrowser(scheduled.selectedOptions[0].textContent===`${filtered.title} (outside diet preference)`,'The preserved selection omits the category prefix');
     planner.saveScheduledMealSelection();
-    assertBrowser(STATE.scheduledMeals['Monday-Dinner'].recipeId===filtered.id && STATE.scheduledMeals['Monday-Dinner'].portions===1,'Saving preserves the filtered meal');
+    assertBrowser(STATE.scheduledMeals[`${monday}-Dinner`].recipeId===filtered.id && STATE.scheduledMeals[`${monday}-Dinner`].portions===1,'Saving preserves the filtered meal');
     planner.openScheduleDropdown('Monday','Dinner');
     scheduled.value='';planner.saveScheduledMealSelection();
-    assertBrowser(!STATE.scheduledMeals['Monday-Dinner'],'Empty option explicitly clears the meal');
+    assertBrowser(!STATE.scheduledMeals[`${monday}-Dinner`],'Empty option explicitly clears the meal');
     RUNTIME.playSession.recipeId=filtered.id;
     RUNTIME.playSession.upcoming=filtered.steps;
     play.renderPlayRecipeView();

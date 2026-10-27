@@ -1428,23 +1428,78 @@ button:focus-visible, summary:focus-visible {
 }
 
 /* Meal Planner Layout */
+.planner-calendar-controls, .planner-week-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.planner-calendar-controls { justify-content: space-between; margin-bottom: 12px; }
+.planner-week-picker label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.planner-week-picker input { width: 150px; padding: 8px; color-scheme: dark; }
+.planner-week-picker button { min-height: 40px; padding: 6px 12px; }
+#planner-week-range { font-size: 12px; color: var(--text-muted); }
+.planner-day-past { opacity: 0.65; }
+.planner-day-today .planner-day-name { color: var(--accent-light); background: rgba(245,158,11,0.08); }
+.planner-day-name small { display: block; font-size: 10px; font-weight: 400; color: var(--text-muted); }
 .planner-week {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 16px;
+  grid-template-columns: 94px repeat(7, minmax(140px, 1fr));
+  grid-template-rows: 64px repeat(3, minmax(112px, auto));
+  gap: 0;
   overflow-x: auto;
-  padding-bottom: 8px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  isolation: isolate;
+}
+
+.planner-calendar-hint {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.planner-row-labels {
+  display: grid;
+  grid-row: 1 / 5;
+  grid-template-rows: subgrid;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-dashboard);
+  border-right: 1px solid var(--border-glass);
+}
+
+.planner-calendar-corner,
+.planner-row-label {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.planner-calendar-corner {
+  color: var(--text-dim);
+}
+
+.planner-row-label:last-child {
+  border-bottom: 0;
 }
 
 .planner-day-card {
-  min-width: 130px;
+  min-width: 0;
   background: rgba(255, 255, 255, 0.015);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-md);
-  padding: 16px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  border-right: 1px solid var(--border-glass);
+  display: grid;
+  grid-row: 1 / 5;
+  grid-template-rows: subgrid;
+}
+
+.planner-day-card:last-child {
+  border-right: 0;
 }
 
 .planner-day-name {
@@ -1453,20 +1508,54 @@ button:focus-visible, summary:focus-visible {
   text-align: center;
   color: var(--text-main);
   border-bottom: 1px solid var(--border-glass);
-  padding-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .planner-slot {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: stretch;
+  padding: 10px;
+  border-bottom: 1px solid var(--border-glass);
+  min-width: 0;
+}
+
+.planner-slot:last-child {
+  border-bottom: 0;
+}
+
+.planner-slot button {
+  flex: 1;
+  min-height: 64px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.planner-slot button small {
+  display: block;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.planner-week:focus-visible,
+.planner-slot button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .planner-slot-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-dim);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 .planner-meal {
@@ -2389,6 +2478,8 @@ body.has-floating-timers .main-content { padding-bottom: 280px; }
 .recipe-builder-actions { flex-wrap: wrap; }
 
 /* Portion counts describe diners, independently of the number of cooks. */
+/* Glass cards create stacking contexts; lift the menu's entire parent above the board. */
+.play-setup-card { position: relative; z-index: 1; }
 .recipe-picker { position: relative; min-width: 0; }
 .recipe-picker > input { height: 46px; padding-right: 36px; }
 .recipe-picker-arrow { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }

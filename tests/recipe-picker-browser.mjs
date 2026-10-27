@@ -55,6 +55,14 @@ try {
   await mkdir('output/playwright', { recursive: true });
   for (const width of [1440, 900, 390, 320]) {
     await page.setViewportSize({ width, height: 1000 });
+    await search.fill('');
+    await page.screenshot({ path: `output/playwright/recipe-picker-open-${width}.png` });
+    // Later glass cards must not cover the open menu or intercept its clicks.
+    assert.ok(await options.evaluate(list => {
+      const bounds = list.getBoundingClientRect();
+      const bottom = Math.min(bounds.bottom, window.innerHeight) - 16;
+      return list.contains(document.elementFromPoint(bounds.x + bounds.width / 2, bottom));
+    }), `Recipe menu stays above the cooking cards at ${width}px`);
     await search.fill('poha');
     const bounds = await options.boundingBox();
     assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width + 1);

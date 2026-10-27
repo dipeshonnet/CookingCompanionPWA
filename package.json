@@ -13,6 +13,7 @@
     "test:ingredients": "node tests/ingredient-images-browser.mjs",
     "test:recipes": "node tests/recipe-browser.mjs",
     "test:portions": "node tests/recipe-portions-browser.mjs",
+    "test:planner": "node tests/planner-calendar-browser.mjs",
     "test:personal-recipes": "node tests/recipe-personalization-browser.mjs",
     "test:timers": "node tests/timer-browser.mjs"
   },

@@ -27,10 +27,14 @@ try {
     const card = createRecipeCard(idli);
     const placeholder = createRecipeCard({ ...idli, image: 'assets/logo.png' });
     const { showRecipeDetailsModal } = await import('/modules/recipe-detail.js');
+    const { scaleRecipeForPortions } = await import('/modules/recipe-portions.js');
+    const { formatDurationLabel } = await import('/modules/recipe-domain.js');
+    const scaled = scaleRecipeForPortions(idli, 1);
     showRecipeDetailsModal(idli);
     return {
       image: card.querySelector('img').getAttribute('src'),
       total: card.querySelector('.recipe-meta').textContent,
+      expectedTotal: formatDurationLabel((scaled.prepTime + scaled.cookTime) * 60),
       placeholder: placeholder.querySelector('.recipe-photo-placeholder')?.textContent,
       estimate: document.querySelector('#modal-recipe-timeline .timeline-estimate strong').textContent,
       prep: document.getElementById('modal-prep').textContent,
@@ -39,10 +43,23 @@ try {
   });
   check('Idli card and details use the finished-dish photo', displayChecks.image === 'assets/recipes/idli.jpg' && displayChecks.modalImage === displayChecks.image);
   check('missing dish photos show a placeholder', displayChecks.placeholder === 'Recipe photo unavailable');
-  check('card total includes overnight preparation and matches timeline', displayChecks.total.includes(`Total: ${displayChecks.estimate}`) && displayChecks.estimate.startsWith('18 hr ') && displayChecks.prep.includes('hr'));
+  check('card total includes overnight preparation and matches prep plus cook time', displayChecks.total.includes(`Total: ${displayChecks.expectedTotal}`) && displayChecks.estimate.startsWith('18 hr ') && displayChecks.prep.includes('hr'));
   await page.locator('#modal-image').evaluate(image => image.decode());
   check('packaged Idli photo loads successfully', await page.locator('#modal-image').evaluate(image => image.naturalWidth > 0));
   check('overnight Gantt axis uses hour labels', (await page.locator('#modal-recipe-timeline .timeline-axis-track').innerText()).includes('hr'));
+  const pavTiming = await page.evaluate(async () => {
+    const recipe = (await import('/recipes.js')).APP_RECIPES.find(recipe => recipe.title === 'Pav Bhaji');
+    const card = (await import('/modules/recipe-views.js')).createRecipeCard(recipe);
+    (await import('/modules/recipe-detail.js')).showRecipeDetailsModal(recipe);
+    return {
+      total: card.querySelector('.recipe-meta').textContent,
+      prep: document.getElementById('modal-prep').textContent,
+      cook: document.getElementById('modal-cook').textContent,
+      hint: document.querySelector('#modal-recipe-timeline .timeline-hint').textContent
+    };
+  });
+  check('Pav Bhaji card total matches its 6 min prep plus 34 min cook', pavTiming.total.includes('Total: 40 min') && pavTiming.prep === 'Prep: 6 min' && pavTiming.cook === 'Cook: 34 min');
+  check('timeline explains shorter elapsed estimates from parallel cooking', pavTiming.hint.includes('Parallel cooking steps'));
   const longTimeline = await page.evaluate(async () => {
     const { renderRecipeTimeline } = await import('/modules/recipe-timeline.js');
     const { createPlaySession, advancePlaySession } = await import('/modules/play-engine.js');

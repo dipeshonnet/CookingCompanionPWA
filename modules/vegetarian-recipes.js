@@ -1,6 +1,7 @@
 // Original home-cooking instructions. Reference checks and selection notes:
 // docs/RECIPE-COLLECTION.md. Quantities serve two unless explicitly overridden.
 import { inferActionType } from './action-types.js';
+import { RECIPE_PHOTOS } from './recipe-photos.js';
 
 const prep = (title, item, seconds, action) => ({ title, item, duration: seconds, action, stepType: 'Prep', attention: 'active' });
 const cook = (title, item, seconds, action) => ({ title, item, duration: seconds, action, stepType: 'Cook', attention: 'active' });
@@ -20,6 +21,7 @@ function recipe(title, category, cuisine, description, list, actions, difficulty
     description, difficulty, servings, cookCount: 1, stepSchemaVersion: 2, rating: 0,
     image: title === 'Idli' ? 'assets/recipes/idli.jpg' : 'assets/logo.png',
     ...(title === 'Idli' ? { imageCredit: 'Idli - South Indian Snack by Zeel Patel, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Source: https://commons.wikimedia.org/wiki/File:Idli_-_South_Indian_Snack.JPG. Resized; display cropped to fit.' } : {}),
+    ...RECIPE_PHOTOS[title],
     tags: ['Vegetarian', 'Egg-Free', cuisine, ...(!items.some(item => dairy.test(item.name)) ? ['Vegan'] : [])],
     ingredients: items, steps,
     prepTime: Math.ceil(steps.filter(s => s.stepType === 'Prep').reduce((n, s) => n + s.duration, 0) / 60),

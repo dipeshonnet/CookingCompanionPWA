@@ -16,6 +16,7 @@ try {
   browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
   const page = await context.newPage(), errors = [], dialogs = [];
+  await page.clock.install({ time: new Date('2026-10-26T12:00:00') });
   let dismissConfirm = false;
   page.on('pageerror', error => errors.push(error.message));
   page.on('dialog', async dialog => {
@@ -44,7 +45,7 @@ try {
   check('local image paths do not block browser form validation', await effectiveTitle('veg-idli') === 'My Soft Idli');
   await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
-    STATE.scheduledMeals = { 'Monday-Lunch': 'handpicked-poha' };
+    STATE.scheduledMeals = { '2026-10-28-Lunch': 'handpicked-poha' };
     STATE.user.likedRecipeIds = ['handpicked-poha'];
     (await import('/modules/storage.js')).saveStateToStorage();
   });
@@ -161,7 +162,7 @@ try {
   await page.locator('#modal-btn-revert-recipe').click();
   check('offline revert restores the default without losing likes or meal links', await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
-    return (await import('/modules/recipe-domain.js')).getRecipeById('handpicked-poha').title === 'Poha' && STATE.user.likedRecipeIds.includes('handpicked-poha') && STATE.scheduledMeals['Monday-Lunch'].recipeId === 'handpicked-poha';
+    return (await import('/modules/recipe-domain.js')).getRecipeById('handpicked-poha').title === 'Poha' && STATE.user.likedRecipeIds.includes('handpicked-poha') && STATE.scheduledMeals['2026-10-28-Lunch'].recipeId === 'handpicked-poha';
   }));
   await context.setOffline(false);
   await page.setViewportSize({ width: 390, height: 844 });

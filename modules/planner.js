@@ -7,24 +7,62 @@ import { saveStateToStorage } from './storage.js';
 import { buildShoppingList } from './units.js';
 import { escapeHtml } from './utils.js';
 import { ingredientLabel } from './ingredient-images.js';
+import { WEEK_DAYS, MEAL_SLOTS, dateKey, parseDate, weekStart, weekDates, migrateWeeklyMeals, futureMeals } from './planner-calendar.js';
 
-const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const MEAL_SLOTS = ["Breakfast", "Lunch", "Dinner"];
+let selectedWeek = null;
+
+export function setupPlannerCalendar() {
+  document.getElementById('planner-week-date').addEventListener('change', event => {
+    const date = parseDate(event.target.value);
+    if (date) selectedWeek = weekStart(date);
+    renderPlannerView();
+  });
+  document.querySelectorAll('[data-planner-week]').forEach(button => button.addEventListener('click', () => {
+    const offset = button.dataset.plannerWeek;
+    if (offset === 'today') selectedWeek = weekStart();
+    else {
+      selectedWeek = weekStart(selectedWeek || new Date());
+      selectedWeek.setDate(selectedWeek.getDate() + Number(offset) * 7);
+    }
+    renderPlannerView();
+  }));
+}
 
 export function renderPlannerView() {
+  const migrated = migrateWeeklyMeals(STATE.scheduledMeals);
+  if (JSON.stringify(migrated) !== JSON.stringify(STATE.scheduledMeals)) {
+    STATE.scheduledMeals = migrated;
+    saveStateToStorage();
+  }
+  const dates = weekDates(selectedWeek || new Date());
+  const today = dateKey();
+  document.getElementById('planner-week-date').value = dateKey(dates[0]);
+  const formatDate = date => date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  document.getElementById('planner-week-range').textContent = `${formatDate(dates[0])} – ${formatDate(dates[6])}`;
   const grid = document.getElementById("meal-planner-week-grid");
   grid.innerHTML = "";
 
-  WEEK_DAYS.forEach(day => {
+  const labels = document.createElement('div');
+  labels.className = 'planner-row-labels';
+  labels.setAttribute('aria-hidden', 'true');
+  labels.innerHTML = '<span class="planner-calendar-corner">Meal</span>' + MEAL_SLOTS.map(slot => `<span class="planner-row-label">${slot}</span>`).join('');
+  grid.appendChild(labels);
+
+  WEEK_DAYS.forEach((day, index) => {
+    const date = dateKey(dates[index]);
     const dayCard = document.createElement("div");
     dayCard.className = "planner-day-card";
-    dayCard.innerHTML = `<span class="planner-day-name">${day}</span>`;
+    dayCard.classList.toggle('planner-day-past', date < today);
+    dayCard.classList.toggle('planner-day-today', date === today);
+    dayCard.setAttribute('role', 'group');
+    dayCard.setAttribute('aria-label', `${day}, ${formatDate(dates[index])}`);
+    dayCard.innerHTML = `<span class="planner-day-name" ${date === today ? 'aria-current="date"' : ''}>${day}<small>${formatDate(dates[index])}${date === today ? ' · Today' : ''}</small></span>`;
 
     MEAL_SLOTS.forEach(slot => {
       const slotDiv = document.createElement("div");
       slotDiv.className = "planner-slot";
       
-      const key = `${day}-${slot}`;
+      const key = `${date}-${slot}`;
       const selection = normalizeMealSelection(STATE.scheduledMeals[key]);
       const scheduledRecipeId = selection?.recipeId;
       
@@ -41,7 +79,8 @@ export function renderPlannerView() {
         <span class="planner-slot-label">${slot}</span>
         ${slotBody}
       `;
-      slotDiv.querySelector('button').addEventListener('click', () => openScheduleDropdown(day, slot));
+      slotDiv.querySelector('button').addEventListener('click', () => openScheduleDropdown(date, slot));
+      slotDiv.querySelector('button').setAttribute('aria-label', `${day}, ${formatDate(dates[index])}, ${slot}: ${scheduledRecipeId ? 'Edit ' + slotDiv.querySelector('button').textContent : 'Add meal'}`);
       dayCard.appendChild(slotDiv);
     });
 
@@ -52,7 +91,10 @@ export function renderPlannerView() {
 }
 
 export function openScheduleDropdown(day, slot) {
+  if (WEEK_DAYS.includes(day)) day = dateKey(weekDates(selectedWeek || new Date())[WEEK_DAYS.indexOf(day)]);
   STATE.currentSelectedSlot = `${day}-${slot}`;
+  const date = parseDate(day);
+  document.getElementById('schedule-meal-context').textContent = `${date ? date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : day} · ${slot}`;
   
   const dropdown = document.getElementById("select-meal-recipe-dropdown");
   dropdown.innerHTML = "";
@@ -116,9 +158,9 @@ export function renderPlannerShoppingList() {
   listContainer.innerHTML = "";
 
   // Collect scheduled recipes
-  const activeIds = Object.values(STATE.scheduledMeals);
+  const activeIds = futureMeals(STATE.scheduledMeals);
   if (activeIds.length === 0) {
-    listContainer.innerHTML = `<p class="empty-state" style="color: var(--text-dim); text-align: center; padding: 20px;">No meals scheduled. Your shopping list is empty!</p>`;
+    listContainer.innerHTML = `<p class="empty-state" style="color: var(--text-dim); text-align: center; padding: 20px;">No meals planned after today. Add a future meal to build your shopping list.</p>`;
     return;
   }
 

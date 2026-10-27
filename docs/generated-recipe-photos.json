@@ -1,0 +1,38 @@
+{
+  "veg-spinach-kootu": {
+    "title": "Spinach Kootu",
+    "image": "assets/recipes/spinach-kootu.webp",
+    "prompt": "Use case: photorealistic-natural. Create a realistic food photograph for a home-cooking recipe app: South Indian spinach kootu, chopped cooked spinach combined with soft yellow moong dal and ground coconut, thick spoonable rustic green and yellow stew, tempered black mustard seeds and curry leaves on top, in a small ceramic bowl on a simple wooden table. Main dish fills the center of a horizontal 4:3 frame, angled overhead, soft daylight, natural textures, accurate appetizing humble home cooking. No paneer, no whole gotu kola leaves, no meat, no text, no watermark, no logos.",
+    "generator": "Built-in image generation"
+  },
+  "veg-palak-corn-curry": {
+    "title": "Palak Corn Curry",
+    "image": "assets/recipes/palak-corn-curry.webp",
+    "prompt": "Use case: photorealistic-natural. Create a realistic food photograph for a home-cooking recipe app: Indian palak corn curry, bright yellow sweetcorn kernels in a smooth creamy cooked spinach green gravy with cumin and a light cream swirl, in a shallow ceramic serving bowl on a simple wooden table. Clearly visible corn kernels, no paneer cubes. Main dish fills the center of horizontal 4:3 composition, angled overhead, soft natural daylight, appetizing authentic home cooking with realistic texture. No meat, no text, no watermark, no logos.",
+    "generator": "Built-in image generation"
+  },
+  "veg-paneer-paratha": {
+    "title": "Paneer Paratha",
+    "image": "assets/recipes/paneer-paratha.webp",
+    "prompt": "Use case: photorealistic-natural. Asset type: finished-dish recipe photograph. Subject: two golden whole-wheat Indian flatbreads stuffed with crumbled paneer cottage cheese, fresh coriander, cumin and mild chilli. One paratha torn open clearly shows soft white crumbled paneer filling. Brown blistered tawa spots, flat thin stuffed bread, on a ceramic plate. No curry and no plain layered parotta. Composition: main dish centered and fully visible in horizontal 4:3 image with a little breathing room for a recipe card crop, three-quarter overhead view, simple wooden table, soft natural daylight, authentic appetizing home cooking with realistic texture. No text, watermark, logos or people.",
+    "generator": "Built-in image generation"
+  },
+  "veg-moong-dal-chilla": {
+    "title": "Moong Dal Chilla",
+    "image": "assets/recipes/moong-dal-chilla.webp",
+    "prompt": "Use case: photorealistic-natural. Asset type: finished-dish recipe photograph. Subject: thin savoury Indian crepes made from soaked ground yellow moong dal with finely chopped onion and fresh coriander, golden yellow surface with light brown tawa spots. Two crepes folded loosely on a ceramic plate, thin edges visible. No thick omelet, no eggs, no thick fluffy pancake. Composition: main dish centered and fully visible in horizontal 4:3 image with a little breathing room for a recipe card crop, three-quarter overhead view, simple wooden table, soft natural daylight, authentic appetizing home cooking with realistic texture. No text, watermark, logos or people.",
+    "generator": "Built-in image generation"
+  },
+  "veg-dal-khichdi": {
+    "title": "Dal Khichdi",
+    "image": "assets/recipes/dal-khichdi.webp",
+    "prompt": "Use case: photorealistic-natural. Asset type: finished-dish recipe photograph. Subject: a bowl of simple soft yellow Indian moong dal khichdi, rice and split yellow mung lentils cooked together until very soft and porridge-like, mild turmeric, ghee and toasted cumin seeds. Humble creamy soft yellow texture with discernible rice grains, ceramic bowl. No egg, no vegetables, no meat. Composition: main dish centered and fully visible in horizontal 4:3 image with a little breathing room for a recipe card crop, three-quarter overhead view, simple wooden table, soft natural daylight, authentic appetizing home cooking with realistic texture. No text, watermark, logos or people.",
+    "generator": "Built-in image generation"
+  },
+  "veg-vegetable-hakka-noodles": {
+    "title": "Vegetable Hakka Noodles",
+    "image": "assets/recipes/vegetable-hakka-noodles.webp",
+    "prompt": "Use case: photorealistic-natural. Asset type: finished-dish recipe photograph. Subject: a bowl of Indian Chinese vegetable Hakka noodles: thin egg-free wheat noodles stir-fried with julienned carrot, bell pepper, cabbage, spring onions and garlic, lightly coated in soy sauce, vegetables still crisp. Realistic noodles with gentle wok sheen. No egg, meat, shrimp or mushrooms. Composition: main dish centered and fully visible in horizontal 4:3 image with a little breathing room for a recipe card crop, three-quarter overhead view, simple wooden table, soft natural daylight, authentic appetizing home cooking with realistic texture. No text, watermark, logos or people.",
+    "generator": "Built-in image generation"
+  }
+}

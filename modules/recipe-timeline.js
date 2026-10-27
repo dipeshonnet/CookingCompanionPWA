@@ -74,7 +74,7 @@ export function renderRecipeTimeline(target, recipe, options = {}) {
           ${options.session ? `<div class="timeline-now-track" aria-hidden="true"><div class="timeline-now" style="left:${Math.min(1, schedule.elapsed / total) * 100}%"><span>Now</span></div></div>` : ''}
         </div>
       </div>
-      <p class="timeline-hint" id="${uid}-hint">Select an action to see its timing and prerequisites. Scroll to explore. Estimates follow your experience setting.</p>
+      <p class="timeline-hint" id="${uid}-hint">Select an action to see its timing and prerequisites. Scroll to explore. Estimates follow your experience setting. Parallel cooking steps can make elapsed time shorter than the total prep plus cook time.</p>
       <p class="timeline-selection" role="status"></p>
       <details class="timeline-dependencies" ${detailsOpen ? 'open' : ''}><summary>Action prerequisites and planned times</summary><ol>${schedule.steps.map(step => `<li><strong>${escapeHtml(step.title)}</strong> (${formatTimelineTime(step.start)}–${formatTimelineTime(step.end)}): ${escapeHtml(dependencyText(step))}</li>`).join('')}</ol></details>`;
     const scroll = element.querySelector('.timeline-scroll');

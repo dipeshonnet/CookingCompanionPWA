@@ -195,6 +195,10 @@ test('database adapter skips identical saves, replaces meals and enforces accoun
   assert.deepEqual((await backend.loadUserState('a')).cooking, cooking);
   await backend.saveUserState('a', payload);
   assert.equal(mock.records.has('users/a/app/cooking'), false);
+  const dated = { ...payload, scheduledMeals: { '2026-10-28-Lunch': { recipeId: 'demo', portions: 3 }, '2026-11-04-Dinner': { recipeId: 'demo', portions: 2 } } };
+  await backend.saveUserState('a', dated);
+  assert.deepEqual((await backend.loadUserState('a')).scheduledMeals, dated.scheduledMeals);
+  assert.equal(mock.records.has('users/a/meals/Monday'), false);
 });
 
 test('backend batches large collections and commits migration marker last', async () => {

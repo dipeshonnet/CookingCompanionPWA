@@ -16,6 +16,7 @@ try {
   browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
   const page = await context.newPage(), errors = [];
+  await page.clock.install({ time: new Date('2026-10-26T12:00:00') });
   page.on('pageerror', error => errors.push(error.message));
   page.on('dialog', dialog => dialog.accept());
   await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -77,21 +78,21 @@ try {
   await page.screenshot({ path: 'output/playwright/play-portions-desktop.png', fullPage: true });
   await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
-    STATE.pantry = []; STATE.scheduledMeals = { 'Monday-Breakfast': 'handpicked-upma' };
+    STATE.pantry = []; STATE.scheduledMeals = { 'Wednesday-Breakfast': 'handpicked-upma' };
     (await import('/modules/storage.js')).saveStateToStorage();
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.locator('[data-view="planner"]').click();
   check('legacy planned meals migrate to one person', await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
-    return STATE.scheduledMeals['Monday-Breakfast'].portions === 1 && document.getElementById('meal-planner-week-grid').textContent.includes('1 person');
+    return STATE.scheduledMeals['2026-10-28-Breakfast'].portions === 1 && document.getElementById('meal-planner-week-grid').textContent.includes('1 person');
   }));
-  const monday = page.locator('.planner-day-card').first().locator('.planner-slot').first();
+  const monday = page.locator('.planner-day-card').nth(2).locator('.planner-slot').first();
   await monday.locator('button').click();
   check('editing a planned meal restores portions', await page.locator('#schedule-portions').inputValue() === '1');
   await page.locator('#schedule-portions').fill('4');
   await page.locator('#btn-select-meal-save').click();
-  const tuesday = page.locator('.planner-day-card').nth(1).locator('.planner-slot').first();
+  const tuesday = page.locator('.planner-day-card').nth(3).locator('.planner-slot').first();
   await tuesday.locator('button').click();
   check('new planned meals default to one', await page.locator('#schedule-portions').inputValue() === '1');
   await page.locator('#select-meal-recipe-dropdown').selectOption('handpicked-upma');
@@ -99,7 +100,7 @@ try {
   check('shopping sums separate occurrences using their portions', await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
     const onion = [...document.querySelectorAll('#planner-shopping-list li')].find(row => row.textContent.includes('Onion'));
-    return STATE.scheduledMeals['Monday-Breakfast'].portions === 4 && STATE.scheduledMeals['Tuesday-Breakfast'].portions === 1 && onion.textContent.includes('2½ pieces');
+    return STATE.scheduledMeals['2026-10-28-Breakfast'].portions === 4 && STATE.scheduledMeals['2026-10-29-Breakfast'].portions === 1 && onion.textContent.includes('2½ pieces');
   }));
   await page.evaluate(async () => {
     const { STATE } = await import('/modules/state.js');
